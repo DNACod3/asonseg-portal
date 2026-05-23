@@ -1,0 +1,2392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASONSEG - Portal de Vagas | Paroquia Nsa. Sra. de Guadalupe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Nunito:ital,wght@0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+  <style>
+    /* ========== DESIGN SYSTEM ========== */
+    :root {
+      --color-primary: #2563EB;
+      --color-secondary: #3B82F6;
+      --color-cta: #F97316;
+      --color-cta-hover: #EA580C;
+      --color-background: #F8FAFC;
+      --color-text: #1E293B;
+      --color-text-light: #64748B;
+      --color-border: #E2E8F0;
+      --color-white: #FFFFFF;
+      --color-success: #10B981;
+      --color-danger: #EF4444;
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+      --space-2xl: 48px;
+      --space-3xl: 64px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+      --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 8px 10px rgba(0,0,0,0.04);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    /* ========== DARK MODE ========== */
+    [data-theme="dark"] {
+      --color-primary: #3B82F6;
+      --color-secondary: #60A5FA;
+      --color-cta: #FB923C;
+      --color-cta-hover: #F97316;
+      --color-background: #0F172A;
+      --color-text: #F1F5F9;
+      --color-text-light: #94A3B8;
+      --color-border: #334155;
+      --color-white: #1E293B;
+      --color-success: #34D399;
+      --color-danger: #F87171;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
+      --shadow-xl: 0 20px 25px rgba(0,0,0,0.5), 0 8px 10px rgba(0,0,0,0.3);
+    }
+    [data-theme="dark"] .header {
+      background: rgba(15,23,42,0.95);
+      border-bottom-color: var(--color-border);
+    }
+    [data-theme="dark"] .hero {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #1A1A2E 100%);
+    }
+    [data-theme="dark"] .hero::before {
+      background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
+    }
+    [data-theme="dark"] .personas { background: var(--color-background); }
+    [data-theme="dark"] .modal { background: #1E293B; }
+    [data-theme="dark"] .modal-overlay { background: rgba(0,0,0,0.7); }
+    [data-theme="dark"] .lgpd-box { background: #1A2332; }
+    [data-theme="dark"] .file-upload { border-color: var(--color-border); }
+    [data-theme="dark"] .file-upload:hover { background: #1A2332; }
+    [data-theme="dark"] .input-group input,
+    [data-theme="dark"] .input-group select,
+    [data-theme="dark"] .input-group textarea {
+      background: #0F172A; color: var(--color-text); border-color: var(--color-border);
+    }
+    [data-theme="dark"] .input-group input:focus,
+    [data-theme="dark"] .input-group select:focus,
+    [data-theme="dark"] .input-group textarea:focus {
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    [data-theme="dark"] .search-bar input {
+      background: #0F172A; color: var(--color-text); border-color: var(--color-border);
+    }
+    [data-theme="dark"] .search-bar input:focus {
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    [data-theme="dark"] .form-section-title { border-bottom-color: #334155; }
+    [data-theme="dark"] .sidebar-info-item { border-bottom-color: #334155; }
+    [data-theme="dark"] .badge-blue { background: rgba(59,130,246,0.15); color: #60A5FA; }
+    [data-theme="dark"] .badge-orange { background: rgba(251,146,60,0.15); color: #FB923C; }
+    [data-theme="dark"] .badge-green { background: rgba(52,211,153,0.15); color: #34D399; }
+    [data-theme="dark"] .badge-gray { background: rgba(148,163,184,0.1); color: #94A3B8; }
+    [data-theme="dark"] .footer { background: #020617; }
+    [data-theme="dark"] .footer-grid { border-bottom-color: #1E293B; }
+    [data-theme="dark"] .candidate-avatar {
+      background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.1));
+    }
+    [data-theme="dark"] .step-icon-blue { background: rgba(59,130,246,0.15); color: #60A5FA; }
+    [data-theme="dark"] .step-icon-orange { background: rgba(251,146,60,0.15); color: #FB923C; }
+    [data-theme="dark"] .step-icon-green { background: rgba(52,211,153,0.15); color: #34D399; }
+    [data-theme="dark"] .persona-features li svg { color: var(--color-success); }
+    [data-theme="dark"] .tabs { border-bottom-color: var(--color-border); }
+    [data-theme="dark"] .cta-section { background: linear-gradient(135deg, #1E3A5F, #0F172A) !important; }
+    [data-theme="dark"] .cta-btn-light { background: var(--color-primary) !important; color: white !important; }
+    [data-theme="dark"] .cta-btn-ghost { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.2) !important; }
+    [data-theme="dark"] .vaga-detail-section p { color: var(--color-text-light); }
+    [data-theme="dark"] .btn-secondary {
+      color: var(--color-secondary); border-color: var(--color-secondary);
+    }
+    [data-theme="dark"] .btn-secondary:hover { background: var(--color-secondary); color: #0F172A; }
+    [data-theme="dark"] .btn-outline { border-color: var(--color-border); color: var(--color-text-light); }
+    [data-theme="dark"] .btn-outline:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
+
+    /* Theme toggle */
+    .theme-toggle {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1.5px solid var(--color-border);
+      background: var(--color-white);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 200ms ease;
+      flex-shrink: 0;
+    }
+    .theme-toggle:hover { border-color: var(--color-primary); }
+    .theme-toggle svg { width: 18px; height: 18px; color: var(--color-text); transition: color 200ms; }
+    .theme-toggle .icon-moon { display: block; }
+    .theme-toggle .icon-sun { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--color-text);
+      background: var(--color-background);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { font-family: 'DM Sans', sans-serif; }
+    img { max-width: 100%; }
+
+    /* ========== UTILITY ========== */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 var(--space-lg); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      padding: 12px 24px; border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 0.95rem;
+      cursor: pointer; border: none;
+      transition: all 200ms ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary { background: var(--color-cta); color: white; }
+    .btn-primary:hover { background: var(--color-cta-hover); box-shadow: var(--shadow-md); }
+
+    .btn-secondary {
+      background: transparent; color: var(--color-primary);
+      border: 2px solid var(--color-primary);
+    }
+    .btn-secondary:hover { background: var(--color-primary); color: white; }
+
+    .btn-outline {
+      background: transparent; color: var(--color-text);
+      border: 1.5px solid var(--color-border);
+    }
+    .btn-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+    .btn-lg { padding: 16px 32px; font-size: 1.05rem; }
+
+    .badge {
+      display: inline-block; padding: 4px 12px;
+      border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-blue { background: #DBEAFE; color: var(--color-primary); }
+    .badge-orange { background: #FFEDD5; color: #C2410C; }
+    .badge-green { background: #D1FAE5; color: #065F46; }
+    .badge-gray { background: #F1F5F9; color: var(--color-text-light); }
+
+    .input-group { margin-bottom: var(--space-md); }
+    .input-group label {
+      display: block; font-weight: 500; font-size: 0.875rem;
+      margin-bottom: var(--space-xs); color: var(--color-text);
+    }
+    .input-group input, .input-group select, .input-group textarea {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm); font-size: 0.95rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 200ms ease;
+      background: var(--color-white);
+      color: var(--color-text);
+    }
+    .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+      outline: none; border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .input-group textarea { resize: vertical; min-height: 100px; }
+
+    .card {
+      background: var(--color-white);
+      border-radius: var(--radius-md); padding: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      transition: all 200ms ease;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ========== HEADER ========== */
+    .header {
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-border);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+      background: rgba(255,255,255,0.95);
+    }
+    .header .container {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 72px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: var(--space-sm);
+      cursor: pointer;
+    }
+    .logo-icon {
+      width: 40px; height: 40px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 900; font-size: 1.2rem;
+      font-family: 'Nunito', sans-serif;
+    }
+    .logo-text { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--color-primary); }
+    .logo-sub { font-size: 0.65rem; color: var(--color-text-light); font-weight: 500; display: block; margin-top: -2px; }
+
+    .nav { display: flex; align-items: center; gap: var(--space-xl); }
+    .nav a {
+      font-size: 0.9rem; font-weight: 500; color: var(--color-text-light);
+      cursor: pointer; transition: color 200ms;
+      position: relative;
+    }
+    .nav a:hover, .nav a.active { color: var(--color-primary); }
+    .nav a.active::after {
+      content: ''; position: absolute; bottom: -4px; left: 0; right: 0;
+      height: 2px; background: var(--color-primary); border-radius: 1px;
+    }
+    .nav-actions { display: flex; align-items: center; gap: var(--space-sm); }
+
+    .mobile-menu { display: none; cursor: pointer; background: none; border: none; padding: 8px; }
+    .mobile-menu svg { width: 24px; height: 24px; color: var(--color-text); }
+
+    /* ========== HERO ========== */
+    .hero {
+      padding: var(--space-3xl) 0;
+      background: linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 50%, #FFF7ED 100%);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -50%; right: -20%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero .container {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: var(--space-3xl); align-items: center;
+      position: relative;
+    }
+    .hero-content h1 {
+      font-size: clamp(2.2rem, 4vw, 3.2rem);
+      color: var(--color-text);
+      margin-bottom: var(--space-md);
+      letter-spacing: -0.02em;
+    }
+    .hero-content h1 span { color: var(--color-primary); }
+    .hero-content p {
+      font-size: 1.1rem; color: var(--color-text-light);
+      margin-bottom: var(--space-xl); max-width: 480px;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+    .hero-stats {
+      display: flex; gap: var(--space-xl); margin-top: var(--space-xl);
+      padding-top: var(--space-xl); border-top: 1px solid var(--color-border);
+    }
+    .hero-stat h3 { font-size: 1.8rem; color: var(--color-primary); }
+    .hero-stat p { font-size: 0.8rem; color: var(--color-text-light); font-weight: 500; }
+
+    .hero-visual {
+      display: flex; justify-content: center; align-items: center;
+      position: relative;
+    }
+    .hero-card-stack { position: relative; width: 100%; max-width: 420px; }
+    .hero-card-stack .card {
+      padding: var(--space-lg); border-radius: var(--radius-lg);
+    }
+    .hero-card-stack .card:first-child {
+      position: relative; z-index: 2;
+      box-shadow: var(--shadow-lg);
+    }
+    .hero-card-stack .card:nth-child(2) {
+      position: absolute; top: 20px; left: 20px; right: -20px;
+      z-index: 1; opacity: 0.6;
+      transform: rotate(2deg);
+    }
+    .job-card-mini { display: flex; gap: var(--space-md); align-items: flex-start; }
+    .job-card-mini-icon {
+      width: 48px; height: 48px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; flex-shrink: 0;
+    }
+    .job-card-mini h4 { font-size: 1rem; margin-bottom: 2px; }
+    .job-card-mini p { font-size: 0.8rem; color: var(--color-text-light); margin-bottom: var(--space-sm); }
+    .job-card-mini-tags { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+
+    /* ========== HOW IT WORKS ========== */
+    .how-it-works { padding: var(--space-3xl) 0; }
+    .section-header { text-align: center; margin-bottom: var(--space-2xl); }
+    .section-header h2 {
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      margin-bottom: var(--space-sm);
+    }
+    .section-header p { color: var(--color-text-light); max-width: 560px; margin: 0 auto; font-size: 1.05rem; }
+    .section-header .overline {
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--color-cta);
+      margin-bottom: var(--space-sm); display: block;
+    }
+
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-xl);
+    }
+    .step-card { text-align: center; padding: var(--space-xl); }
+    .step-icon {
+      width: 64px; height: 64px; border-radius: var(--radius-lg);
+      margin: 0 auto var(--space-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+    }
+    .step-icon-blue { background: #DBEAFE; color: var(--color-primary); }
+    .step-icon-orange { background: #FFEDD5; color: var(--color-cta); }
+    .step-icon-green { background: #D1FAE5; color: #059669; }
+    .step-card h3 { font-size: 1.15rem; margin-bottom: var(--space-sm); }
+    .step-card p { font-size: 0.9rem; color: var(--color-text-light); line-height: 1.6; }
+    .step-number {
+      font-family: 'Nunito', sans-serif; font-weight: 900;
+      font-size: 0.75rem; color: var(--color-text-light);
+      margin-bottom: var(--space-sm); display: block;
+    }
+
+    /* ========== PERSONAS SECTION ========== */
+    .personas { padding: var(--space-3xl) 0; background: var(--color-white); }
+    .personas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); }
+    .persona-card {
+      padding: var(--space-xl); border-radius: var(--radius-lg);
+      border: 2px solid var(--color-border);
+      transition: all 300ms ease; cursor: pointer;
+    }
+    .persona-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-lg); }
+    .persona-card h3 { font-size: 1.4rem; margin-bottom: var(--space-sm); }
+    .persona-card p { color: var(--color-text-light); margin-bottom: var(--space-lg); line-height: 1.7; }
+    .persona-features { list-style: none; margin-bottom: var(--space-lg); }
+    .persona-features li {
+      display: flex; align-items: center; gap: var(--space-sm);
+      padding: var(--space-sm) 0; font-size: 0.9rem; color: var(--color-text);
+    }
+    .persona-features li svg { width: 20px; height: 20px; color: var(--color-success); flex-shrink: 0; }
+
+    /* ========== VAGAS LIST ========== */
+    .vagas-page { padding: var(--space-2xl) 0; }
+    .vagas-header {
+      margin-bottom: var(--space-xl);
+    }
+    .vagas-header h1 { font-size: 2rem; margin-bottom: var(--space-xs); }
+    .vagas-header p { color: var(--color-text-light); }
+
+    .vagas-layout { display: grid; grid-template-columns: 280px 1fr; gap: var(--space-xl); }
+
+    .filters-panel {
+      background: var(--color-white);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      border: 1px solid var(--color-border);
+      height: fit-content;
+      position: sticky; top: 90px;
+    }
+    .filters-panel h3 {
+      font-size: 1rem; margin-bottom: var(--space-md);
+      display: flex; align-items: center; gap: var(--space-sm);
+    }
+    .filter-section { margin-bottom: var(--space-lg); }
+    .filter-section h4 {
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-text-light);
+      margin-bottom: var(--space-sm);
+    }
+    .filter-option {
+      display: flex; align-items: center; gap: var(--space-sm);
+      padding: 6px 0; font-size: 0.9rem; cursor: pointer;
+    }
+    .filter-option input[type="checkbox"] {
+      width: 18px; height: 18px; accent-color: var(--color-primary);
+      cursor: pointer;
+    }
+
+    .search-bar {
+      display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg);
+    }
+    .search-bar input {
+      flex: 1; padding: 12px 16px;
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm); font-size: 0.95rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .search-bar input:focus {
+      outline: none; border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    .vagas-grid { display: flex; flex-direction: column; gap: var(--space-md); }
+
+    .vaga-card {
+      background: var(--color-white);
+      border-radius: var(--radius-md); padding: var(--space-lg);
+      border: 1px solid var(--color-border);
+      transition: all 200ms ease; cursor: pointer;
+      display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-lg);
+      align-items: flex-start;
+    }
+    .vaga-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    .vaga-icon {
+      width: 56px; height: 56px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0;
+    }
+    .vaga-info h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .vaga-company { font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--space-sm); }
+    .vaga-tags { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+    .vaga-meta {
+      display: flex; gap: var(--space-lg); font-size: 0.8rem; color: var(--color-text-light);
+    }
+    .vaga-meta span { display: flex; align-items: center; gap: 4px; }
+    .vaga-salary {
+      text-align: right; white-space: nowrap;
+    }
+    .vaga-salary .amount { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.2rem; color: var(--color-primary); }
+    .vaga-salary .period { font-size: 0.75rem; color: var(--color-text-light); }
+
+    /* ========== VAGA DETAIL ========== */
+    .vaga-detail { padding: var(--space-2xl) 0; }
+    .vaga-detail-layout { display: grid; grid-template-columns: 1fr 360px; gap: var(--space-xl); }
+    .vaga-detail-main { }
+    .vaga-detail-header {
+      display: flex; gap: var(--space-lg); align-items: flex-start;
+      margin-bottom: var(--space-xl);
+    }
+    .vaga-detail-header .vaga-icon { width: 72px; height: 72px; font-size: 2rem; }
+    .vaga-detail-header h1 { font-size: 1.8rem; margin-bottom: var(--space-xs); }
+    .vaga-detail-section { margin-bottom: var(--space-xl); }
+    .vaga-detail-section h3 {
+      font-size: 1.1rem; margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 2px solid var(--color-border);
+    }
+    .vaga-detail-section ul {
+      list-style: none; padding: 0;
+    }
+    .vaga-detail-section ul li {
+      padding: var(--space-sm) 0;
+      display: flex; align-items: flex-start; gap: var(--space-sm);
+      font-size: 0.95rem; color: var(--color-text);
+    }
+    .vaga-detail-section ul li::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--color-primary);
+      margin-top: 8px; flex-shrink: 0;
+    }
+    .vaga-detail-section p { font-size: 0.95rem; line-height: 1.7; color: #475569; }
+
+    .vaga-sidebar .card { margin-bottom: var(--space-md); }
+    .sidebar-company { text-align: center; }
+    .sidebar-company .vaga-icon { margin: 0 auto var(--space-md); width: 64px; height: 64px; font-size: 1.8rem; }
+    .sidebar-company h4 { font-size: 1.1rem; margin-bottom: var(--space-xs); }
+    .sidebar-company p { font-size: 0.85rem; color: var(--color-text-light); margin-bottom: var(--space-md); }
+
+    .sidebar-info { }
+    .sidebar-info-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--space-sm) 0;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 0.875rem;
+    }
+    .sidebar-info-item:last-child { border-bottom: none; }
+    .sidebar-info-item span:first-child { color: var(--color-text-light); }
+    .sidebar-info-item span:last-child { font-weight: 600; }
+
+    /* ========== FORMS ========== */
+    .form-page { padding: var(--space-2xl) 0; }
+    .form-container { max-width: 680px; margin: 0 auto; }
+    .form-header { text-align: center; margin-bottom: var(--space-xl); }
+    .form-header h1 { font-size: 2rem; margin-bottom: var(--space-sm); }
+    .form-header p { color: var(--color-text-light); }
+
+    .form-card {
+      background: var(--color-white);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--space-lg);
+    }
+    .form-section-title {
+      font-family: 'Nunito', sans-serif; font-weight: 700;
+      font-size: 1.1rem; color: var(--color-text);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 2px solid #F1F5F9;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); }
+
+    .file-upload {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    .file-upload:hover { border-color: var(--color-primary); background: #F8FAFF; }
+    .file-upload svg { width: 48px; height: 48px; color: var(--color-text-light); margin-bottom: var(--space-sm); }
+    .file-upload p { font-size: 0.9rem; color: var(--color-text-light); }
+    .file-upload .highlight { color: var(--color-primary); font-weight: 600; }
+
+    /* LGPD */
+    .lgpd-box {
+      background: #F8FAFC;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    .lgpd-box h4 {
+      font-size: 0.95rem; margin-bottom: var(--space-sm);
+      display: flex; align-items: center; gap: var(--space-sm);
+    }
+    .lgpd-box p { font-size: 0.8rem; color: var(--color-text-light); line-height: 1.7; margin-bottom: var(--space-md); }
+    .lgpd-check {
+      display: flex; align-items: flex-start; gap: var(--space-sm);
+      cursor: pointer;
+    }
+    .lgpd-check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--color-primary); cursor: pointer; }
+    .lgpd-check span { font-size: 0.85rem; line-height: 1.5; }
+    .lgpd-check a { color: var(--color-primary); font-weight: 600; }
+
+    /* ========== CANDIDATE SEARCH ========== */
+    .candidate-card {
+      background: var(--color-white);
+      border-radius: var(--radius-md); padding: var(--space-lg);
+      border: 1px solid var(--color-border);
+      transition: all 200ms ease;
+      display: flex; gap: var(--space-lg); align-items: flex-start;
+    }
+    .candidate-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-md);
+    }
+    .candidate-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #DBEAFE, #EFF6FF);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Nunito', sans-serif; font-weight: 800;
+      color: var(--color-primary); font-size: 1.2rem; flex-shrink: 0;
+    }
+    .candidate-info h3 { font-size: 1.05rem; margin-bottom: 2px; }
+    .candidate-info .role { font-size: 0.85rem; color: var(--color-text-light); margin-bottom: var(--space-sm); }
+    .candidate-skills { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+
+    /* ========== FOOTER ========== */
+    .footer {
+      background: var(--color-text);
+      color: #CBD5E1;
+      padding: var(--space-2xl) 0 var(--space-lg);
+    }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      gap: var(--space-xl);
+      margin-bottom: var(--space-xl);
+      padding-bottom: var(--space-xl);
+      border-bottom: 1px solid #334155;
+    }
+    .footer-brand .logo-text { color: white; }
+    .footer-brand p { font-size: 0.85rem; margin-top: var(--space-sm); line-height: 1.7; }
+    .footer-col h4 {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: white;
+      margin-bottom: var(--space-md);
+    }
+    .footer-col a {
+      display: block; font-size: 0.875rem; padding: 4px 0;
+      color: #94A3B8; cursor: pointer; transition: color 200ms;
+    }
+    .footer-col a:hover { color: white; }
+    .footer-bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.8rem; color: #64748B;
+    }
+
+    /* ========== MODAL ========== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--color-white);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      box-shadow: var(--shadow-xl);
+      max-width: 540px; width: 90%;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .modal h2 { font-size: 1.3rem; margin-bottom: var(--space-md); }
+    .modal p { font-size: 0.9rem; color: var(--color-text-light); line-height: 1.7; margin-bottom: var(--space-md); }
+    .modal-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-lg); }
+
+    /* ========== TOAST ========== */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--color-text); color: white;
+      padding: 16px 24px; border-radius: var(--radius-sm);
+      font-size: 0.9rem; font-weight: 500;
+      box-shadow: var(--shadow-xl);
+      transform: translateY(100px); opacity: 0;
+      transition: all 300ms ease; z-index: 300;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #059669; }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 1024px) {
+      .hero .container { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .vagas-layout { grid-template-columns: 1fr; }
+      .filters-panel { position: static; }
+      .vaga-detail-layout { grid-template-columns: 1fr; }
+      .personas-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .nav { display: none; }
+      .nav-actions { display: none; }
+      .mobile-menu { display: block; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .hero-stats { flex-direction: column; gap: var(--space-md); }
+      .hero { padding: var(--space-2xl) 0; }
+      .vaga-card { grid-template-columns: 1fr; }
+      .vaga-salary { text-align: left; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; gap: var(--space-sm); text-align: center; }
+    }
+
+    /* ========== ANIMATIONS ========== */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* ========== BACK BUTTON ========== */
+    .back-link {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      font-size: 0.9rem; color: var(--color-text-light);
+      margin-bottom: var(--space-lg); cursor: pointer;
+      transition: color 200ms;
+    }
+    .back-link:hover { color: var(--color-primary); }
+
+    /* tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: var(--space-xl); border-bottom: 2px solid var(--color-border); }
+    .tab {
+      padding: var(--space-md) var(--space-lg);
+      font-weight: 600; font-size: 0.9rem;
+      color: var(--color-text-light);
+      cursor: pointer; border: none; background: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px; transition: all 200ms;
+    }
+    .tab:hover { color: var(--color-text); }
+    .tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+    .results-count { font-size: 0.9rem; color: var(--color-text-light); margin-bottom: var(--space-md); }
+    .results-count strong { color: var(--color-text); }
+
+    /* ========== SERVICOS ========== */
+    .servico-card {
+      background: var(--color-white);
+      border-radius: var(--radius-md); padding: var(--space-lg);
+      border: 1px solid var(--color-border);
+      transition: all 200ms ease; cursor: pointer;
+      display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-lg);
+      align-items: flex-start;
+    }
+    .servico-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    .servico-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Nunito', sans-serif; font-weight: 800;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .servico-info h3 { font-size: 1.1rem; margin-bottom: 2px; }
+    .servico-provider { font-size: 0.85rem; color: var(--color-text-light); margin-bottom: var(--space-sm); }
+    .servico-provider .provider-type {
+      display: inline-block; padding: 1px 8px; border-radius: 10px;
+      font-size: 0.7rem; font-weight: 600; margin-left: 4px;
+    }
+    .provider-pf { background: #FEF3C7; color: #92400E; }
+    .provider-mei { background: #D1FAE5; color: #065F46; }
+    .provider-pj { background: #DBEAFE; color: #1E40AF; }
+    [data-theme="dark"] .provider-pf { background: rgba(254,243,199,0.15); color: #FCD34D; }
+    [data-theme="dark"] .provider-mei { background: rgba(52,211,153,0.15); color: #34D399; }
+    [data-theme="dark"] .provider-pj { background: rgba(59,130,246,0.15); color: #60A5FA; }
+    .servico-price {
+      text-align: right; white-space: nowrap;
+    }
+    .servico-price .amount { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--color-cta); }
+    .servico-price .unit { font-size: 0.7rem; color: var(--color-text-light); }
+    .star-rating { display: flex; align-items: center; gap: 2px; margin-bottom: var(--space-xs); }
+    .star-rating svg { width: 14px; height: 14px; }
+    .star-rating .filled { color: #F59E0B; fill: #F59E0B; }
+    .star-rating .empty { color: var(--color-border); }
+    .star-rating span { font-size: 0.75rem; color: var(--color-text-light); margin-left: 4px; }
+
+    .disclaimer-box {
+      background: #FFF7ED; border: 1px solid #FED7AA; border-radius: var(--radius-md);
+      padding: var(--space-lg); margin-bottom: var(--space-lg);
+    }
+    .disclaimer-box h4 {
+      font-size: 0.95rem; margin-bottom: var(--space-sm); color: #9A3412;
+      display: flex; align-items: center; gap: var(--space-sm);
+    }
+    .disclaimer-box p { font-size: 0.8rem; color: #78350F; line-height: 1.7; margin-bottom: var(--space-sm); }
+    .disclaimer-box p:last-child { margin-bottom: 0; }
+    [data-theme="dark"] .disclaimer-box { background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.2); }
+    [data-theme="dark"] .disclaimer-box h4 { color: #FB923C; }
+    [data-theme="dark"] .disclaimer-box p { color: #FDBA74; }
+
+    .servico-detail-gallery {
+      display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); overflow-x: auto;
+    }
+    .gallery-placeholder {
+      width: 200px; height: 140px; border-radius: var(--radius-sm);
+      background: var(--color-border); display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; color: var(--color-text-light);
+      font-size: 0.8rem;
+    }
+    .servicos-home-section { padding: var(--space-3xl) 0; }
+    .servicos-home-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); }
+    .servico-home-card {
+      background: var(--color-white); border-radius: var(--radius-lg);
+      padding: var(--space-xl); text-align: center;
+      border: 1px solid var(--color-border); transition: all 200ms ease; cursor: pointer;
+    }
+    .servico-home-card:hover { border-color: var(--color-cta); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .servico-home-card .step-icon { margin: 0 auto var(--space-md); }
+    .servico-home-card h3 { font-size: 1rem; margin-bottom: var(--space-xs); }
+    .servico-home-card p { font-size: 0.85rem; color: var(--color-text-light); }
+    @media (max-width: 768px) {
+      .servico-card { grid-template-columns: 1fr; }
+      .servico-price { text-align: left; }
+      .servicos-home-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header">
+    <div class="container">
+      <div class="logo" onclick="showPage('home')">
+        <div class="logo-icon">A</div>
+        <div>
+          <span class="logo-text">ASONSEG</span>
+          <span class="logo-sub">Portal de Vagas</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a onclick="showPage('home')" class="active" data-nav="home">Inicio</a>
+        <a onclick="showPage('vagas')" data-nav="vagas">Vagas</a>
+        <a onclick="showPage('candidato-cadastro')" data-nav="candidato-cadastro">Sou Candidato</a>
+        <a onclick="showPage('empresa-cadastro')" data-nav="empresa-cadastro">Sou Empresa</a>
+        <a onclick="showPage('servicos')" data-nav="servicos">Servicos</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema escuro">
+          <svg class="icon-moon" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>
+          <svg class="icon-sun" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="showPage('candidato-cadastro')">Entrar</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('candidato-cadastro')">Cadastrar</button>
+      </div>
+      <button class="mobile-menu" onclick="toggleMobile()">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== HOME PAGE ==================== -->
+  <div id="page-home" class="page active">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content fade-in">
+          <h1>Conectando <span>talentos</span> a oportunidades na comunidade</h1>
+          <p>Portal de vagas da Paroquia Nossa Senhora de Guadalupe, Canasvieiras/SC. Uma iniciativa social que aproxima candidatos e empresas da regiao.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-lg" onclick="showPage('vagas')">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+              Buscar Vagas
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="showPage('empresa-cadastro')">Publicar Vaga</button>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <h3>247</h3>
+              <p>Vagas Ativas</p>
+            </div>
+            <div class="hero-stat">
+              <h3>1.8k</h3>
+              <p>Candidatos</p>
+            </div>
+            <div class="hero-stat">
+              <h3>156</h3>
+              <p>Empresas</p>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-card-stack">
+            <div class="card">
+              <div class="job-card-mini">
+                <div class="job-card-mini-icon" style="background:#DBEAFE">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#2563EB"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                </div>
+                <div>
+                  <h4>Auxiliar Administrativo</h4>
+                  <p>Supermercado Angeloni - CLT</p>
+                  <div class="job-card-mini-tags">
+                    <span class="badge badge-blue">Administrativa</span>
+                    <span class="badge badge-green">CLT</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="job-card-mini">
+                <div class="job-card-mini-icon" style="background:#FFEDD5">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#F97316"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>
+                </div>
+                <div>
+                  <h4>Tecnico em Enfermagem</h4>
+                  <p>Clinica Sao Lucas - CLT</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="how-it-works">
+      <div class="container">
+        <div class="section-header">
+          <span class="overline">Como Funciona</span>
+          <h2>Simples, rapido e gratuito</h2>
+          <p>Nossa plataforma conecta voce as melhores oportunidades da regiao de Canasvieiras em poucos passos.</p>
+        </div>
+        <div class="steps-grid">
+          <div class="step-card card">
+            <span class="step-number">PASSO 01</span>
+            <div class="step-icon step-icon-blue">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+            </div>
+            <h3>Crie seu perfil</h3>
+            <p>Cadastre-se como candidato ou empresa. Adicione suas qualificacoes, experiencias ou publique suas vagas.</p>
+          </div>
+          <div class="step-card card">
+            <span class="step-number">PASSO 02</span>
+            <div class="step-icon step-icon-orange">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            </div>
+            <h3>Busque e filtre</h3>
+            <p>Encontre vagas por area, tipo de contrato ou localizacao. Empresas podem buscar candidatos por qualificacao.</p>
+          </div>
+          <div class="step-card card">
+            <span class="step-number">PASSO 03</span>
+            <div class="step-icon step-icon-green">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            </div>
+            <h3>Conecte-se</h3>
+            <p>Candidate-se diretamente pelo portal ou entre em contato com os candidatos ideais para sua empresa.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Personas -->
+    <section class="personas">
+      <div class="container">
+        <div class="section-header">
+          <span class="overline">Para Quem</span>
+          <h2>Uma plataforma, duas perspectivas</h2>
+          <p>Seja voce candidato buscando uma oportunidade ou empresa procurando talentos, temos ferramentas para voce.</p>
+        </div>
+        <div class="personas-grid">
+          <div class="persona-card" onclick="showPage('candidato-cadastro')">
+            <div class="step-icon step-icon-blue" style="margin-bottom:var(--space-md)">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+            </div>
+            <h3>Sou Candidato</h3>
+            <p>Encontre vagas compativeis com seu perfil e candidate-se diretamente pela plataforma.</p>
+            <ul class="persona-features">
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Busque vagas com filtros avancados</li>
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Cadastre suas qualificacoes e experiencias</li>
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Envie seu curriculo (PDF)</li>
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Receba notificacoes de vagas compativeis</li>
+            </ul>
+            <button class="btn btn-primary">Criar Meu Perfil</button>
+          </div>
+          <div class="persona-card" onclick="showPage('empresa-cadastro')">
+            <div class="step-icon step-icon-orange" style="margin-bottom:var(--space-md)">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+            </div>
+            <h3>Sou Empresa</h3>
+            <p>Publique vagas e encontre os melhores candidatos da regiao para sua empresa.</p>
+            <ul class="persona-features">
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Publique vagas com requisitos e beneficios</li>
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Busque candidatos por qualificacao</li>
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Acesse curriculos dos candidatos</li>
+              <li><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> Gerencie suas vagas publicadas</li>
+            </ul>
+            <button class="btn btn-primary">Cadastrar Empresa</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Servicos Home -->
+    <section class="servicos-home-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="overline">Servicos</span>
+          <h2>Precisa de um profissional?</h2>
+          <p>Conectamos prestadores de servicos a pessoas que precisam de ajuda no dia a dia. Diaristas, eletricistas, jardineiros e muito mais.</p>
+        </div>
+        <div class="servicos-home-grid">
+          <div class="servico-home-card" onclick="showPage('servicos')">
+            <div class="step-icon step-icon-orange">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819"/></svg>
+            </div>
+            <h3>Servicos Domesticos</h3>
+            <p>Diaristas, faxineiras, passadeiras, cuidadores</p>
+          </div>
+          <div class="servico-home-card" onclick="showPage('servicos')">
+            <div class="step-icon step-icon-blue">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/></svg>
+            </div>
+            <h3>Reparos e Manutencao</h3>
+            <p>Eletricistas, encanadores, marido de aluguel, pintores</p>
+          </div>
+          <div class="servico-home-card" onclick="showPage('servicos')">
+            <div class="step-icon step-icon-green">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 0 1-1.652.928l-.679-.906a1.125 1.125 0 0 0-1.906.172L4.5 15.75l-.612.153M12.75 3.031a9 9 0 1 0 6.462 14.532M12.75 3.03a9 9 0 0 1 6.462 14.533m0 0 .535.143"/></svg>
+            </div>
+            <h3>Area Externa</h3>
+            <p>Jardineiros, paisagistas, limpeza de piscina</p>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:var(--space-xl);">
+          <button class="btn btn-primary btn-lg" onclick="showPage('servicos')">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            Ver Todos os Servicos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" style="padding:var(--space-3xl) 0; background:linear-gradient(135deg, var(--color-primary), #1D4ED8); color:white; text-align:center;">
+      <div class="container">
+        <h2 style="font-size:clamp(1.6rem,3vw,2.2rem); margin-bottom:var(--space-sm);">Faca parte dessa iniciativa social</h2>
+        <p style="opacity:0.85; max-width:560px; margin:0 auto var(--space-xl); font-size:1.05rem;">Uma acao da Paroquia Nossa Senhora de Guadalupe, promovendo empregabilidade e desenvolvimento na comunidade de Canasvieiras.</p>
+        <div style="display:flex; gap:var(--space-md); justify-content:center; flex-wrap:wrap;">
+          <button class="btn btn-lg cta-btn-light" style="background:white;color:var(--color-primary);font-weight:700;" onclick="showPage('candidato-cadastro')">Cadastrar como Candidato</button>
+          <button class="btn btn-lg cta-btn-ghost" style="background:rgba(255,255,255,0.15);color:white;border:2px solid rgba(255,255,255,0.4);" onclick="showPage('empresa-cadastro')">Cadastrar como Empresa</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VAGAS LIST PAGE ==================== -->
+  <div id="page-vagas" class="page">
+    <div class="vagas-page">
+      <div class="container">
+        <div class="vagas-header">
+          <h1>Vagas Abertas</h1>
+          <p>Encontre a oportunidade ideal para voce na regiao de Canasvieiras</p>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" placeholder="Buscar por cargo, empresa ou palavra-chave..." id="searchInput">
+          <button class="btn btn-primary">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            Buscar
+          </button>
+        </div>
+
+        <div class="vagas-layout">
+          <aside class="filters-panel">
+            <h3>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/></svg>
+              Filtros
+            </h3>
+
+            <div class="filter-section">
+              <h4>Area de Atuacao</h4>
+              <label class="filter-option"><input type="checkbox" checked> Administrativa</label>
+              <label class="filter-option"><input type="checkbox"> Saude</label>
+              <label class="filter-option"><input type="checkbox"> Comercio/Vendas</label>
+              <label class="filter-option"><input type="checkbox"> Tecnologia</label>
+              <label class="filter-option"><input type="checkbox"> Servicos Gerais</label>
+              <label class="filter-option"><input type="checkbox"> Gastronomia</label>
+              <label class="filter-option"><input type="checkbox"> Educacao</label>
+              <label class="filter-option"><input type="checkbox"> Construcao Civil</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Tipo de Contrato</h4>
+              <label class="filter-option"><input type="checkbox" checked> CLT</label>
+              <label class="filter-option"><input type="checkbox"> PJ</label>
+              <label class="filter-option"><input type="checkbox"> Estagio</label>
+              <label class="filter-option"><input type="checkbox"> Temporario</label>
+              <label class="filter-option"><input type="checkbox"> Meio Periodo</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Faixa Salarial</h4>
+              <label class="filter-option"><input type="checkbox"> Ate R$ 1.500</label>
+              <label class="filter-option"><input type="checkbox" checked> R$ 1.500 - R$ 2.500</label>
+              <label class="filter-option"><input type="checkbox"> R$ 2.500 - R$ 4.000</label>
+              <label class="filter-option"><input type="checkbox"> Acima de R$ 4.000</label>
+              <label class="filter-option"><input type="checkbox"> A combinar</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Localizacao</h4>
+              <label class="filter-option"><input type="checkbox" checked> Canasvieiras</label>
+              <label class="filter-option"><input type="checkbox"> Jurere</label>
+              <label class="filter-option"><input type="checkbox"> Ingleses</label>
+              <label class="filter-option"><input type="checkbox"> Cachoeira do Bom Jesus</label>
+              <label class="filter-option"><input type="checkbox"> Centro (Florianopolis)</label>
+            </div>
+
+            <button class="btn btn-secondary" style="width:100%;">Limpar Filtros</button>
+          </aside>
+
+          <div>
+            <p class="results-count">Mostrando <strong>12</strong> de <strong>247</strong> vagas</p>
+            <div class="vagas-grid" id="vagasList">
+              <!-- Vagas are rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== VAGA DETAIL PAGE ==================== -->
+  <div id="page-vaga-detail" class="page">
+    <div class="vaga-detail">
+      <div class="container">
+        <a class="back-link" onclick="showPage('vagas')" style="display:inline-flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--color-text-light);margin-bottom:var(--space-lg);cursor:pointer;">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Voltar para vagas
+        </a>
+
+        <div class="vaga-detail-layout">
+          <div class="vaga-detail-main">
+            <div class="vaga-detail-header">
+              <div class="vaga-icon" style="background:#DBEAFE;">
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#2563EB"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+              </div>
+              <div>
+                <h1>Auxiliar Administrativo</h1>
+                <p style="color:var(--color-text-light);font-size:0.95rem;margin-bottom:var(--space-sm);">Supermercado Angeloni</p>
+                <div style="display:flex;gap:var(--space-xs);flex-wrap:wrap;">
+                  <span class="badge badge-blue">Administrativa</span>
+                  <span class="badge badge-green">CLT</span>
+                  <span class="badge badge-gray">Canasvieiras</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Descricao da Vaga</h3>
+              <p>Estamos em busca de um(a) Auxiliar Administrativo(a) para integrar nossa equipe na unidade de Canasvieiras. O profissional sera responsavel por auxiliar nas rotinas administrativas do setor, contribuindo para a organizacao e eficiencia dos processos internos.</p>
+              <p style="margin-top:var(--space-md)">A posicao oferece um ambiente de trabalho colaborativo, oportunidades de crescimento e beneficios competitivos. Buscamos pessoas proativas, organizadas e com vontade de aprender.</p>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Requisitos</h3>
+              <ul>
+                <li>Ensino medio completo</li>
+                <li>Conhecimento basico em informatica (pacote Office)</li>
+                <li>Boa comunicacao verbal e escrita</li>
+                <li>Organizacao e atencao aos detalhes</li>
+                <li>Experiencia anterior em rotinas administrativas (desejavel)</li>
+                <li>Disponibilidade para inicio imediato</li>
+              </ul>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Beneficios</h3>
+              <ul>
+                <li>Vale-transporte</li>
+                <li>Vale-alimentacao (R$ 450/mes)</li>
+                <li>Plano de saude (apos 3 meses)</li>
+                <li>Desconto em compras na loja (15%)</li>
+                <li>Participacao nos lucros (PLR)</li>
+                <li>Oportunidade de crescimento interno</li>
+              </ul>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Horario de Trabalho</h3>
+              <p>Segunda a sexta-feira, das 08:00 as 17:48, com 1 hora de almoco. Sabados alternados, das 08:00 as 12:00.</p>
+            </div>
+
+            <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:var(--space-md);" onclick="showToast('Candidatura enviada com sucesso!')">
+              Candidatar-se a esta vaga
+            </button>
+          </div>
+
+          <aside class="vaga-sidebar">
+            <div class="card sidebar-company">
+              <div class="vaga-icon" style="background:#DBEAFE;margin:0 auto var(--space-md);">
+                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#2563EB"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+              </div>
+              <h4>Supermercado Angeloni</h4>
+              <p>Rede de supermercados com presenca em SC e PR. Mais de 30 lojas e 8.000 colaboradores.</p>
+              <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">Ver todas as vagas</button>
+            </div>
+
+            <div class="card sidebar-info">
+              <h4 style="font-size:0.95rem;margin-bottom:var(--space-md);">Detalhes da Vaga</h4>
+              <div class="sidebar-info-item">
+                <span>Salario</span>
+                <span>R$ 1.800 - R$ 2.200</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Contrato</span>
+                <span>CLT</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Regime</span>
+                <span>Presencial</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Local</span>
+                <span>Canasvieiras, SC</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Publicada em</span>
+                <span>10/04/2026</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Candidaturas</span>
+                <span>23 pessoas</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CANDIDATO CADASTRO ==================== -->
+  <div id="page-candidato-cadastro" class="page">
+    <div class="form-page">
+      <div class="container form-container">
+        <div class="form-header">
+          <div class="step-icon step-icon-blue" style="margin:0 auto var(--space-md);">
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+          </div>
+          <h1>Cadastro de Candidato</h1>
+          <p>Preencha seus dados para criar seu perfil e comecar a buscar vagas</p>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Dados Pessoais</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Nome Completo *</label>
+              <input type="text" placeholder="Seu nome completo">
+            </div>
+            <div class="input-group">
+              <label>CPF *</label>
+              <input type="text" placeholder="000.000.000-00">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>E-mail *</label>
+              <input type="email" placeholder="seu@email.com">
+            </div>
+            <div class="input-group">
+              <label>Telefone/WhatsApp *</label>
+              <input type="tel" placeholder="(48) 99999-0000">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Data de Nascimento *</label>
+              <input type="date">
+            </div>
+            <div class="input-group">
+              <label>Bairro / Cidade *</label>
+              <input type="text" placeholder="Canasvieiras, Florianopolis/SC">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Qualificacoes</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Escolaridade *</label>
+              <select>
+                <option value="">Selecione...</option>
+                <option>Ensino Fundamental</option>
+                <option>Ensino Medio Incompleto</option>
+                <option>Ensino Medio Completo</option>
+                <option>Ensino Superior Incompleto</option>
+                <option>Ensino Superior Completo</option>
+                <option>Pos-graduacao</option>
+                <option>Mestrado/Doutorado</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Area de Formacao</label>
+              <input type="text" placeholder="Ex: Administracao, Enfermagem...">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Areas de Interesse *</label>
+            <select>
+              <option value="">Selecione a area principal...</option>
+              <option>Administrativa</option>
+              <option>Saude</option>
+              <option>Comercio / Vendas</option>
+              <option>Tecnologia</option>
+              <option>Servicos Gerais</option>
+              <option>Gastronomia</option>
+              <option>Educacao</option>
+              <option>Construcao Civil</option>
+              <option>Logistica</option>
+              <option>Turismo e Hotelaria</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Experiencia Profissional</label>
+            <textarea placeholder="Descreva brevemente suas experiencias profissionais anteriores, cargos ocupados e principais atividades..."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Habilidades e Cursos</label>
+            <textarea placeholder="Liste suas habilidades, cursos complementares, certificacoes, idiomas, etc..." rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Curriculo</h3>
+          <div class="file-upload">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="margin:0 auto;display:block;"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+            <p><span class="highlight">Clique para enviar</span> ou arraste seu arquivo aqui</p>
+            <p style="font-size:0.8rem;margin-top:4px;">PDF, DOC ou DOCX (max. 5MB)</p>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Senha de Acesso</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Senha *</label>
+              <input type="password" placeholder="Minimo 8 caracteres">
+            </div>
+            <div class="input-group">
+              <label>Confirmar Senha *</label>
+              <input type="password" placeholder="Repita a senha">
+            </div>
+          </div>
+        </div>
+
+        <div class="lgpd-box">
+          <h4>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+            Termos de Uso e Privacidade (LGPD)
+          </h4>
+          <p>Em conformidade com a Lei Geral de Protecao de Dados (Lei 13.709/2018), informamos que os dados coletados neste cadastro serao utilizados exclusivamente para fins de intermediacao de vagas de emprego pela ASONSEG - Acao Social da Paroquia Nossa Senhora de Guadalupe. Seus dados pessoais serao compartilhados apenas com empresas parceiras quando voce se candidatar a uma vaga, e poderao ser acessados por empresas que utilizem a busca de candidatos da plataforma. Voce podera a qualquer momento solicitar a exclusao dos seus dados entrando em contato conosco.</p>
+          <label class="lgpd-check">
+            <input type="checkbox">
+            <span>Li e concordo com os <a href="#" onclick="openLGPDModal(event)">Termos de Uso</a> e a <a href="#" onclick="openLGPDModal(event)">Politica de Privacidade</a> da plataforma ASONSEG Portal de Vagas. *</span>
+          </label>
+          <label class="lgpd-check" style="margin-top:var(--space-sm);">
+            <input type="checkbox">
+            <span>Autorizo que meus dados e curriculo sejam visualizados por empresas cadastradas na plataforma. *</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;" onclick="showToast('Cadastro realizado com sucesso! Bem-vindo(a) ao ASONSEG.')">
+          Criar Minha Conta
+        </button>
+        <p style="text-align:center;margin-top:var(--space-md);font-size:0.875rem;color:var(--color-text-light);">Ja possui conta? <a href="#" style="color:var(--color-primary);font-weight:600;">Entrar</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== EMPRESA CADASTRO ==================== -->
+  <div id="page-empresa-cadastro" class="page">
+    <div class="form-page">
+      <div class="container form-container">
+        <div class="form-header">
+          <div class="step-icon step-icon-orange" style="margin:0 auto var(--space-md);">
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+          </div>
+          <h1>Cadastro de Empresa</h1>
+          <p>Cadastre sua empresa para publicar vagas e encontrar candidatos</p>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Dados da Empresa</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Razao Social *</label>
+              <input type="text" placeholder="Nome completo da empresa">
+            </div>
+            <div class="input-group">
+              <label>Nome Fantasia *</label>
+              <input type="text" placeholder="Nome de exibicao">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>CNPJ *</label>
+              <input type="text" placeholder="00.000.000/0000-00">
+            </div>
+            <div class="input-group">
+              <label>Setor de Atuacao *</label>
+              <select>
+                <option value="">Selecione...</option>
+                <option>Comercio</option>
+                <option>Servicos</option>
+                <option>Industria</option>
+                <option>Saude</option>
+                <option>Educacao</option>
+                <option>Tecnologia</option>
+                <option>Alimentacao</option>
+                <option>Construcao</option>
+                <option>Turismo / Hotelaria</option>
+                <option>Outro</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Descricao da Empresa</label>
+            <textarea placeholder="Breve descricao sobre a empresa, area de atuacao, valores..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Endereco *</label>
+              <input type="text" placeholder="Rua, numero, bairro">
+            </div>
+            <div class="input-group">
+              <label>Cidade / UF *</label>
+              <input type="text" placeholder="Florianopolis / SC">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Responsavel pelo Cadastro</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Nome do Responsavel *</label>
+              <input type="text" placeholder="Nome completo">
+            </div>
+            <div class="input-group">
+              <label>Cargo *</label>
+              <input type="text" placeholder="Ex: Gerente de RH">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>E-mail Corporativo *</label>
+              <input type="email" placeholder="contato@empresa.com.br">
+            </div>
+            <div class="input-group">
+              <label>Telefone *</label>
+              <input type="tel" placeholder="(48) 3333-0000">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Senha de Acesso</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Senha *</label>
+              <input type="password" placeholder="Minimo 8 caracteres">
+            </div>
+            <div class="input-group">
+              <label>Confirmar Senha *</label>
+              <input type="password" placeholder="Repita a senha">
+            </div>
+          </div>
+        </div>
+
+        <div class="lgpd-box">
+          <h4>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+            Termos de Uso e Privacidade (LGPD)
+          </h4>
+          <p>Em conformidade com a Lei Geral de Protecao de Dados (Lei 13.709/2018), informamos que sua empresa tera acesso a dados pessoais de candidatos cadastrados na plataforma ASONSEG. A empresa se compromete a utilizar estes dados exclusivamente para fins de recrutamento e selecao, nao compartilhando com terceiros. O uso indevido dos dados resultara no cancelamento imediato do cadastro. A ASONSEG reserva-se o direito de auditar o uso dos dados a qualquer momento.</p>
+          <label class="lgpd-check">
+            <input type="checkbox">
+            <span>Li e concordo com os <a href="#" onclick="openLGPDModal(event)">Termos de Uso</a> e a <a href="#" onclick="openLGPDModal(event)">Politica de Privacidade</a> da plataforma. *</span>
+          </label>
+          <label class="lgpd-check" style="margin-top:var(--space-sm);">
+            <input type="checkbox">
+            <span>Comprometo-me a utilizar os dados dos candidatos exclusivamente para processos seletivos e a respeitar a legislacao vigente de protecao de dados. *</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;" onclick="showToast('Empresa cadastrada com sucesso! Bem-vindo(a) ao ASONSEG.')">
+          Cadastrar Empresa
+        </button>
+        <p style="text-align:center;margin-top:var(--space-md);font-size:0.875rem;color:var(--color-text-light);">Ja possui conta? <a href="#" style="color:var(--color-primary);font-weight:600;">Entrar</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PUBLICAR VAGA ==================== -->
+  <div id="page-publicar-vaga" class="page">
+    <div class="form-page">
+      <div class="container form-container">
+        <a class="back-link" onclick="showPage('empresa-cadastro')" style="display:inline-flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--color-text-light);margin-bottom:var(--space-lg);cursor:pointer;">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Voltar
+        </a>
+        <div class="form-header">
+          <h1>Publicar Nova Vaga</h1>
+          <p>Preencha os detalhes da vaga para atrair os melhores candidatos</p>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Informacoes da Vaga</h3>
+          <div class="input-group">
+            <label>Titulo da Vaga *</label>
+            <input type="text" placeholder="Ex: Auxiliar Administrativo, Vendedor(a)...">
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Area de Atuacao *</label>
+              <select>
+                <option value="">Selecione...</option>
+                <option>Administrativa</option>
+                <option>Saude</option>
+                <option>Comercio / Vendas</option>
+                <option>Tecnologia</option>
+                <option>Servicos Gerais</option>
+                <option>Gastronomia</option>
+                <option>Educacao</option>
+                <option>Construcao Civil</option>
+                <option>Logistica</option>
+                <option>Turismo e Hotelaria</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Tipo de Contrato *</label>
+              <select>
+                <option value="">Selecione...</option>
+                <option>CLT</option>
+                <option>PJ</option>
+                <option>Estagio</option>
+                <option>Temporario</option>
+                <option>Meio Periodo</option>
+                <option>Freelancer</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Descricao da Vaga *</label>
+            <textarea placeholder="Descreva as atividades, responsabilidades e o dia a dia da funcao..." rows="5"></textarea>
+          </div>
+          <div class="form-row-3">
+            <div class="input-group">
+              <label>Salario (de)</label>
+              <input type="text" placeholder="R$ 1.800">
+            </div>
+            <div class="input-group">
+              <label>Salario (ate)</label>
+              <input type="text" placeholder="R$ 2.500">
+            </div>
+            <div class="input-group">
+              <label>Regime</label>
+              <select>
+                <option>Presencial</option>
+                <option>Hibrido</option>
+                <option>Remoto</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Local de Trabalho *</label>
+              <input type="text" placeholder="Ex: Canasvieiras, Florianopolis/SC">
+            </div>
+            <div class="input-group">
+              <label>Horario de Trabalho</label>
+              <input type="text" placeholder="Ex: Seg-Sex 08:00-17:48">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Requisitos</h3>
+          <div class="input-group">
+            <label>Escolaridade Minima *</label>
+            <select>
+              <option value="">Selecione...</option>
+              <option>Ensino Fundamental</option>
+              <option>Ensino Medio Incompleto</option>
+              <option>Ensino Medio Completo</option>
+              <option>Ensino Superior Incompleto</option>
+              <option>Ensino Superior Completo</option>
+              <option>Pos-graduacao</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Requisitos e Qualificacoes *</label>
+            <textarea placeholder="Liste os requisitos obrigatorios e desejaveis para a vaga (um por linha)..." rows="4"></textarea>
+          </div>
+          <div class="input-group">
+            <label>Experiencia Necessaria</label>
+            <select>
+              <option>Nao necessaria</option>
+              <option>Ate 1 ano</option>
+              <option>1 a 3 anos</option>
+              <option>3 a 5 anos</option>
+              <option>Acima de 5 anos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Beneficios</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-sm);">
+            <label class="filter-option"><input type="checkbox"> Vale-transporte</label>
+            <label class="filter-option"><input type="checkbox"> Vale-alimentacao</label>
+            <label class="filter-option"><input type="checkbox"> Vale-refeicao</label>
+            <label class="filter-option"><input type="checkbox"> Plano de saude</label>
+            <label class="filter-option"><input type="checkbox"> Plano odontologico</label>
+            <label class="filter-option"><input type="checkbox"> Seguro de vida</label>
+            <label class="filter-option"><input type="checkbox"> Participacao nos lucros</label>
+            <label class="filter-option"><input type="checkbox"> Gympass / Wellhub</label>
+            <label class="filter-option"><input type="checkbox"> Day off aniversario</label>
+            <label class="filter-option"><input type="checkbox"> Desconto em produtos</label>
+          </div>
+          <div class="input-group" style="margin-top:var(--space-md);">
+            <label>Outros Beneficios</label>
+            <input type="text" placeholder="Adicione outros beneficios nao listados acima...">
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:var(--space-lg);">
+          <button class="btn btn-outline btn-lg" style="width:100%;justify-content:center;">Salvar Rascunho</button>
+          <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;" onclick="showToast('Vaga publicada com sucesso!')">Publicar Vaga</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BUSCAR CANDIDATOS ==================== -->
+  <div id="page-buscar-candidatos" class="page">
+    <div class="vagas-page">
+      <div class="container">
+        <a class="back-link" onclick="showPage('empresa-cadastro')" style="display:inline-flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--color-text-light);margin-bottom:var(--space-lg);cursor:pointer;">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Voltar
+        </a>
+        <div class="vagas-header">
+          <h1>Buscar Candidatos</h1>
+          <p>Encontre os profissionais ideais para sua empresa</p>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" placeholder="Buscar por habilidade, formacao ou cargo...">
+          <button class="btn btn-primary">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            Buscar
+          </button>
+        </div>
+
+        <div class="vagas-layout">
+          <aside class="filters-panel">
+            <h3>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/></svg>
+              Filtros
+            </h3>
+
+            <div class="filter-section">
+              <h4>Area de Interesse</h4>
+              <label class="filter-option"><input type="checkbox"> Administrativa</label>
+              <label class="filter-option"><input type="checkbox" checked> Saude</label>
+              <label class="filter-option"><input type="checkbox"> Comercio/Vendas</label>
+              <label class="filter-option"><input type="checkbox"> Tecnologia</label>
+              <label class="filter-option"><input type="checkbox"> Servicos Gerais</label>
+              <label class="filter-option"><input type="checkbox"> Gastronomia</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Escolaridade</h4>
+              <label class="filter-option"><input type="checkbox"> Ensino Medio</label>
+              <label class="filter-option"><input type="checkbox" checked> Superior Incompleto</label>
+              <label class="filter-option"><input type="checkbox" checked> Superior Completo</label>
+              <label class="filter-option"><input type="checkbox"> Pos-graduacao</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Disponibilidade</h4>
+              <label class="filter-option"><input type="checkbox" checked> Imediata</label>
+              <label class="filter-option"><input type="checkbox"> Ate 15 dias</label>
+              <label class="filter-option"><input type="checkbox"> Ate 30 dias</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Localizacao</h4>
+              <label class="filter-option"><input type="checkbox" checked> Canasvieiras</label>
+              <label class="filter-option"><input type="checkbox"> Jurere</label>
+              <label class="filter-option"><input type="checkbox"> Ingleses</label>
+              <label class="filter-option"><input type="checkbox"> Centro</label>
+            </div>
+
+            <button class="btn btn-secondary" style="width:100%;">Limpar Filtros</button>
+          </aside>
+
+          <div>
+            <p class="results-count">Mostrando <strong>8</strong> de <strong>142</strong> candidatos</p>
+            <div class="vagas-grid" id="candidatosList">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SERVICOS LIST PAGE ==================== -->
+  <div id="page-servicos" class="page">
+    <div class="vagas-page">
+      <div class="container">
+        <div class="vagas-header">
+          <h1>Servicos Disponiveis</h1>
+          <p>Encontre profissionais qualificados para o servico que voce precisa</p>
+        </div>
+
+        <div class="disclaimer-box">
+          <h4>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+            Aviso Importante
+          </h4>
+          <p>A ASONSEG atua exclusivamente como plataforma de conexao entre prestadores de servicos e contratantes. <strong>Nao nos responsabilizamos pela qualidade, execucao ou resultado dos servicos prestados.</strong> A negociacao, contratacao e pagamento sao realizados diretamente entre as partes.</p>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" placeholder="Buscar servico, profissional ou especialidade..." id="searchServicos">
+          <button class="btn btn-primary">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            Buscar
+          </button>
+        </div>
+
+        <div class="vagas-layout">
+          <aside class="filters-panel">
+            <h3>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/></svg>
+              Filtros
+            </h3>
+
+            <div class="filter-section">
+              <h4>Categoria</h4>
+              <label class="filter-option"><input type="checkbox" checked> Servicos Domesticos</label>
+              <label class="filter-option"><input type="checkbox"> Reparos e Manutencao</label>
+              <label class="filter-option"><input type="checkbox"> Area Externa / Jardinagem</label>
+              <label class="filter-option"><input type="checkbox"> Tecnologia / Informatica</label>
+              <label class="filter-option"><input type="checkbox"> Beleza e Estetica</label>
+              <label class="filter-option"><input type="checkbox"> Aulas e Reforco</label>
+              <label class="filter-option"><input type="checkbox"> Consertos / Equipamentos</label>
+              <label class="filter-option"><input type="checkbox"> Transporte e Mudancas</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Tipo de Profissional</h4>
+              <label class="filter-option"><input type="checkbox"> Pessoa Fisica</label>
+              <label class="filter-option"><input type="checkbox" checked> MEI</label>
+              <label class="filter-option"><input type="checkbox"> Empresa (PJ)</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Faixa de Preco</h4>
+              <label class="filter-option"><input type="checkbox"> Ate R$ 100</label>
+              <label class="filter-option"><input type="checkbox" checked> R$ 100 - R$ 250</label>
+              <label class="filter-option"><input type="checkbox"> R$ 250 - R$ 500</label>
+              <label class="filter-option"><input type="checkbox"> Acima de R$ 500</label>
+              <label class="filter-option"><input type="checkbox"> A combinar</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Regiao de Atendimento</h4>
+              <label class="filter-option"><input type="checkbox" checked> Canasvieiras</label>
+              <label class="filter-option"><input type="checkbox"> Jurere</label>
+              <label class="filter-option"><input type="checkbox"> Ingleses</label>
+              <label class="filter-option"><input type="checkbox"> Cachoeira do Bom Jesus</label>
+              <label class="filter-option"><input type="checkbox"> Toda Florianopolis</label>
+            </div>
+
+            <div class="filter-section">
+              <h4>Avaliacao Minima</h4>
+              <label class="filter-option"><input type="checkbox" checked> 4 estrelas ou mais</label>
+              <label class="filter-option"><input type="checkbox"> 3 estrelas ou mais</label>
+              <label class="filter-option"><input type="checkbox"> Qualquer avaliacao</label>
+            </div>
+
+            <button class="btn btn-secondary" style="width:100%;">Limpar Filtros</button>
+          </aside>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-md);">
+              <p class="results-count" style="margin:0;">Mostrando <strong>8</strong> de <strong>63</strong> servicos</p>
+              <button class="btn btn-primary btn-sm" onclick="showPage('cadastro-servico')">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                Oferecer Meu Servico
+              </button>
+            </div>
+            <div class="vagas-grid" id="servicosList">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SERVICO DETAIL PAGE ==================== -->
+  <div id="page-servico-detail" class="page">
+    <div class="vaga-detail">
+      <div class="container">
+        <a class="back-link" onclick="showPage('servicos')" style="display:inline-flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--color-text-light);margin-bottom:var(--space-lg);cursor:pointer;">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Voltar para servicos
+        </a>
+
+        <div class="vaga-detail-layout">
+          <div class="vaga-detail-main">
+            <div class="vaga-detail-header">
+              <div class="servico-avatar" style="background:linear-gradient(135deg, #FFEDD5, #FED7AA); width:72px; height:72px; font-size:1.6rem; color:#C2410C;">RS</div>
+              <div>
+                <h1>Diarista / Faxina Residencial</h1>
+                <p style="color:var(--color-text-light);font-size:0.95rem;margin-bottom:var(--space-sm);">
+                  Rosa Santos <span class="provider-type provider-mei">MEI</span>
+                </p>
+                <div style="display:flex;gap:var(--space-xs);flex-wrap:wrap;align-items:center;">
+                  <span class="badge badge-orange">Servicos Domesticos</span>
+                  <span class="badge badge-gray">Canasvieiras</span>
+                  <div class="star-rating">
+                    <svg class="filled" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>
+                    <svg class="filled" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>
+                    <svg class="filled" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>
+                    <svg class="filled" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>
+                    <svg class="filled" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>
+                    <span>5.0 (47 avaliacoes)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Descricao do Servico</h3>
+              <p>Ofereco servicos de faxina residencial completa, incluindo limpeza de todos os comodos, banheiros, cozinha, lavanderia e areas comuns. Trabalho com produtos de qualidade e tenho mais de 8 anos de experiencia em residencias na regiao de Canasvieiras e norte da ilha.</p>
+              <p style="margin-top:var(--space-md)">Posso atender tanto para faxinas pontuais quanto para servico fixo semanal ou quinzenal. Trago meus proprios materiais de limpeza, mas aceito trabalhar com produtos fornecidos pelo cliente se preferir.</p>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Servicos Inclusos</h3>
+              <ul>
+                <li>Limpeza completa de comodos (quartos, salas, escritorios)</li>
+                <li>Limpeza de banheiros e cozinha</li>
+                <li>Lavagem e passagem de roupas</li>
+                <li>Limpeza de vidros e janelas</li>
+                <li>Organizacao de armarios (sob consulta)</li>
+                <li>Limpeza pos-obra (valor diferenciado)</li>
+              </ul>
+            </div>
+
+            <div class="vaga-detail-section">
+              <h3>Disponibilidade</h3>
+              <p>Segunda a sabado, das 07:30 as 17:00. Atendimento com horario agendado. Disponibilidade para inicio em ate 3 dias uteis apos o contato.</p>
+            </div>
+
+            <div class="disclaimer-box" style="margin-top:var(--space-lg);">
+              <h4>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                Termo de Responsabilidade
+              </h4>
+              <p>A ASONSEG nao se responsabiliza pela qualidade, pontualidade, execucao ou resultado dos servicos anunciados nesta plataforma. A contratacao e feita diretamente entre o prestador e o contratante, cabendo as partes definir condicoes, valores e garantias. Recomendamos que formalizem o acordo por escrito.</p>
+            </div>
+
+            <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:var(--space-md);" onclick="showToast('Contato enviado! O profissional recebera sua solicitacao.')">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/></svg>
+              Entrar em Contato
+            </button>
+          </div>
+
+          <aside class="vaga-sidebar">
+            <div class="card sidebar-company" style="text-align:center;">
+              <div class="servico-avatar" style="background:linear-gradient(135deg, #FFEDD5, #FED7AA); width:64px; height:64px; font-size:1.4rem; color:#C2410C; margin:0 auto var(--space-md);">RS</div>
+              <h4>Rosa Santos</h4>
+              <p style="font-size:0.85rem;color:var(--color-text-light);margin-bottom:var(--space-xs);">Diarista Profissional</p>
+              <span class="provider-type provider-mei" style="font-size:0.75rem;">MEI</span>
+              <p style="font-size:0.85rem;color:var(--color-text-light);margin-top:var(--space-sm);margin-bottom:var(--space-md);">Membro desde Mar/2026</p>
+              <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">Ver todos os servicos</button>
+            </div>
+
+            <div class="card sidebar-info">
+              <h4 style="font-size:0.95rem;margin-bottom:var(--space-md);">Detalhes</h4>
+              <div class="sidebar-info-item">
+                <span>Valor</span>
+                <span style="color:var(--color-cta);font-weight:800;">R$ 180/diaria</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Tipo</span>
+                <span>MEI</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Regiao</span>
+                <span>Canasvieiras e regiao</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Disponibilidade</span>
+                <span>Seg a Sab</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Avaliacoes</span>
+                <span>47 avaliacoes</span>
+              </div>
+              <div class="sidebar-info-item">
+                <span>Servicos feitos</span>
+                <span>156</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CADASTRO DE SERVICO ==================== -->
+  <div id="page-cadastro-servico" class="page">
+    <div class="form-page">
+      <div class="container form-container">
+        <a class="back-link" onclick="showPage('servicos')" style="display:inline-flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--color-text-light);margin-bottom:var(--space-lg);cursor:pointer;">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Voltar
+        </a>
+        <div class="form-header">
+          <div class="step-icon step-icon-orange" style="margin:0 auto var(--space-md);">
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/></svg>
+          </div>
+          <h1>Cadastrar Servico</h1>
+          <p>Cadastre o servico que voce oferece para ser encontrado por pessoas da regiao</p>
+        </div>
+
+        <div style="background:var(--color-white);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-md);margin-bottom:var(--space-lg);display:flex;align-items:center;gap:var(--space-sm);font-size:0.875rem;color:var(--color-text-light);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--color-primary)"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
+          <span>Voce precisa estar cadastrado como <strong>candidato</strong> ou <strong>empresa</strong> para oferecer servicos. Ja possui conta? <a href="#" style="color:var(--color-primary);font-weight:600;" onclick="showPage('candidato-cadastro')">Entrar</a></span>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Sobre Voce</h3>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Nome Completo / Razao Social *</label>
+              <input type="text" placeholder="Seu nome ou nome da empresa">
+            </div>
+            <div class="input-group">
+              <label>Tipo de Cadastro *</label>
+              <select>
+                <option value="">Selecione...</option>
+                <option>Pessoa Fisica (CPF)</option>
+                <option>MEI (CNPJ)</option>
+                <option>Empresa (CNPJ)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>CPF ou CNPJ *</label>
+              <input type="text" placeholder="000.000.000-00 ou 00.000.000/0000-00">
+            </div>
+            <div class="input-group">
+              <label>Telefone / WhatsApp *</label>
+              <input type="tel" placeholder="(48) 99999-0000">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Detalhes do Servico</h3>
+          <div class="input-group">
+            <label>Titulo do Servico *</label>
+            <input type="text" placeholder="Ex: Faxina Residencial, Eletricista, Jardinagem...">
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label>Categoria *</label>
+              <select>
+                <option value="">Selecione...</option>
+                <option>Servicos Domesticos</option>
+                <option>Reparos e Manutencao</option>
+                <option>Area Externa / Jardinagem</option>
+                <option>Tecnologia / Informatica</option>
+                <option>Beleza e Estetica</option>
+                <option>Aulas e Reforco Escolar</option>
+                <option>Consertos / Equipamentos</option>
+                <option>Transporte e Mudancas</option>
+                <option>Saude e Bem-estar</option>
+                <option>Outro</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Subcategoria</label>
+              <input type="text" placeholder="Ex: Faxina, Encanamento, Poda...">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Descricao Detalhada do Servico *</label>
+            <textarea placeholder="Descreva tudo o que esta incluso no seu servico, como voce trabalha, materiais utilizados, diferenciais..." rows="5"></textarea>
+          </div>
+          <div class="form-row-3">
+            <div class="input-group">
+              <label>Valor *</label>
+              <input type="text" placeholder="R$ 180">
+            </div>
+            <div class="input-group">
+              <label>Unidade *</label>
+              <select>
+                <option>Por diaria</option>
+                <option>Por hora</option>
+                <option>Por servico</option>
+                <option>Por m2</option>
+                <option>Orcamento</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Experiencia</label>
+              <select>
+                <option>Menos de 1 ano</option>
+                <option>1 a 3 anos</option>
+                <option>3 a 5 anos</option>
+                <option>5 a 10 anos</option>
+                <option>Mais de 10 anos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Regiao de Atendimento</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-sm);">
+            <label class="filter-option"><input type="checkbox" checked> Canasvieiras</label>
+            <label class="filter-option"><input type="checkbox" checked> Jurere</label>
+            <label class="filter-option"><input type="checkbox"> Ingleses</label>
+            <label class="filter-option"><input type="checkbox"> Cachoeira do Bom Jesus</label>
+            <label class="filter-option"><input type="checkbox"> Ponta das Canas</label>
+            <label class="filter-option"><input type="checkbox"> Lagoinha</label>
+            <label class="filter-option"><input type="checkbox"> Centro (Florianopolis)</label>
+            <label class="filter-option"><input type="checkbox"> Toda a Grande Florianopolis</label>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Disponibilidade</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-sm);">
+            <label class="filter-option"><input type="checkbox" checked> Segunda-feira</label>
+            <label class="filter-option"><input type="checkbox" checked> Terca-feira</label>
+            <label class="filter-option"><input type="checkbox" checked> Quarta-feira</label>
+            <label class="filter-option"><input type="checkbox" checked> Quinta-feira</label>
+            <label class="filter-option"><input type="checkbox" checked> Sexta-feira</label>
+            <label class="filter-option"><input type="checkbox"> Sabado</label>
+            <label class="filter-option"><input type="checkbox"> Domingo</label>
+          </div>
+          <div class="form-row" style="margin-top:var(--space-md);">
+            <div class="input-group">
+              <label>Horario de Inicio</label>
+              <input type="time" value="08:00">
+            </div>
+            <div class="input-group">
+              <label>Horario de Termino</label>
+              <input type="time" value="17:00">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3 class="form-section-title">Fotos do Trabalho (Opcional)</h3>
+          <div class="file-upload">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="margin:0 auto;display:block;width:48px;height:48px;"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 0 3Z"/></svg>
+            <p><span class="highlight">Clique para enviar fotos</span> ou arraste aqui</p>
+            <p style="font-size:0.8rem;margin-top:4px;">JPG, PNG ou WEBP (max. 3 fotos, 5MB cada)</p>
+          </div>
+        </div>
+
+        <div class="disclaimer-box">
+          <h4>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+            Termo de Responsabilidade do Prestador
+          </h4>
+          <p>Ao cadastrar seu servico na plataforma ASONSEG, voce declara que as informacoes fornecidas sao verdadeiras e que possui capacidade tecnica para executar os servicos descritos. Voce e integralmente responsavel pela qualidade, seguranca e cumprimento dos servicos oferecidos.</p>
+          <p>A ASONSEG - Acao Social da Paroquia Nossa Senhora de Guadalupe atua exclusivamente como plataforma de conexao e <strong>nao se responsabiliza por danos materiais, corporais ou morais</strong> decorrentes dos servicos prestados ou contratados atraves desta plataforma.</p>
+        </div>
+
+        <div class="lgpd-box">
+          <h4>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+            Termos e Consentimento
+          </h4>
+          <label class="lgpd-check">
+            <input type="checkbox">
+            <span>Li e concordo com o <a href="#" onclick="openLGPDModal(event)">Termo de Responsabilidade</a> e aceito que a ASONSEG nao se responsabiliza pelos servicos que eu prestar. *</span>
+          </label>
+          <label class="lgpd-check" style="margin-top:var(--space-sm);">
+            <input type="checkbox">
+            <span>Concordo com os <a href="#" onclick="openLGPDModal(event)">Termos de Uso</a> e a <a href="#" onclick="openLGPDModal(event)">Politica de Privacidade (LGPD)</a> da plataforma. *</span>
+          </label>
+          <label class="lgpd-check" style="margin-top:var(--space-sm);">
+            <input type="checkbox">
+            <span>Autorizo que meus dados de contato sejam compartilhados com pessoas interessadas no meu servico. *</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;" onclick="showToast('Servico cadastrado com sucesso! Ele aparecera na busca em instantes.')">
+          Publicar Meu Servico
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LGPD MODAL ==================== -->
+  <div class="modal-overlay" id="lgpdModal">
+    <div class="modal">
+      <h2>Termos de Uso e Politica de Privacidade</h2>
+      <p><strong>ASONSEG - Portal de Vagas</strong><br>Acao Social da Paroquia Nossa Senhora de Guadalupe<br>Canasvieiras, Florianopolis/SC</p>
+
+      <h3 style="font-size:1rem;margin:var(--space-md) 0 var(--space-sm);">1. Coleta de Dados</h3>
+      <p>Coletamos dados pessoais (nome, CPF, e-mail, telefone, endereco, formacao, experiencia profissional e curriculo) fornecidos voluntariamente pelo usuario no momento do cadastro. Para empresas, coletamos dados corporativos (CNPJ, razao social, endereco, dados do responsavel).</p>
+
+      <h3 style="font-size:1rem;margin:var(--space-md) 0 var(--space-sm);">2. Finalidade do Tratamento</h3>
+      <p>Os dados sao utilizados exclusivamente para: (a) intermediacao de oportunidades de emprego; (b) permitir que empresas cadastradas visualizem perfis de candidatos; (c) comunicacao sobre vagas compativeis com o perfil do candidato.</p>
+
+      <h3 style="font-size:1rem;margin:var(--space-md) 0 var(--space-sm);">3. Compartilhamento</h3>
+      <p>Os dados dos candidatos poderao ser visualizados por empresas cadastradas na plataforma. Nao compartilhamos dados com terceiros para fins de marketing ou qualquer outra finalidade alem das descritas nestes termos.</p>
+
+      <h3 style="font-size:1rem;margin:var(--space-md) 0 var(--space-sm);">4. Direitos do Titular</h3>
+      <p>Conforme a LGPD (Lei 13.709/2018), voce tem direito a: acesso, correcao, exclusao, portabilidade e revogacao do consentimento dos seus dados pessoais, a qualquer momento, mediante solicitacao por e-mail ou diretamente na plataforma.</p>
+
+      <h3 style="font-size:1rem;margin:var(--space-md) 0 var(--space-sm);">5. Seguranca</h3>
+      <p>Adotamos medidas tecnicas e administrativas para proteger seus dados pessoais contra acessos nao autorizados, situacoes acidentais ou ilicitas de destruicao, perda, alteracao ou comunicacao.</p>
+
+      <h3 style="font-size:1rem;margin:var(--space-md) 0 var(--space-sm);">6. Responsabilidade das Empresas</h3>
+      <p>Empresas cadastradas comprometem-se a utilizar os dados dos candidatos exclusivamente para processos seletivos. O uso indevido acarretara exclusao imediata da plataforma e responsabilizacao nos termos da lei.</p>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeLGPDModal()">Entendi e Concordo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-sm);">
+            <div class="logo-icon">A</div>
+            <span class="logo-text" style="color:white;">ASONSEG</span>
+          </div>
+          <p>Portal de Vagas da Acao Social da Paroquia Nossa Senhora de Guadalupe. Promovendo empregabilidade e inclusao social na comunidade de Canasvieiras, Florianopolis/SC.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Candidatos</h4>
+          <a onclick="showPage('vagas')">Buscar Vagas</a>
+          <a onclick="showPage('candidato-cadastro')">Criar Perfil</a>
+          <a href="#">Dicas de Curriculo</a>
+          <a href="#">FAQ</a>
+        </div>
+        <div class="footer-col">
+          <h4>Empresas</h4>
+          <a onclick="showPage('empresa-cadastro')">Cadastrar Empresa</a>
+          <a onclick="showPage('publicar-vaga')">Publicar Vaga</a>
+          <a onclick="showPage('buscar-candidatos')">Buscar Candidatos</a>
+          <a href="#">Planos</a>
+        </div>
+        <div class="footer-col">
+          <h4>Servicos</h4>
+          <a onclick="showPage('servicos')">Buscar Servicos</a>
+          <a onclick="showPage('cadastro-servico')">Oferecer Servico</a>
+          <a href="#">Como Funciona</a>
+        </div>
+        <div class="footer-col">
+          <h4>Institucional</h4>
+          <a href="#">Sobre a ASONSEG</a>
+          <a href="#">A Paroquia</a>
+          <a href="#" onclick="openLGPDModal(event)">Termos e Privacidade</a>
+          <a href="#">Contato</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 ASONSEG - Acao Social Nsa. Sra. de Guadalupe. Todos os direitos reservados.</span>
+        <span>Feito com cuidado para a comunidade de Canasvieiras/SC</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ========== MOCK DATA ==========
+    const vagas = [
+      { id:1, title:'Auxiliar Administrativo', company:'Supermercado Angeloni', area:'Administrativa', type:'CLT', location:'Canasvieiras', salary:'R$ 1.800 - R$ 2.200', icon:'briefcase', color:'#DBEAFE', stroke:'#2563EB', posted:'10/04/2026' },
+      { id:2, title:'Tecnico(a) em Enfermagem', company:'Clinica Sao Lucas', area:'Saude', type:'CLT', location:'Canasvieiras', salary:'R$ 2.500 - R$ 3.200', icon:'heart', color:'#FCE7F3', stroke:'#DB2777', posted:'08/04/2026' },
+      { id:3, title:'Vendedor(a) de Loja', company:'Havan', area:'Comercio', type:'CLT', location:'Jurere', salary:'R$ 1.600 + comissao', icon:'cart', color:'#FFEDD5', stroke:'#F97316', posted:'12/04/2026' },
+      { id:4, title:'Cozinheiro(a)', company:'Restaurante Mar Aberto', area:'Gastronomia', type:'CLT', location:'Canasvieiras', salary:'R$ 2.200 - R$ 2.800', icon:'food', color:'#D1FAE5', stroke:'#059669', posted:'11/04/2026' },
+      { id:5, title:'Recepcionista', company:'Hotel Slaviero', area:'Turismo', type:'CLT', location:'Jurere', salary:'R$ 1.900 - R$ 2.400', icon:'building', color:'#E0E7FF', stroke:'#4F46E5', posted:'09/04/2026' },
+      { id:6, title:'Auxiliar de Producao', company:'Panificadora Estrela', area:'Alimentacao', type:'CLT', location:'Canasvieiras', salary:'R$ 1.500 - R$ 1.800', icon:'factory', color:'#FEF3C7', stroke:'#D97706', posted:'13/04/2026' },
+      { id:7, title:'Estagiario(a) de Marketing', company:'Agencia Oceano Digital', area:'Tecnologia', type:'Estagio', location:'Ingleses', salary:'R$ 1.200', icon:'screen', color:'#DBEAFE', stroke:'#2563EB', posted:'14/04/2026' },
+      { id:8, title:'Motorista Entregador', company:'Farmacia Precolandia', area:'Logistica', type:'CLT', location:'Cachoeira do BJ', salary:'R$ 2.000 - R$ 2.300', icon:'truck', color:'#F1F5F9', stroke:'#64748B', posted:'07/04/2026' },
+    ];
+
+    const candidatos = [
+      { name:'Maria Silva', initials:'MS', role:'Tecnica em Enfermagem', location:'Canasvieiras', education:'Superior Completo', skills:['Enfermagem','Primeiros Socorros','Gestao Hospitalar'], available:'Imediata' },
+      { name:'Carlos Santos', initials:'CS', role:'Auxiliar Administrativo', location:'Ingleses', education:'Superior Incompleto', skills:['Excel','Atendimento','SAP'], available:'Imediata' },
+      { name:'Ana Oliveira', initials:'AO', role:'Cozinheira Profissional', location:'Canasvieiras', education:'Ensino Medio', skills:['Gastronomia','Confeitaria','Higiene Alimentar'], available:'15 dias' },
+      { name:'Pedro Lima', initials:'PL', role:'Desenvolvedor Web Junior', location:'Jurere', education:'Superior Completo', skills:['JavaScript','React','HTML/CSS','Node.js'], available:'Imediata' },
+      { name:'Juliana Costa', initials:'JC', role:'Vendedora', location:'Canasvieiras', education:'Ensino Medio', skills:['Vendas','Negociacao','CRM','Atendimento'], available:'Imediata' },
+      { name:'Roberto Alves', initials:'RA', role:'Eletricista', location:'Cachoeira do BJ', education:'Tecnico', skills:['NR-10','Instalacoes','Manutencao'], available:'30 dias' },
+      { name:'Fernanda Dias', initials:'FD', role:'Professora de Ingles', location:'Canasvieiras', education:'Pos-graduacao', skills:['Ingles Fluente','Didatica','TOEFL','Cambridge'], available:'Imediata' },
+      { name:'Lucas Mendes', initials:'LM', role:'Recepcionista', location:'Jurere', education:'Superior Incompleto', skills:['Ingles','Espanhol','Atendimento','Hotelaria'], available:'Imediata' },
+    ];
+
+    const servicos = [
+      { id:1, title:'Diarista / Faxina Residencial', provider:'Rosa Santos', initials:'RS', type:'MEI', typeClass:'provider-mei', category:'Servicos Domesticos', location:'Canasvieiras', price:'R$ 180', unit:'/diaria', rating:5.0, reviews:47, color:'#FFEDD5', textColor:'#C2410C' },
+      { id:2, title:'Eletricista Residencial e Comercial', provider:'Carlos Eletrica', initials:'CE', type:'MEI', typeClass:'provider-mei', category:'Reparos e Manutencao', location:'Canasvieiras', price:'R$ 120', unit:'/hora', rating:4.8, reviews:32, color:'#DBEAFE', textColor:'#1E40AF' },
+      { id:3, title:'Jardinagem e Paisagismo', provider:'Joao Verde', initials:'JV', type:'PF', typeClass:'provider-pf', category:'Area Externa', location:'Jurere', price:'R$ 200', unit:'/diaria', rating:4.6, reviews:18, color:'#D1FAE5', textColor:'#065F46' },
+      { id:4, title:'Marido de Aluguel', provider:'Pedro Manutencoes', initials:'PM', type:'MEI', typeClass:'provider-mei', category:'Reparos e Manutencao', location:'Canasvieiras', price:'R$ 90', unit:'/hora', rating:4.9, reviews:65, color:'#FEF3C7', textColor:'#92400E' },
+      { id:5, title:'Conserto de Celulares e Notebooks', provider:'TechFix Informatica', initials:'TF', type:'PJ', typeClass:'provider-pj', category:'Tecnologia', location:'Ingleses', price:'R$ 80', unit:'/servico', rating:4.7, reviews:54, color:'#E0E7FF', textColor:'#4338CA' },
+      { id:6, title:'Faxina Pos-obra', provider:'Limpeza Express', initials:'LE', type:'PJ', typeClass:'provider-pj', category:'Servicos Domesticos', location:'Toda Florianopolis', price:'R$ 350', unit:'/diaria', rating:4.5, reviews:22, color:'#FFEDD5', textColor:'#C2410C' },
+      { id:7, title:'Aulas Particulares de Matematica', provider:'Prof. Ana Lucia', initials:'AL', type:'PF', typeClass:'provider-pf', category:'Aulas e Reforco', location:'Canasvieiras', price:'R$ 70', unit:'/hora', rating:5.0, reviews:29, color:'#FCE7F3', textColor:'#9D174D' },
+      { id:8, title:'Encanador / Hidraulica', provider:'Marcos Hidraulica', initials:'MH', type:'MEI', typeClass:'provider-mei', category:'Reparos e Manutencao', location:'Cachoeira do BJ', price:'R$ 100', unit:'/hora', rating:4.4, reviews:15, color:'#DBEAFE', textColor:'#1E40AF' },
+    ];
+
+    // ========== RENDER ==========
+    function getJobIcon(type) {
+      return `<svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>`;
+    }
+
+    function renderVagas() {
+      const list = document.getElementById('vagasList');
+      list.innerHTML = vagas.map(v => `
+        <div class="vaga-card" onclick="showPage('vaga-detail')">
+          <div class="vaga-icon" style="background:${v.color}">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="${v.stroke}"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+          </div>
+          <div class="vaga-info">
+            <h3>${v.title}</h3>
+            <p class="vaga-company">${v.company}</p>
+            <div class="vaga-tags">
+              <span class="badge badge-blue">${v.area}</span>
+              <span class="badge badge-green">${v.type}</span>
+            </div>
+            <div class="vaga-meta">
+              <span><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg> ${v.location}</span>
+              <span>Publicada em ${v.posted}</span>
+            </div>
+          </div>
+          <div class="vaga-salary">
+            <div class="amount">${v.salary.split(' - ')[0]}</div>
+            ${v.salary.includes('-') ? '<div class="period">a ' + v.salary.split(' - ')[1] + '</div>' : '<div class="period">/mes</div>'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderCandidatos() {
+      const list = document.getElementById('candidatosList');
+      list.innerHTML = candidatos.map(c => `
+        <div class="candidate-card">
+          <div class="candidate-avatar">${c.initials}</div>
+          <div class="candidate-info" style="flex:1;">
+            <h3>${c.name}</h3>
+            <p class="role">${c.role} &middot; ${c.location} &middot; ${c.education}</p>
+            <div class="candidate-skills">
+              ${c.skills.map(s => `<span class="badge badge-blue">${s}</span>`).join('')}
+            </div>
+            <p style="font-size:0.8rem;color:var(--color-text-light);margin-top:var(--space-sm);">Disponibilidade: <strong style="color:var(--color-success);">${c.available}</strong></p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-xs);flex-shrink:0;">
+            <button class="btn btn-primary btn-sm">Ver Perfil</button>
+            <button class="btn btn-outline btn-sm">Baixar CV</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderServicos() {
+      const list = document.getElementById('servicosList');
+      function starsHtml(rating) {
+        let s = '';
+        for (let i = 1; i <= 5; i++) {
+          s += i <= Math.round(rating)
+            ? '<svg class="filled" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>'
+            : '<svg class="empty" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>';
+        }
+        return s;
+      }
+      list.innerHTML = servicos.map(s => `
+        <div class="servico-card" onclick="showPage('servico-detail')">
+          <div class="servico-avatar" style="background:linear-gradient(135deg, ${s.color}, ${s.color}dd); color:${s.textColor};">${s.initials}</div>
+          <div class="servico-info">
+            <h3>${s.title}</h3>
+            <p class="servico-provider">${s.provider} <span class="provider-type ${s.typeClass}">${s.type}</span></p>
+            <div class="star-rating">
+              ${starsHtml(s.rating)}
+              <span>${s.rating.toFixed(1)} (${s.reviews})</span>
+            </div>
+            <div class="vaga-tags" style="margin-top:var(--space-xs);">
+              <span class="badge badge-orange">${s.category}</span>
+              <span class="badge badge-gray">${s.location}</span>
+            </div>
+          </div>
+          <div class="servico-price">
+            <div class="amount">${s.price}</div>
+            <div class="unit">${s.unit}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ========== NAVIGATION ==========
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const page = document.getElementById('page-' + pageId);
+      if (page) {
+        page.classList.add('active');
+        page.classList.add('fade-in');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Update nav
+      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+      const navLink = document.querySelector(`.nav a[data-nav="${pageId}"]`);
+      if (navLink) navLink.classList.add('active');
+    }
+
+    // ========== LGPD MODAL ==========
+    function openLGPDModal(e) {
+      if (e) e.preventDefault();
+      document.getElementById('lgpdModal').classList.add('show');
+    }
+    function closeLGPDModal() {
+      document.getElementById('lgpdModal').classList.remove('show');
+    }
+    document.getElementById('lgpdModal').addEventListener('click', function(e) {
+      if (e.target === this) closeLGPDModal();
+    });
+
+    // ========== TOAST ==========
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast success show';
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ========== MOBILE MENU ==========
+    function toggleMobile() {
+      const nav = document.querySelector('.nav');
+      const actions = document.querySelector('.nav-actions');
+      if (nav.style.display === 'flex') {
+        nav.style.display = 'none';
+        actions.style.display = 'none';
+      } else {
+        nav.style.display = 'flex';
+        nav.style.flexDirection = 'column';
+        nav.style.position = 'absolute';
+        nav.style.top = '72px';
+        nav.style.left = '0';
+        nav.style.right = '0';
+        nav.style.background = 'white';
+        nav.style.padding = '16px 24px';
+        nav.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        nav.style.zIndex = '99';
+        actions.style.display = 'flex';
+        actions.style.position = 'absolute';
+        actions.style.top = `${72 + nav.offsetHeight}px`;
+        actions.style.left = '0';
+        actions.style.right = '0';
+        actions.style.background = 'white';
+        actions.style.padding = '8px 24px 16px';
+        actions.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        actions.style.zIndex = '99';
+      }
+    }
+
+    // ========== THEME TOGGLE ==========
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      localStorage.setItem('asonseg-theme', isDark ? 'light' : 'dark');
+    }
+    // Restore saved theme or respect system preference
+    (function() {
+      const saved = localStorage.getItem('asonseg-theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+
+    // ========== INIT ==========
+    renderVagas();
+    renderCandidatos();
+    renderServicos();
+  </script>
+</body>
+</html>
