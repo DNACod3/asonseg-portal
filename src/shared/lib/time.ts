@@ -1,0 +1,31 @@
+import { format } from 'date-fns';
+import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
+
+/**
+ * Utilitários de tempo (CLAUDE.md): o banco armazena `timestamptz` em UTC;
+ * a conversão para/de horário local acontece na borda usando date-fns-tz.
+ */
+export const APP_TIME_ZONE = 'America/Sao_Paulo' as const;
+
+/** Converte um horário de parede em São Paulo para o instante UTC correspondente. */
+export function saoPauloToUtc(localDate: Date | string): Date {
+  return fromZonedTime(localDate, APP_TIME_ZONE);
+}
+
+/** Converte um instante UTC para o horário de parede em São Paulo. */
+export function utcToSaoPaulo(utcDate: Date | string): Date {
+  return toZonedTime(utcDate, APP_TIME_ZONE);
+}
+
+/** Formata um instante UTC já no fuso de São Paulo. */
+export function formatSaoPaulo(
+  utcDate: Date | string,
+  fmt = "dd/MM/yyyy HH:mm",
+): string {
+  return formatInTimeZone(utcDate, APP_TIME_ZONE, fmt);
+}
+
+/** Formata uma data sem fuso (datas "puras", ex.: data de nascimento). */
+export function formatDate(date: Date | string, fmt = 'dd/MM/yyyy'): string {
+  return format(typeof date === 'string' ? new Date(date) : date, fmt);
+}

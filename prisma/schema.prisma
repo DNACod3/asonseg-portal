@@ -1,0 +1,22 @@
+// Prisma schema — ASONSEG Portal
+// Datasource dual-URL (ADR-T-0002): aplicação usa o Pooler (PgBouncer) via DATABASE_URL;
+// migrations usam a conexão direta via DIRECT_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Tabela de infraestrutura para smoke de conectividade (sem domínio).
+/// Os modelos de domínio são adicionados por cada módulo nas tasks seguintes.
+model HealthCheck {
+  id        String   @id @default(uuid())
+  checkedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("_health_check")
+}
