@@ -25,8 +25,11 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().email(),
 
-  // Observabilidade (Sentry) — opcional em dev
-  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  // Observabilidade (Sentry) — opcional em dev (string vazia = ausente)
+  NEXT_PUBLIC_SENTRY_DSN: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().url().optional(),
+  ),
   SENTRY_ENVIRONMENT: z.enum(['development', 'staging', 'production']).default('development'),
 
   // CAPTCHA (Cloudflare Turnstile) — ADR-0014

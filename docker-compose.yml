@@ -1,0 +1,32 @@
+# Ambiente local de desenvolvimento (architecture-document.md §7.3):
+# Postgres 15 + MailHog em containers. Supabase Auth/Storage apontam para o
+# projeto dev (sem imagem fiel) — ou fakes via shared/container.ts.
+services:
+  postgres:
+    image: postgres:15
+    container_name: asonseg_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: asonseg
+      POSTGRES_PASSWORD: asonseg
+      POSTGRES_DB: asonseg
+    ports:
+      - '5432:5432'
+    volumes:
+      - asonseg_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U asonseg -d asonseg']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: asonseg_mailhog
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # UI web — http://localhost:8025
+
+volumes:
+  asonseg_pgdata:
