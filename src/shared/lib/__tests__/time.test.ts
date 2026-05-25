@@ -33,8 +33,10 @@ describe('shared/lib/time', () => {
   });
 
   it('aceita um objeto Date (não só string) em saoPauloToUtc/utcToSaoPaulo', () => {
-    // Exercita o ramo `Date` da assinatura `Date | string`.
-    const localDate = new Date('2026-01-15T15:00:00.000Z'); // 12:00 wall em SP
+    // Exercita o ramo `Date` da assinatura `Date | string`. Sob TZ=UTC, os
+    // campos de parede deste Date são 15:00 — é esse valor que saoPauloToUtc
+    // interpreta como horário de SP, resultando em 18:00Z (SP = UTC-3).
+    const localDate = new Date('2026-01-15T15:00:00.000Z');
     const utc = saoPauloToUtc(localDate);
     expect(utc.toISOString()).toBe('2026-01-15T18:00:00.000Z');
 

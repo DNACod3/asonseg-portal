@@ -7,12 +7,17 @@ import pino, { type Logger } from 'pino';
 const isProd = process.env.NODE_ENV === 'production';
 
 /**
- * Baseline de redação (LGPD / ADR-0009): nunca emitir PII ou segredos no log,
- * em qualquer profundidade. Cobre cabeçalhos de auth, credenciais e os campos
- * sensíveis mais comuns do domínio (pessoa unificada). Módulos podem estender
- * via `childLogger`, mas estes paths valem por padrão em toda a aplicação.
+ * Baseline de redação (LGPD / ADR-0009): nunca emitir PII ou segredos no log.
+ * Cobre cabeçalhos de auth, credenciais e os campos sensíveis mais comuns do
+ * domínio (pessoa unificada). Cada campo é registrado em três alvos para cobrir
+ * profundidade arbitrária, já que os wildcards do pino casam UM nível por `*`:
+ *   • `campo`     → raiz do objeto logado
+ *   • `*.campo`   → um nível de aninhamento (ex.: `pessoa.email`)
+ *   • `*.*.campo` → dois níveis (ex.: `pessoa.contato.email`)
+ * Módulos podem estender via `childLogger`, mas estes paths valem por padrão em
+ * toda a aplicação. Ao logar PII mais profunda, achate o objeto antes de emitir.
  */
-const REDACT_PATHS = [
+const SENSITIVE_FIELDS = [
   'password',
   'senha',
   'token',
@@ -27,14 +32,12 @@ const REDACT_PATHS = [
   'email',
   'telefone',
   'phone',
-  '*.password',
-  '*.senha',
-  '*.token',
-  '*.authorization',
-  '*.cpf',
-  '*.rg',
-  '*.email',
-  '*.telefone',
+];
+
+const REDACT_PATHS = [
+  ...SENSITIVE_FIELDS,
+  ...SENSITIVE_FIELDS.map((f) => `*.${f}`),
+  ...SENSITIVE_FIELDS.map((f) => `*.*.${f}`),
   'req.headers.authorization',
   'req.headers.cookie',
 ];
