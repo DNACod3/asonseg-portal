@@ -1,0 +1,34 @@
+import { defineConfig } from 'vitest/config';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [tsconfigPaths(), react()],
+  test: {
+    environment: 'node',
+    globals: true,
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      // No bootstrap, cobrimos a fundação pura/testável. Glue de IO (Prisma/Supabase/
+      // logger), páginas do App Router e config ficam fora do gate até terem testes próprios.
+      include: ['src/shared/**/*.ts'],
+      exclude: [
+        'src/shared/lib/prisma.ts',
+        'src/shared/lib/logger.ts',
+        'src/shared/lib/supabase/**',
+        'src/**/*.{test,spec}.ts',
+        'src/**/index.ts',
+      ],
+      // Gate de CI: alvo 70%, falha abaixo de 65% (task #103 / #104).
+      thresholds: {
+        lines: 65,
+        statements: 65,
+        functions: 65,
+        branches: 65,
+      },
+    },
+  },
+});
