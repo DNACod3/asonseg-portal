@@ -20,11 +20,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // Sobe a app para os testes E2E; reaproveita um server já rodando em dev local.
+  // Sobe a app para os testes E2E. Em CI roda contra o build de produção
+  // (`build && start`) para exercitar o comportamento real de ISR/route groups;
+  // em dev local usa `dev` e reaproveita um server já rodando.
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });

@@ -5,7 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   test: {
-    environment: 'node',
+    // jsdom: o setup carrega `@testing-library/jest-dom` e o include cobre `.tsx`,
+    // então testes de componente precisam de DOM. Glue puro (node) roda igual aqui.
+    environment: 'jsdom',
     globals: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: ['./vitest.setup.ts'],

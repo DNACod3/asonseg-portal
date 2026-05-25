@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 
+// Fixa o fuso do processo de teste em UTC para que asserts baseados em
+// getters locais de Date (ex.: conversões de timezone) sejam determinísticos,
+// independentemente do fuso da máquina do dev (ex.: America/Sao_Paulo).
+process.env.TZ = 'UTC';
+
 // Env dummy para os testes: módulos que importam `shared/env` validam no load.
 // Valores fake suficientes para passar no schema Zod (sem bater em SaaS real).
 const TEST_ENV: Record<string, string> = {
