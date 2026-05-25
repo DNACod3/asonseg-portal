@@ -1,3 +1,7 @@
+// ADR-0013: home com ISR de 10min (indicadores agregados são "tempo real" no
+// contrato com a UI). On-demand revalidation via `revalidatePath('/')`.
+export const revalidate = 600;
+
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 p-8">

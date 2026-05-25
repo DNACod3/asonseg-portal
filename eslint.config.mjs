@@ -35,6 +35,14 @@ const eslintConfig = [
       'docs/**',
       'coverage/**',
       'playwright-report/**',
+      // Diretórios de tooling/agents (não são código-fonte da app): com `eslint .`
+      // o escopo abrange a raiz, então ignoramos explicitamente o que `next lint`
+      // não cobria.
+      '.claude/**',
+      '.cursor/**',
+      '.agents/**',
+      '.specs/**',
+      '.wolf/**',
     ],
   },
 ];
