@@ -48,8 +48,14 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-function loadEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+export { envSchema };
+
+/**
+ * Valida uma fonte de env (default: `process.env`). Lança com mensagem agregada
+ * em PT-BR quando alguma variável obrigatória está ausente ou malformada.
+ */
+export function parseEnv(source: Record<string, unknown> = process.env): Env {
+  const parsed = envSchema.safeParse(source);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join('.') || '(raiz)'}: ${i.message}`)
@@ -62,4 +68,4 @@ function loadEnv(): Env {
   return parsed.data;
 }
 
-export const env = loadEnv();
+export const env = parseEnv();

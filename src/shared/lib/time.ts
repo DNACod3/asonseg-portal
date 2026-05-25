@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 /**
@@ -25,7 +25,11 @@ export function formatSaoPaulo(
   return formatInTimeZone(utcDate, APP_TIME_ZONE, fmt);
 }
 
-/** Formata uma data sem fuso (datas "puras", ex.: data de nascimento). */
+/**
+ * Formata uma data "pura" (ex.: data de nascimento) sem aplicar fuso.
+ * Strings são interpretadas como meia-noite local (parseISO), evitando o
+ * deslocamento de dia que `new Date('yyyy-MM-dd')` causa (parse em UTC).
+ */
 export function formatDate(date: Date | string, fmt = 'dd/MM/yyyy'): string {
-  return format(typeof date === 'string' ? new Date(date) : date, fmt);
+  return format(typeof date === 'string' ? parseISO(date) : date, fmt);
 }
