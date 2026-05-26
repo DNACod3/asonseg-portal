@@ -1,0 +1,76 @@
+name: Backup Storage → Backblaze B2
+
+# Sincroniza o Supabase Storage (S3-compatível) para o Backblaze B2 (2ª cópia, ADR-0006).
+# Incremental: `rclone sync` só transfere o que mudou.
+on:
+  schedule:
+    - cron: '30 6 * * *' # 06:30 UTC = 03:30 BRT (logo após o backup do DB)
+  workflow_dispatch: {}
+
+concurrency:
+  group: backup-storage
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: rclone sync Storage → B2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar rclone
+        run: sudo apt-get update && sudo apt-get install -y rclone
+
+      - name: Configurar rclone (origem Supabase S3 + destino B2)
+        env:
+          SUPA_S3_ENDPOINT: ${{ secrets.SUPABASE_S3_ENDPOINT }} # ex.: https://<ref>.storage.supabase.co/storage/v1/s3
+          SUPA_S3_REGION: ${{ secrets.SUPABASE_S3_REGION }}     # ex.: sa-east-1
+          SUPA_S3_ACCESS_KEY: ${{ secrets.SUPABASE_S3_ACCESS_KEY }}
+          SUPA_S3_SECRET_KEY: ${{ secrets.SUPABASE_S3_SECRET_KEY }}
+          B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [supa]
+          type = s3
+          provider = Other
+          endpoint = ${SUPA_S3_ENDPOINT}
+          region = ${SUPA_S3_REGION}
+          access_key_id = ${SUPA_S3_ACCESS_KEY}
+          secret_access_key = ${SUPA_S3_SECRET_KEY}
+
+          [b2]
+          type = b2
+          account = ${B2_KEY_ID}
+          key = ${B2_APP_KEY}
+          hard_delete = true
+          EOF
+
+      - name: Sync incremental Storage → B2
+        env:
+          STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }} # bucket de Storage a copiar (ex.: cvs)
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+        run: |
+          rclone sync "supa:${STORAGE_BUCKET}" "b2:${B2_BUCKET}/storage/${STORAGE_BUCKET}" \
+            --fast-list --transfers 8 --checkers 16 --stats-one-line --stats 30s
+
+      - name: Alerta de falha (Sentry)
+        if: failure()
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          echo "::error::Backup do Storage FALHOU — verificar logs e o estado do B2."
+          if [ -n "${SENTRY_DSN}" ]; then
+            PROTO_HOST="$(echo "$SENTRY_DSN" | sed -E 's#^(https?)://([^@]+)@([^/]+)/.*#\1://\3#')"
+            PUBKEY="$(echo "$SENTRY_DSN" | sed -E 's#^https?://([^@:]+).*#\1#')"
+            PROJ="$(echo "$SENTRY_DSN" | sed -E 's#.*/([0-9]+)$#\1#')"
+            curl -sf --max-time 15 "${PROTO_HOST}/api/${PROJ}/store/" \
+              -H "Content-Type: application/json" \
+              -H "X-Sentry-Auth: Sentry sentry_version=7, sentry_key=${PUBKEY}" \
+              -d "{\"level\":\"error\",\"logger\":\"backup-storage\",\"message\":\"backup-storage.yml falhou (run ${GITHUB_RUN_ID})\",\"tags\":{\"job\":\"backup-storage\",\"repo\":\"${GITHUB_REPOSITORY}\"}}" \
+              && echo "evento enviado ao Sentry" || echo "falha ao enviar ao Sentry (alerta fica no job log)"
+          else
+            echo "SENTRY_DSN não configurado — alerta apenas no job log."
+          fi

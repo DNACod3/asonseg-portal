@@ -1,0 +1,73 @@
+name: Backup DB → Backblaze B2
+
+# Dump diário do Postgres (Supabase) e upload para o Backblaze B2 (2ª cópia, ADR-0006).
+# RPO de 24h coberto pelo backup nativo do Supabase; o B2 é a cópia redundante.
+on:
+  schedule:
+    - cron: '0 6 * * *' # 06:00 UTC = 03:00 America/Sao_Paulo (janela de baixo tráfego)
+  workflow_dispatch: {} # disparo manual para validar 1 execução ponta-a-ponta
+
+concurrency:
+  group: backup-db
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: pg_dump + upload B2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # pg_dump fixado na MAJOR do servidor (Postgres 15) — evita o skew de versão
+      # que emite `SET transaction_timeout` (achado do drill #109).
+      - name: Instalar postgresql-client-15 + rclone
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-15 rclone
+
+      - name: Configurar rclone para o Backblaze B2
+        env:
+          B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [b2]
+          type = b2
+          account = ${B2_KEY_ID}
+          key = ${B2_APP_KEY}
+          hard_delete = true
+          EOF
+
+      - name: Dump + upload (schema public) com retenção
+        env:
+          # Conexão DIRETA (porta 5432) — pg_dump não usa o pooler transaction-mode.
+          DIRECT_URL: ${{ secrets.BACKUP_DIRECT_URL }}
+          B2_REMOTE: b2:${{ secrets.B2_BUCKET }}
+          RETENTION: '30'
+        run: |
+          /usr/lib/postgresql/15/bin/pg_dump --version
+          PATH="/usr/lib/postgresql/15/bin:$PATH" bash scripts/backup/dump-db.sh
+
+      - name: Alerta de falha (Sentry)
+        if: failure()
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          echo "::error::Backup do DB FALHOU — verificar logs e o estado do B2."
+          if [ -n "${SENTRY_DSN}" ]; then
+            # envia um evento ao Sentry via Store API (parse do DSN)
+            PROTO_HOST="$(echo "$SENTRY_DSN" | sed -E 's#^(https?)://([^@]+)@([^/]+)/.*#\1://\3#')"
+            PUBKEY="$(echo "$SENTRY_DSN" | sed -E 's#^https?://([^@:]+).*#\1#')"
+            PROJ="$(echo "$SENTRY_DSN" | sed -E 's#.*/([0-9]+)$#\1#')"
+            curl -sf --max-time 15 "${PROTO_HOST}/api/${PROJ}/store/" \
+              -H "Content-Type: application/json" \
+              -H "X-Sentry-Auth: Sentry sentry_version=7, sentry_key=${PUBKEY}" \
+              -d "{\"level\":\"error\",\"logger\":\"backup-db\",\"message\":\"backup-db.yml falhou (run ${GITHUB_RUN_ID})\",\"tags\":{\"job\":\"backup-db\",\"repo\":\"${GITHUB_REPOSITORY}\"}}" \
+              && echo "evento enviado ao Sentry" || echo "falha ao enviar ao Sentry (alerta fica no job log)"
+          else
+            echo "SENTRY_DSN não configurado — alerta apenas no job log."
+          fi
