@@ -20,3 +20,46 @@ model HealthCheck {
 
   @@map("_health_check")
 }
+
+// ── Taxonomia (US #111) ───────────────────────────────────────────────
+// Áreas de vaga, categorias de serviço e regiões atendidas.
+// Relações de volta (Job, Service, CandidateProfile, ProviderProfile)
+// serão adicionadas pelos respectivos módulos nas tasks seguintes.
+
+/// Área profissional de uma vaga / interesse do candidato.
+model JobArea {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @unique
+  isSuggestion Boolean   @default(false) @map("is_suggestion")
+  approvedAt   DateTime? @map("approved_at") @db.Timestamptz(6)
+  approvedBy   String?   @map("approved_by") @db.Uuid
+  suggestedBy  String?   @map("suggested_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("job_areas")
+}
+
+/// Categoria do catálogo de serviços de prestadores.
+model ServiceCategory {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @unique
+  isSuggestion Boolean   @default(false) @map("is_suggestion")
+  approvedAt   DateTime? @map("approved_at") @db.Timestamptz(6)
+  approvedBy   String?   @map("approved_by") @db.Uuid
+  suggestedBy  String?   @map("suggested_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("service_categories")
+}
+
+/// Região (bairro) atendida pelo portal.
+model Region {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  cityName  String   @map("city_name")
+  state     String   @default("SC")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("regions")
+}
