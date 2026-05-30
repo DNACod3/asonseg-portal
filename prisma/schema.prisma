@@ -63,3 +63,75 @@ model Region {
 
   @@map("regions")
 }
+
+// ── Identity / Auth (USP-004) ─────────────────────────────────────────────
+// Pessoa = entidade fundamental (ADR-0011). Papéis compostos serão modelados
+// em uma migration subsequente (ver IDSD/architecture/technical-design.md §4.5).
+// Credential = autenticação por e-mail+senha gerenciada por Supabase Auth;
+// hash bcrypt mora no Supabase (não nesta tabela). Aqui guardamos apenas o
+// vínculo Pessoa↔credencial e o flag de primeiro acesso (cenário USP-003).
+
+/// Status operacional da Pessoa. Revalidado a cada request (ADR-0030)
+/// para fechar a janela de "sessão zumbi" após USP-007 (inativação).
+enum PersonStatus {
+  ATIVO
+  INATIVO
+
+  @@map("person_status")
+}
+
+/// Pessoa = entidade fundamental do domínio (ADR-0011). Multiplas papéis
+/// (candidato, prestador, empresa-responsável, etc.) serão adicionados em
+/// migrations posteriores; aqui o mínimo para autenticação.
+model Person {
+  id        String       @id @default(uuid()) @db.Uuid
+  status    PersonStatus @default(ATIVO)
+  /// E-mail canônico (lowercase + trim). Pode ser nullable em cadastros
+  /// pela AS sem credencial (USP-002); para USP-004, é exigido pela credencial.
+  email     String?      @unique
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  credential Credential?
+
+  @@map("persons")
+}
+
+/// Vínculo Pessoa ↔ credencial Supabase Auth.
+/// O hash bcrypt é gerenciado pelo Supabase Auth (cost 10 default, ver
+/// IDSD/architecture/technical-design.md §7.1); aqui rastreamos apenas o
+/// flag de primeiro acesso (forçar troca de senha — AC-004-5).
+model Credential {
+  id             String   @id @default(uuid()) @db.Uuid
+  personId       String   @unique @map("person_id") @db.Uuid
+  person         Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  primeiroAcesso Boolean  @default(false) @map("primeiro_acesso")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("credentials")
+}
+
+/// Resultado de uma tentativa de autenticação.
+enum AuthOutcome {
+  SUCCESS
+  FAILURE
+
+  @@map("auth_outcome")
+}
+
+/// Tentativas de login para lockout `(email, ip)` 5 falhas em 15 min
+/// (ADR-0029). Tabela técnica, separada de `audit_log` (ADR-0023).
+/// Retenção parametrizada por `AUTH_ATTEMPTS_RETENTION_DAYS` (default 90 dias).
+model AuthAttempt {
+  id          String      @id @default(uuid()) @db.Uuid
+  /// E-mail normalizado (lowercase + trim) — ver normalização em loginAction.
+  email       String
+  ip          String
+  outcome     AuthOutcome
+  attemptedAt DateTime    @default(now()) @map("attempted_at") @db.Timestamptz(6)
+
+  @@index([email, ip, attemptedAt], name: "auth_attempts_lockout_idx")
+  @@index([attemptedAt], name: "auth_attempts_retention_idx")
+  @@map("auth_attempts")
+}
