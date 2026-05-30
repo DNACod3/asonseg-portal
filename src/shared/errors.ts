@@ -18,6 +18,7 @@ export interface ActionError {
 export type ActionErrorCode =
   | 'VALIDATION'
   | 'UNAUTHENTICATED'
+  | 'INVALID_CREDENTIALS'
   | 'FORBIDDEN'
   | 'CONSENT_REQUIRED'
   | 'NOT_FOUND'

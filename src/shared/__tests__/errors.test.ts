@@ -23,4 +23,13 @@ describe('shared/errors', () => {
       expect(r.error.fieldErrors).toEqual({ email: ['obrigatório'] });
     }
   });
+
+  it('INVALID_CREDENTIALS é um código válido (USP-004 — anti-enumeração)', () => {
+    // Garante mensagem genérica única para evitar enumeração de e-mails (P-002).
+    const r = fail('INVALID_CREDENTIALS', 'Credenciais inválidas');
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe('INVALID_CREDENTIALS');
+    }
+  });
 });
