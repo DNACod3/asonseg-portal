@@ -25,6 +25,18 @@ const eslintConfig = [
           ],
         },
       ],
+      // Convenção: vars/args/caught errors com prefixo `_` são intencionalmente
+      // não usados (ex.: assinaturas de stubs como middleware Next).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
     },
   },
   {
