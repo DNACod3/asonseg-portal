@@ -17,6 +17,8 @@ const validEnv: Record<string, string> = {
   B2_KEY_ID: 'id',
   B2_APPLICATION_KEY: 'key',
   B2_BUCKET: 'bucket',
+  AUTH_ATTEMPTS_RETENTION_DAYS: '90',
+  AUTH_LOGIN_ENABLED: 'true',
 };
 
 describe('shared/env parseEnv', () => {
@@ -51,5 +53,35 @@ describe('shared/env parseEnv', () => {
 
   it('rejeita LOG_LEVEL fora do enum', () => {
     expect(() => parseEnv({ ...validEnv, LOG_LEVEL: 'verbose' })).toThrow(/LOG_LEVEL/);
+  });
+
+  it('aplica default 90 para AUTH_ATTEMPTS_RETENTION_DAYS e converte string', () => {
+    const noRetention = { ...validEnv };
+    delete noRetention.AUTH_ATTEMPTS_RETENTION_DAYS;
+    expect(parseEnv(noRetention).AUTH_ATTEMPTS_RETENTION_DAYS).toBe(90);
+
+    const custom = parseEnv({ ...validEnv, AUTH_ATTEMPTS_RETENTION_DAYS: '30' });
+    expect(custom.AUTH_ATTEMPTS_RETENTION_DAYS).toBe(30);
+  });
+
+  it('rejeita AUTH_ATTEMPTS_RETENTION_DAYS não-positivo ou não-numérico', () => {
+    expect(() => parseEnv({ ...validEnv, AUTH_ATTEMPTS_RETENTION_DAYS: '0' })).toThrow(
+      /AUTH_ATTEMPTS_RETENTION_DAYS/,
+    );
+    expect(() => parseEnv({ ...validEnv, AUTH_ATTEMPTS_RETENTION_DAYS: 'abc' })).toThrow(
+      /AUTH_ATTEMPTS_RETENTION_DAYS/,
+    );
+  });
+
+  it('AUTH_LOGIN_ENABLED tem default true e aceita string "false" como booleano', () => {
+    const noFlag = { ...validEnv };
+    delete noFlag.AUTH_LOGIN_ENABLED;
+    expect(parseEnv(noFlag).AUTH_LOGIN_ENABLED).toBe(true);
+
+    const disabled = parseEnv({ ...validEnv, AUTH_LOGIN_ENABLED: 'false' });
+    expect(disabled.AUTH_LOGIN_ENABLED).toBe(false);
+
+    const enabled = parseEnv({ ...validEnv, AUTH_LOGIN_ENABLED: 'true' });
+    expect(enabled.AUTH_LOGIN_ENABLED).toBe(true);
   });
 });

@@ -44,6 +44,15 @@ const envSchema = z.object({
   B2_KEY_ID: z.string().min(1),
   B2_APPLICATION_KEY: z.string().min(1),
   B2_BUCKET: z.string().min(1),
+
+  // Autenticação (USP-004) — ADR-0029 / DEC-012
+  // Retenção de tentativas de login (email + IP) para anti-brute-force/DoS.
+  // Tunável; pendente validação LGPD da DPO (DEC-012).
+  AUTH_ATTEMPTS_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  // Feature flag de bloqueio do login (manutenção / rollback emergencial).
+  AUTH_LOGIN_ENABLED: z
+    .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() !== 'false' : v), z.boolean())
+    .default(true),
 });
 
 export type Env = z.infer<typeof envSchema>;

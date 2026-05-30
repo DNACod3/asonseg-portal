@@ -22,6 +22,8 @@ const TEST_ENV: Record<string, string> = {
   B2_KEY_ID: 'b2-id',
   B2_APPLICATION_KEY: 'b2-key',
   B2_BUCKET: 'asonseg-test',
+  AUTH_ATTEMPTS_RETENTION_DAYS: '90',
+  AUTH_LOGIN_ENABLED: 'true',
 };
 
 for (const [key, value] of Object.entries(TEST_ENV)) {
