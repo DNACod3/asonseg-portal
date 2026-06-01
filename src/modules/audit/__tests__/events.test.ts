@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { AuditEvent } from '@/modules/audit';
+import { AuditEvent, requiresJustification, JUSTIFICATION_REQUIRED_EVENTS } from '@/modules/audit';
 
 describe('audit/events', () => {
-  it('expõe o catálogo de eventos AUTH_* da USP-004', () => {
+  it('mantém os eventos AUTH_* da USP-004', () => {
     expect(AuditEvent.AUTH_LOGIN_SUCCESS).toBe('AUTH_LOGIN_SUCCESS');
     expect(AuditEvent.AUTH_LOGIN_FAILURE).toBe('AUTH_LOGIN_FAILURE');
     expect(AuditEvent.AUTH_SESSION_INVALIDATED).toBe('AUTH_SESSION_INVALIDATED');
@@ -11,15 +11,48 @@ describe('audit/events', () => {
     );
   });
 
-  it('catálogo é objeto literal `as const` (sem chaves dinâmicas)', () => {
-    const keys = Object.keys(AuditEvent).sort();
-    expect(keys).toEqual(
-      [
-        'AUTH_LOGIN_SUCCESS',
-        'AUTH_LOGIN_FAILURE',
-        'AUTH_SESSION_INVALIDATED',
-        'AUTH_PASSWORD_CHANGED_FIRST_ACCESS',
-      ].sort(),
-    );
+  it('cobre o catálogo transversal do MVP (ADR-0004)', () => {
+    // Amostra representativa das categorias da extensão Portal MVP.
+    for (const name of [
+      'PERSON_CREATED_PUBLIC',
+      'CONSENT_GRANTED',
+      'CONSENT_REVOKED',
+      'ROLE_GRANT_ACTIVATED',
+      'DELEGATED_PERMISSION_GRANTED',
+      'CONTENT_REJECTED',
+      'CV_EXTRACTION_COMPLETED',
+      'SENSITIVE_FIELD_VIEWED',
+      'ACCESS_REPORT_ISSUED',
+      'AUDIT_LOG_PURGED',
+    ] as const) {
+      expect(AuditEvent[name]).toBe(name);
+    }
+  });
+
+  it('cada chave do catálogo mapeia para uma string idêntica à chave', () => {
+    for (const [key, value] of Object.entries(AuditEvent)) {
+      expect(value).toBe(key);
+    }
+  });
+
+  it('não há valores duplicados no catálogo', () => {
+    const values = Object.values(AuditEvent);
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  it('marca eventos de revogação/rejeição como exigindo justificativa', () => {
+    expect(requiresJustification(AuditEvent.CONSENT_REVOKED)).toBe(true);
+    expect(requiresJustification(AuditEvent.CONTENT_REJECTED)).toBe(true);
+    expect(requiresJustification(AuditEvent.PERSON_INACTIVATED)).toBe(true);
+    // Eventos de criação/leitura não exigem.
+    expect(requiresJustification(AuditEvent.CONSENT_GRANTED)).toBe(false);
+    expect(requiresJustification(AuditEvent.AUTH_LOGIN_SUCCESS)).toBe(false);
+  });
+
+  it('todos os eventos que exigem justificativa pertencem ao catálogo', () => {
+    const known = new Set<string>(Object.values(AuditEvent));
+    for (const event of JUSTIFICATION_REQUIRED_EVENTS) {
+      expect(known.has(event)).toBe(true);
+    }
   });
 });

@@ -135,3 +135,42 @@ model AuthAttempt {
   @@index([attemptedAt], name: "auth_attempts_retention_idx")
   @@map("auth_attempts")
 }
+
+// ── Auditoria (US #12 — ADR-0023 / ADR-T-0004) ────────────────────────────
+// Log imutável de toda escrita sensível. Append-only garantido no nível do
+// banco por `REVOKE UPDATE, DELETE` (ver migration desta tabela). Catálogo de
+// eventos em `@/modules/audit/events`; gravação via `withAudit(...)` na mesma
+// transação da operação (ADR-0020 — atomicidade: audit falha => rollback).
+// Retenção operacional de 1 ano (job mensal de purge — scripts/purge-audit-log.ts).
+
+/// Registro de auditoria append-only (technical-design.md §2.9).
+/// `id` é BIGSERIAL para volume contínuo sem colisão de UUID.
+model AuditLog {
+  id            BigInt   @id @default(autoincrement())
+  occurredAt    DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  /// Ator no plano de autenticação (Supabase Auth user). Nullable em eventos
+  /// sem ator (ex.: cron de expiração/purge) ou falha de login com e-mail desconhecido.
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  /// Ator no plano de domínio (Pessoa). Nullable pelos mesmos motivos.
+  actorPersonId String?  @map("actor_person_id") @db.Uuid
+  /// Tipo do evento — vem do catálogo `@/modules/audit/events` (string solta proibida).
+  action        String
+  entityType    String?  @map("entity_type")
+  entityId      String?  @map("entity_id") @db.Uuid
+  /// Estado anterior (UPDATE/DELETE) — nulo em INSERT. Nunca inclui senhas/tokens/CV cru.
+  before        Json?
+  /// Estado posterior (INSERT/UPDATE) — nulo em DELETE.
+  after         Json?
+  /// Contexto da request: requestId, rota, origem etc. (sem PII).
+  context       Json?
+  ip            String?  @db.Inet
+  userAgent     String?  @map("user_agent")
+  /// Obrigatória (validada na app) em revogação/rejeição/edição retroativa.
+  justification String?
+
+  @@index([entityType, entityId])
+  @@index([actorPersonId, occurredAt])
+  @@index([action, occurredAt])
+  @@index([occurredAt], name: "audit_log_retention_idx")
+  @@map("audit_log")
+}
