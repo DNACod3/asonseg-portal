@@ -1,22 +1,21 @@
 import { notFound, redirect } from 'next/navigation';
-import crypto from 'node:crypto';
 import { acceptRoleConsent } from '@/modules/identity';
 import type { PublicRole } from '@/modules/identity';
 
 export const dynamic = 'force-dynamic';
 
-// Versões dos termos por papel (D-004 — gate jurídico: substituir pelos termos aprovados)
+// Termos aprovados pela diretoria/jurídico (D-004 cleared).
+// Hashes SHA-256 de legal/consent-terms/<finalidade>/v1.0.md.
 const ROLE_TERM_VERSION: Record<PublicRole, string> = {
-  CANDIDATE: 'job-application@v1.0-draft',
-  PROVIDER: 'service-offering@v1.0-draft',
-  CLIENT: 'service-hiring@v1.0-draft',
+  CANDIDATE: 'job-application@v1.0',
+  PROVIDER: 'service-offering@v1.0',
+  CLIENT: 'service-hiring@v1.0',
 };
 
-// Placeholder de hash — substituir pelo SHA-256 do texto aprovado pelo jurídico (D-004)
 const ROLE_TERM_HASH: Record<PublicRole, string> = {
-  CANDIDATE: crypto.createHash('sha256').update('PLACEHOLDER candidato').digest('hex'),
-  PROVIDER: crypto.createHash('sha256').update('PLACEHOLDER prestador').digest('hex'),
-  CLIENT: crypto.createHash('sha256').update('PLACEHOLDER cliente').digest('hex'),
+  CANDIDATE: 'cba5ec9a519b6c5d2beab0adaf693252c87d95a9353877b9f3c43d41dfb064dd',
+  PROVIDER: '9abdc14dbe425e0422987d5b5fc6002f942b90ac053c5d6a9b423640907a88a7',
+  CLIENT: 'cc05674f573f8ea3c5a50e1e731d7d929684a4ffb5d65f34d4bcc40d5d472803',
 };
 
 const ROLE_LABEL: Record<PublicRole, string> = {

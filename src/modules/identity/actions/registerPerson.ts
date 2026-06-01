@@ -16,14 +16,10 @@ import {
 } from '../schemas/registerPerson';
 
 // ── Constantes de consentimento PORTAL_ACCESS ─────────────────────────────────
-// Gate jurídico D-004 das expectations: os termos finais precisam ser aprovados
-// pela diretoria/jurídico antes de ir para produção. Estes valores de
-// placeholder devem ser substituídos pelos termos reais aprovados.
-const PORTAL_ACCESS_TERM_VERSION = 'portal-access@v1.0-draft';
-const PORTAL_ACCESS_TERM_HASH = crypto
-  .createHash('sha256')
-  .update('PLACEHOLDER — substituir pelo hash SHA-256 do texto aprovado')
-  .digest('hex');
+// Termos aprovados pela diretoria/jurídico (D-004 cleared).
+// Hash SHA-256 de legal/consent-terms/portal-access/v1.0.md.
+const PORTAL_ACCESS_TERM_VERSION = 'portal-access@v1.0';
+const PORTAL_ACCESS_TERM_HASH = 'b9791c01cdf4cf5177d33a8938693671b97ab7f24293665f70024ea83006a0d2';
 
 // ── Mapeamento papel → finalidade de consentimento ───────────────────────────
 const ROLE_PURPOSE_MAP = {
