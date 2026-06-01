@@ -28,6 +28,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@marsidev/react-turnstile": "^1.5.2",
     "@prisma/client": "^5.22.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
@@ -39,6 +41,8 @@
     "pino": "^10.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.77.0",
+    "resend": "^6.12.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
