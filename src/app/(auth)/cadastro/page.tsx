@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { env } from '@/shared/env';
-import { RegisterPersonForm } from '@/modules/identity/components/RegisterPersonForm';
+import { signConsentToken } from '@/shared/lib/consentToken';
+import { RegisterPersonForm } from '@/modules/identity';
 import type { RegisterPersonResult } from '@/modules/identity';
 
 export const metadata = {
@@ -22,12 +23,15 @@ const NEXT_STEP_BY_ROLE: Record<string, string> = {
 /**
  * Callback chamado pelo RegisterPersonForm após TX1 bem-sucedida.
  * Redireciona para a tela de aceite da finalidade (TX2) — E-001b.
- * Implementado como Server Action para usar redirect() corretamente.
+ * O token HMAC garante que apenas quem passou pela TX1 pode acionar a TX2.
  */
 async function handleRegistrationSuccess(result: RegisterPersonResult): Promise<void> {
   'use server';
   const nextStep = NEXT_STEP_BY_ROLE[result.role] ?? '/app/perfil';
-  redirect(`/cadastro/consentimento?personId=${result.personId}&role=${result.role}&next=${nextStep}`);
+  const sig = signConsentToken(result.personId, result.role);
+  redirect(
+    `/cadastro/consentimento?personId=${result.personId}&role=${result.role}&next=${encodeURIComponent(nextStep)}&sig=${sig}`,
+  );
 }
 
 export default function CadastroPage() {

@@ -72,3 +72,13 @@ export const acceptRoleConsentSchema = z.object({
 });
 
 export type AcceptRoleConsentInput = z.infer<typeof acceptRoleConsentSchema>;
+
+// ── Mapeamento papel → finalidade de consentimento LGPD ──────────────────────
+// Fonte de verdade única: tanto TX1 quanto TX2 devem importar daqui.
+export const ROLE_PURPOSE_MAP = {
+  CANDIDATE: 'JOB_APPLICATION',
+  PROVIDER: 'SERVICE_OFFERING',
+  CLIENT: 'SERVICE_HIRING',
+} as const satisfies Record<PublicRole, string>;
+
+export type RolePurpose = (typeof ROLE_PURPOSE_MAP)[PublicRole];

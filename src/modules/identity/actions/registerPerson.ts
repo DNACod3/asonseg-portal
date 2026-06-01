@@ -2,12 +2,14 @@
 
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
-import { prisma } from '@/shared/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { Resend } from 'resend';
+import { env } from '@/shared/env';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/server';
+import { clientIp } from '@/shared/lib/clientIp';
 import { container } from '@/shared/container';
 import { ok, fail, type ActionResult } from '@/shared/errors';
-import { AuditEvent } from '@/modules/audit/events';
-import { withAudit } from '@/modules/audit/withAudit';
+import { AuditEvent, withAudit } from '@/modules/audit';
 import { CAPTCHA_VERIFIER_TOKEN } from '../ports/captchaVerifier';
 import {
   registerPersonSchema,
@@ -21,12 +23,11 @@ import {
 const PORTAL_ACCESS_TERM_VERSION = 'portal-access@v1.0';
 const PORTAL_ACCESS_TERM_HASH = 'b9791c01cdf4cf5177d33a8938693671b97ab7f24293665f70024ea83006a0d2';
 
-// ── Mapeamento papel → finalidade de consentimento ───────────────────────────
-const ROLE_PURPOSE_MAP = {
-  CANDIDATE: 'JOB_APPLICATION',
-  PROVIDER: 'SERVICE_OFFERING',
-  CLIENT: 'SERVICE_HIRING',
-} as const satisfies Record<PublicRole, string>;
+// Singleton por processo — sem IO na inicialização.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  return (_resend ??= new Resend(env.RESEND_API_KEY));
+}
 
 export interface RegisterPersonResult {
   personId: string;
@@ -57,12 +58,12 @@ export async function registerPerson(
 
   // 2. Contexto da request (IP, user-agent para audit e CAPTCHA)
   const hdrs = await headers();
-  const ip = hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+  const ip = clientIp(hdrs);
   const userAgent = hdrs.get('user-agent') ?? null;
 
   // 3. Verificação CAPTCHA (fail-closed — ADR-0014 / P-005)
   const captcha = container.resolve(CAPTCHA_VERIFIER_TOKEN);
-  const captchaResult = await captcha.verify(input.captchaToken, ip ?? undefined);
+  const captchaResult = await captcha.verify(input.captchaToken, ip !== 'unknown' ? ip : undefined);
   if (!captchaResult.ok) {
     return fail('PRECONDITION_FAILED', 'CAPTCHA inválido ou expirado. Tente novamente.');
   }
@@ -76,7 +77,6 @@ export async function registerPerson(
   });
 
   if (authError || !authUser.user) {
-    // E-mail já em uso no Supabase Auth
     if (authError?.message?.toLowerCase().includes('already')) {
       return fail('CONFLICT', 'E-mail já está em uso. Faça login ou use outro e-mail.');
     }
@@ -94,7 +94,6 @@ export async function registerPerson(
     const person = await withAudit(
       AuditEvent.PERSON_CREATED_PUBLIC,
       async (tx, audit) => {
-        // INSERT person
         const createdPerson = await tx.person.create({
           data: {
             id: personId,
@@ -106,7 +105,6 @@ export async function registerPerson(
           select: { id: true, fullName: true, emailLogin: true },
         });
 
-        // INSERT person_role_grant (AWAITING_CONSENT)
         await tx.personRoleGrant.create({
           data: {
             id: grantId,
@@ -116,7 +114,6 @@ export async function registerPerson(
           },
         });
 
-        // INSERT consent PORTAL_ACCESS (base legal mínima)
         await tx.consent.create({
           data: {
             id: consentPortalId,
@@ -124,26 +121,24 @@ export async function registerPerson(
             purpose: 'PORTAL_ACCESS',
             termVersion: PORTAL_ACCESS_TERM_VERSION,
             termContentHash: PORTAL_ACCESS_TERM_HASH,
-            acceptedIp: ip,
+            acceptedIp: ip !== 'unknown' ? ip : null,
             userAgent,
           },
         });
 
-        // Segundo evento de auditoria na mesma transação (CONSENT_GRANTED)
         await tx.auditLog.create({
           data: {
             action: AuditEvent.CONSENT_GRANTED,
             actorPersonId: personId,
             entityType: 'consent',
             entityId: consentPortalId,
-            ip,
+            ip: ip !== 'unknown' ? ip : null,
             userAgent,
             after: { purpose: 'PORTAL_ACCESS', termVersion: PORTAL_ACCESS_TERM_VERSION },
           },
           select: { id: true },
         });
 
-        // Preenche o recorder do withAudit para o evento principal
         audit.entityType = 'person';
         audit.entityId = personId;
         audit.after = {
@@ -155,38 +150,45 @@ export async function registerPerson(
 
         return createdPerson;
       },
-      { ip, userAgent },
+      { ip: ip !== 'unknown' ? ip : undefined, userAgent: userAgent ?? undefined },
     );
 
-    // 6. Enfileirar e-mail de boas-vindas (fora da transação — outbox pattern / P-004)
-    // TODO: substituir por job Resend quando o módulo de e-mail for implementado.
-    // Por ora, chamada direta (se falhar, logamos mas não revertemos o cadastro).
+    // 6. E-mail de boas-vindas (best-effort, fora da transação — falha não reverte o cadastro)
     try {
       await sendWelcomeEmail(person.fullName, person.emailLogin!, input.role);
     } catch (emailErr) {
-      // E-mail de boas-vindas é best-effort — falha não reverte o cadastro.
-      // O log aqui é suficiente para rastrear (a Pessoa já existe no banco).
       console.error('[registerPerson] Falha ao enviar e-mail de boas-vindas:', emailErr);
     }
 
     return ok({ personId, role: input.role });
   } catch (err) {
     // Conflito de CPF ou e-mail (unique constraint — ADR-0021 / E-006)
-    if (err instanceof Error && err.message.includes('Unique constraint')) {
-      // Rollback Supabase Auth: apagar a credencial recém-criada
-      await supabase.auth.admin.deleteUser(supabaseUserId).catch(() => null);
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      await supabase.auth.admin
+        .deleteUser(supabaseUserId)
+        .catch((rollbackErr) =>
+          console.error('[registerPerson] Falha no rollback da credencial Supabase:', rollbackErr),
+        );
 
-      if (err.message.includes('persons_cpf_key')) {
+      const rawTarget = err.meta?.target;
+      const targets = (
+        Array.isArray(rawTarget) ? rawTarget : [String(rawTarget ?? '')]
+      ).join(',');
+
+      if (targets.includes('cpf')) {
         return fail('CONFLICT', 'CPF já está cadastrado no portal.');
       }
-      if (err.message.includes('persons_email_login_key')) {
+      if (targets.includes('email_login') || targets.includes('emailLogin')) {
         return fail('CONFLICT', 'E-mail já está em uso. Faça login ou use outro e-mail.');
       }
       return fail('CONFLICT', 'Dados já cadastrados. Verifique CPF e e-mail.');
     }
 
-    // Rollback da credencial Supabase em qualquer erro inesperado
-    await supabase.auth.admin.deleteUser(supabaseUserId).catch(() => null);
+    await supabase.auth.admin
+      .deleteUser(supabaseUserId)
+      .catch((rollbackErr) =>
+        console.error('[registerPerson] Falha no rollback da credencial Supabase:', rollbackErr),
+      );
 
     console.error('[registerPerson] Erro inesperado na TX1:', err);
     return fail('INTERNAL', 'Erro interno. Tente novamente mais tarde.');
@@ -201,17 +203,22 @@ const ROLE_LABEL: Record<PublicRole, string> = {
   CLIENT: 'cliente',
 };
 
-async function sendWelcomeEmail(name: string, email: string, role: PublicRole): Promise<void> {
-  const { Resend } = await import('resend');
-  const { env } = await import('@/shared/env');
-  const resend = new Resend(env.RESEND_API_KEY);
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
 
-  await resend.emails.send({
+async function sendWelcomeEmail(name: string, email: string, role: PublicRole): Promise<void> {
+  await getResend().emails.send({
     from: env.EMAIL_FROM,
     to: email,
     subject: 'Bem-vindo(a) ao Portal ASONSEG!',
     html: `
-      <h1>Olá, ${name}!</h1>
+      <h1>Olá, ${escapeHtml(name)}!</h1>
       <p>Seu cadastro como <strong>${ROLE_LABEL[role]}</strong> foi realizado com sucesso.</p>
       <p>O próximo passo é aceitar os termos do seu papel para ativar o acesso completo.</p>
       <p>Equipe ASONSEG</p>

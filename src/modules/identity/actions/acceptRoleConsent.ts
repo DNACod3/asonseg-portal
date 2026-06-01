@@ -2,10 +2,10 @@
 
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
-import { withAudit } from '@/modules/audit/withAudit';
-import { AuditEvent } from '@/modules/audit/events';
+import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
-import { acceptRoleConsentSchema, type AcceptRoleConsentInput } from '../schemas/registerPerson';
+import { clientIp } from '@/shared/lib/clientIp';
+import { acceptRoleConsentSchema, ROLE_PURPOSE_MAP, type AcceptRoleConsentInput } from '../schemas/registerPerson';
 
 export interface AcceptRoleConsentResult {
   personId: string;
@@ -34,7 +34,8 @@ export async function acceptRoleConsent(
   const input = parsed.data;
 
   const hdrs = await headers();
-  const ip = hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+  const ip = clientIp(hdrs);
+  const ipOrNull = ip === 'unknown' ? null : ip;
   const userAgent = hdrs.get('user-agent') ?? null;
 
   try {
@@ -43,7 +44,6 @@ export async function acceptRoleConsent(
       async (tx, audit) => {
         const consentId = crypto.randomUUID();
 
-        // Verificar que o grant existe e ainda está AWAITING_CONSENT
         const grant = await tx.personRoleGrant.findFirst({
           where: { personId: input.personId, role: input.role, status: 'AWAITING_CONSENT' },
           select: { id: true },
@@ -52,37 +52,30 @@ export async function acceptRoleConsent(
           throw Object.assign(new Error('GRANT_NOT_FOUND'), { code: 'GRANT_NOT_FOUND' });
         }
 
-        // INSERT consent da finalidade
         await tx.consent.create({
           data: {
             id: consentId,
             personId: input.personId,
-            purpose: {
-              CANDIDATE: 'JOB_APPLICATION',
-              PROVIDER: 'SERVICE_OFFERING',
-              CLIENT: 'SERVICE_HIRING',
-            }[input.role] as 'JOB_APPLICATION' | 'SERVICE_OFFERING' | 'SERVICE_HIRING',
+            purpose: ROLE_PURPOSE_MAP[input.role],
             termVersion: input.termVersion,
             termContentHash: input.termContentHash,
-            acceptedIp: ip,
+            acceptedIp: ipOrNull,
             userAgent,
           },
         });
 
-        // Ativar o grant na MESMA transação (invariante ADR-0020 / P-002)
         await tx.personRoleGrant.update({
           where: { id: grant.id },
           data: { status: 'ACTIVE', activatedAt: new Date() },
         });
 
-        // Segundo evento de audit para ativação do papel
         await tx.auditLog.create({
           data: {
             action: AuditEvent.ROLE_GRANT_ACTIVATED,
             actorPersonId: input.personId,
             entityType: 'person_role_grant',
             entityId: grant.id,
-            ip,
+            ip: ipOrNull,
             userAgent,
             after: { role: input.role, status: 'ACTIVE' },
           },
@@ -92,12 +85,12 @@ export async function acceptRoleConsent(
         audit.entityType = 'consent';
         audit.entityId = consentId;
         audit.after = {
-          purpose: input.role,
+          purpose: ROLE_PURPOSE_MAP[input.role],
           termVersion: input.termVersion,
           grantActivated: true,
         };
       },
-      { actorPersonId: input.personId, ip, userAgent },
+      { actorPersonId: input.personId, ip: ipOrNull ?? undefined, userAgent: userAgent ?? undefined },
     );
 
     return ok({ personId: input.personId, role: input.role, activated: true });

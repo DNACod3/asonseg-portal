@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { registerPersonSchema, PUBLIC_ROLES } from '../schemas/registerPerson';
+import { registerPersonSchema } from '../schemas/registerPerson';
 import type { RegisterPersonInput, PublicRole } from '../schemas/registerPerson';
 import { registerPerson } from '../actions/registerPerson';
 import type { ActionResult } from '@/shared/errors';

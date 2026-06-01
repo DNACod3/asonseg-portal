@@ -56,6 +56,10 @@ export const container = new Container();
 // que façam register() com fakes antes de qualquer import deste arquivo.
 // O pattern é: importar o token (sem IO) e registrar a factory (sem instanciar).
 
+// Importações via caminhos profundos são necessárias aqui para evitar
+// dependência circular: barrel → registerPerson → container → barrel.
+// eslint-disable-next-line no-restricted-imports
 import { CAPTCHA_VERIFIER_TOKEN } from '@/modules/identity/ports/captchaVerifier';
+// eslint-disable-next-line no-restricted-imports
 import { TurnstileCaptchaVerifier } from '@/modules/identity/adapters/turnstileCaptchaVerifier';
 container.register(CAPTCHA_VERIFIER_TOKEN, () => new TurnstileCaptchaVerifier());

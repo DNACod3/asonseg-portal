@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { acceptRoleConsent } from '@/modules/identity';
+import { verifyConsentToken } from '@/shared/lib/consentToken';
 import type { PublicRole } from '@/modules/identity';
 
 export const dynamic = 'force-dynamic';
@@ -35,13 +36,22 @@ const ROLE_PURPOSE_DESCRIPTION: Record<PublicRole, string> = {
 
 const PUBLIC_ROLES = ['CANDIDATE', 'PROVIDER', 'CLIENT'] as const satisfies PublicRole[];
 
+/**
+ * Valida que o destino de redirect é uma rota interna relativa.
+ * Rejeita URLs externas e protocol-relative (//) para prevenir open redirect.
+ */
+function safeRedirect(next: string | undefined, fallback: string): string {
+  if (next && /^\/[^/]/.test(next)) return next;
+  return fallback;
+}
+
 interface Props {
-  searchParams: Promise<{ personId?: string; role?: string; next?: string }>;
+  readonly searchParams: Promise<{ personId?: string; role?: string; next?: string; sig?: string }>;
 }
 
 export default async function ConsentimentoPage({ searchParams }: Props) {
   const params = await searchParams;
-  const { personId, role, next } = params;
+  const { personId, role, next, sig } = params;
 
   if (
     !personId ||
@@ -52,12 +62,21 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
   }
 
   const typedRole = role as PublicRole;
-  const redirectTo = next ?? '/app/perfil';
+
+  // Verifica token HMAC: garante que apenas quem passou pela TX1 (registerPerson)
+  // pode acionar a TX2 para este personId, prevenindo ativação por terceiros.
+  if (!verifyConsentToken(personId, typedRole, sig)) {
+    notFound();
+  }
+
+  // Captura após os guards para que a closure async preserve o tipo string.
+  const verifiedPersonId = personId;
+  const redirectTo = safeRedirect(next ? decodeURIComponent(next) : undefined, '/app/perfil');
 
   async function acceptConsent() {
     'use server';
     const result = await acceptRoleConsent({
-      personId: personId!,
+      personId: verifiedPersonId,
       role: typedRole,
       termVersion: ROLE_TERM_VERSION[typedRole],
       termContentHash: ROLE_TERM_HASH[typedRole],
@@ -66,8 +85,9 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
     if (result.ok) {
       redirect(redirectTo);
     }
-    // Em caso de erro, redireciona de volta (não ideal — melhorar com state em próxima iteração)
-    redirect(`/cadastro/consentimento?personId=${personId}&role=${role}&next=${redirectTo}&erro=${result.error.code}`);
+    redirect(
+      `/cadastro/consentimento?personId=${verifiedPersonId}&role=${role}&next=${encodeURIComponent(redirectTo)}&sig=${sig}&erro=${result.error.code}`,
+    );
   }
 
   return (

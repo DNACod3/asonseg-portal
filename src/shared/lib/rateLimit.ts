@@ -96,12 +96,12 @@ export class SlidingWindowRateLimiter {
    * pelo middleware para evitar crescimento ilimitado do `Map` em memória.
    */
   prune(now: number = Date.now()): void {
+    const longestWindow = Math.max(
+      RATE_LIMITS.anonymous.windowMs,
+      RATE_LIMITS.authenticated.windowMs,
+      RATE_LIMITS.registration.windowMs,
+    );
     for (const [key, timestamps] of this.hits) {
-      const longestWindow = Math.max(
-        RATE_LIMITS.anonymous.windowMs,
-        RATE_LIMITS.authenticated.windowMs,
-        RATE_LIMITS.registration.windowMs,
-      );
       const alive = timestamps.filter((t) => t > now - longestWindow);
       if (alive.length === 0) this.hits.delete(key);
       else this.hits.set(key, alive);
