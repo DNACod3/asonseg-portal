@@ -64,12 +64,10 @@ model Region {
   @@map("regions")
 }
 
-// ── Identity / Auth (USP-004) ─────────────────────────────────────────────
-// Pessoa = entidade fundamental (ADR-0011). Papéis compostos serão modelados
-// em uma migration subsequente (ver IDSD/architecture/technical-design.md §4.5).
-// Credential = autenticação por e-mail+senha gerenciada por Supabase Auth;
-// hash bcrypt mora no Supabase (não nesta tabela). Aqui guardamos apenas o
-// vínculo Pessoa↔credencial e o flag de primeiro acesso (cenário USP-003).
+// ── Identity / Auth (USP-001, USP-004) ───────────────────────────────────────
+// Pessoa = entidade fundamental (ADR-0011). Papéis compostos via PersonRoleGrant.
+// Credencial gerenciada pelo Supabase Auth (bcrypt cost 10); vínculo via
+// supabase_user_id. Consentimentos LGPD registrados na tabela consents.
 
 /// Status operacional da Pessoa. Revalidado a cada request (ADR-0030)
 /// para fechar a janela de "sessão zumbi" após USP-007 (inativação).
@@ -80,27 +78,82 @@ enum PersonStatus {
   @@map("person_status")
 }
 
-/// Pessoa = entidade fundamental do domínio (ADR-0011). Multiplas papéis
-/// (candidato, prestador, empresa-responsável, etc.) serão adicionados em
-/// migrations posteriores; aqui o mínimo para autenticação.
-model Person {
-  id        String       @id @default(uuid()) @db.Uuid
-  status    PersonStatus @default(ATIVO)
-  /// E-mail canônico (lowercase + trim). Pode ser nullable em cadastros
-  /// pela AS sem credencial (USP-002); para USP-004, é exigido pela credencial.
-  email     String?      @unique
-  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+/// Papéis disponíveis no portal (ADR-0011).
+enum Role {
+  CANDIDATE
+  PROVIDER
+  CLIENT
+  COMPANY_RESPONSIBLE
+  VOLUNTEER
+  COORDINATOR
+  SOCIAL_ASSISTANT
+  BOARD
+  BENEFICIARY         // Release 2
+  FAMILY_RESPONSIBLE  // Release 2
 
-  credential Credential?
+  @@map("role")
+}
+
+/// Status de um grant de papel — o papel só fica ACTIVE após o
+/// consentimento da finalidade ser persistido (ADR-0013 / ADR-0020).
+enum RoleGrantStatus {
+  ACTIVE
+  REVOKED
+  AWAITING_CONSENT
+  INACTIVE
+
+  @@map("role_grant_status")
+}
+
+/// Finalidades de consentimento LGPD (ADR-0013).
+enum ConsentPurpose {
+  PORTAL_ACCESS
+  JOB_APPLICATION
+  SERVICE_OFFERING
+  SERVICE_HIRING
+  COMPANY_REPRESENTATION
+  SOCIAL_ASSISTANCE
+  CV_AI_EXTRACTION
+  SOCIAL_REFERRAL_TO_JOB
+
+  @@map("consent_purpose")
+}
+
+/// Pessoa = entidade fundamental do domínio (ADR-0011).
+/// CPF e e-mail únicos por Pessoa; CPF nullable apenas quando a AS cria
+/// exceção documental via USP-002 (P-007 das expectations).
+model Person {
+  id                        String       @id @default(uuid()) @db.Uuid
+  status                    PersonStatus @default(ATIVO)
+  /// Vínculo com a credencial Supabase Auth (nullable: Pessoas sem credencial criadas pela AS).
+  supabaseUserId            String?      @unique @map("supabase_user_id") @db.Uuid
+  fullName                  String       @map("full_name")
+  /// CPF único. Nullable apenas via USP-002 (cpf_exception_justification obrigatória nesses casos).
+  cpf                       String?      @unique
+  cpfExceptionJustification String?      @map("cpf_exception_justification")
+  /// E-mail canônico (lowercase + trim). Unique constraint garante P-001 (ADR-0021).
+  emailLogin                String?      @unique @map("email_login")
+  phone                     String?
+  birthDate                 DateTime?    @map("birth_date") @db.Date
+  fullAddress               String?      @map("full_address")
+  mustChangePassword        Boolean      @default(false) @map("must_change_password")
+  inactivatedAt             DateTime?    @map("inactivated_at") @db.Timestamptz(6)
+  inactivatedByPersonId     String?      @map("inactivated_by_person_id") @db.Uuid
+  inactivationReason        String?      @map("inactivation_reason")
+  createdByPersonId         String?      @map("created_by_person_id") @db.Uuid
+  createdAt                 DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  credential  Credential?
+  roleGrants  PersonRoleGrant[]
+  consents    Consent[]
 
   @@map("persons")
 }
 
 /// Vínculo Pessoa ↔ credencial Supabase Auth.
-/// O hash bcrypt é gerenciado pelo Supabase Auth (cost 10 default, ver
-/// IDSD/architecture/technical-design.md §7.1); aqui rastreamos apenas o
-/// flag de primeiro acesso (forçar troca de senha — AC-004-5).
+/// O hash bcrypt é gerenciado pelo Supabase Auth (cost 10, não configurável).
+/// Mantido para o fluxo USP-004 (flag de primeiro acesso / troca de senha).
 model Credential {
   id             String   @id @default(uuid()) @db.Uuid
   personId       String   @unique @map("person_id") @db.Uuid
@@ -110,6 +163,50 @@ model Credential {
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("credentials")
+}
+
+/// Grant de papel de uma Pessoa. O papel só chega a ACTIVE quando o consentimento
+/// da finalidade correspondente for persistido na MESMA transação (ADR-0020).
+model PersonRoleGrant {
+  id               String          @id @default(uuid()) @db.Uuid
+  personId         String          @map("person_id") @db.Uuid
+  role             Role
+  status           RoleGrantStatus @default(AWAITING_CONSENT)
+  activatedAt      DateTime        @default(now()) @map("activated_at") @db.Timestamptz(6)
+  activatedBy      String?         @map("activated_by") @db.Uuid
+  revokedAt        DateTime?       @map("revoked_at") @db.Timestamptz(6)
+  revokedBy        String?         @map("revoked_by") @db.Uuid
+  revocationReason String?         @map("revocation_reason")
+
+  person Person @relation(fields: [personId], references: [id])
+
+  @@unique([personId, role, activatedAt])
+  @@index([personId, status])
+  @@index([role, status])
+  @@map("person_role_grants")
+}
+
+/// Registro de consentimento LGPD por finalidade (ADR-0013).
+/// Append-only por convenção — revogar insere revokedAt, não deleta.
+/// term_content_hash = SHA-256 do texto do termo aceito (evidência LGPD).
+model Consent {
+  id              String         @id @default(uuid()) @db.Uuid
+  personId        String         @map("person_id") @db.Uuid
+  purpose         ConsentPurpose
+  termVersion     String         @map("term_version")
+  termContentHash String         @map("term_content_hash")
+  acceptedAt      DateTime       @default(now()) @map("accepted_at") @db.Timestamptz(6)
+  acceptedIp      String?        @map("accepted_ip") @db.Inet
+  userAgent       String?        @map("user_agent")
+  revokedAt       DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  revokedReason   String?        @map("revoked_reason")
+  context         Json?
+
+  person Person @relation(fields: [personId], references: [id])
+
+  @@unique([personId, purpose, acceptedAt])
+  @@index([personId, purpose, revokedAt])
+  @@map("consents")
 }
 
 /// Resultado de uma tentativa de autenticação.

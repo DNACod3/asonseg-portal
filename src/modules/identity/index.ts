@@ -1,5 +1,11 @@
-// Barrel do módulo `identity` — credencial, sessão, lockout, reset, reivindicação.
-// Imports devem passar exclusivamente por este arquivo (ESLint enforça via `no-restricted-imports`).
-// Exports concretos serão adicionados pelas tasks T-02..T-09 da USP-004.
+// Barrel do módulo `identity`.
+// Todos os imports externos devem passar por este arquivo.
 
-export {};
+export { registerPerson } from './actions/registerPerson';
+export { acceptRoleConsent } from './actions/acceptRoleConsent';
+export { registerPersonSchema, acceptRoleConsentSchema, PUBLIC_ROLES } from './schemas/registerPerson';
+export type { RegisterPersonInput, AcceptRoleConsentInput, PublicRole } from './schemas/registerPerson';
+export type { RegisterPersonResult } from './actions/registerPerson';
+export type { AcceptRoleConsentResult } from './actions/acceptRoleConsent';
+export { CAPTCHA_VERIFIER_TOKEN } from './ports/captchaVerifier';
+export type { CaptchaVerifier, CaptchaVerifyResult } from './ports/captchaVerifier';

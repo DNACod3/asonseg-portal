@@ -50,3 +50,12 @@ class Container {
 }
 
 export const container = new Container();
+
+// ── Bindings de produção ──────────────────────────────────────────────────────
+// Importações lazy (dentro do if) para evitar inicialização em módulos de teste
+// que façam register() com fakes antes de qualquer import deste arquivo.
+// O pattern é: importar o token (sem IO) e registrar a factory (sem instanciar).
+
+import { CAPTCHA_VERIFIER_TOKEN } from '@/modules/identity/ports/captchaVerifier';
+import { TurnstileCaptchaVerifier } from '@/modules/identity/adapters/turnstileCaptchaVerifier';
+container.register(CAPTCHA_VERIFIER_TOKEN, () => new TurnstileCaptchaVerifier());
