@@ -27,8 +27,9 @@ export function middleware(request: NextRequest): NextResponse {
   const key = `${category}:${ip}`;
   const result = rateLimiter.check(key, RATE_LIMITS[category]);
 
-  // Poda oportunística (1% das requisições) para conter o uso de memória.
-  if (request.headers.get('x-prune') === '1') rateLimiter.prune();
+  // Poda amostrada (~1% das requisições): contém o crescimento do Map em memória
+  // sem custo por request e sem depender de um gatilho externo/forjável.
+  if (Math.random() < 0.01) rateLimiter.prune();
 
   const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const hsts = request.nextUrl.protocol === 'https:';
@@ -51,11 +52,29 @@ export function middleware(request: NextRequest): NextResponse {
   return res;
 }
 
-/** Extrai o IP do cliente respeitando o proxy da Vercel (`x-forwarded-for`). */
+/**
+ * Extrai o IP real do cliente. Prioriza os headers que a infraestrutura da
+ * Vercel injeta a partir da conexão real (`x-vercel-forwarded-for`, `x-real-ip`)
+ * — esses NÃO são forjáveis pelo cliente. O `x-forwarded-for` é spoofável (o
+ * cliente pode enviar qualquer valor, e a Vercel apenas anexa o IP real à
+ * direita), então só é usado como último recurso e tomando o valor mais à
+ * direita (o appended pela borda), evitando que o atacante rode o bucket de
+ * rate limit trocando o header.
+ */
 function clientIp(request: NextRequest): string {
+  const vercel = request.headers.get('x-vercel-forwarded-for');
+  if (vercel) return vercel.split(',')[0]!.trim();
+
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0]!.trim();
-  return request.headers.get('x-real-ip') ?? 'unknown';
+  if (forwarded) {
+    const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
+    // Valor mais à direita = o anexado pela borda confiável; não o do cliente.
+    return parts[parts.length - 1] ?? 'unknown';
+  }
+  return 'unknown';
 }
 
 /** Decide a categoria de rate limit a partir da rota e do cookie de sessão. */

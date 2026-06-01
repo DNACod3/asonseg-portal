@@ -20,7 +20,7 @@ export default defineConfig({
       // Fundação pura/testável: `shared/` + os módulos de domínio já implementados.
       // Glue de IO (Prisma/Supabase/logger), páginas do App Router e config ficam
       // fora do gate até terem testes próprios.
-      include: ['src/shared/**/*.ts', 'src/modules/**/*.ts'],
+      include: ['src/shared/**/*.ts', 'src/modules/**/*.ts', 'src/middleware.ts'],
       exclude: [
         'src/shared/lib/prisma.ts',
         'src/shared/lib/logger.ts',

@@ -23,8 +23,18 @@ describe('detectMimeType', () => {
     expect(detectMimeType(WEBP)).toBe('image/webp');
   });
 
+  it('reconhece image/gif', () => {
+    const GIF = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]); // GIF89a
+    expect(detectMimeType(GIF)).toBe('image/gif');
+  });
+
   it('retorna null para conteúdo desconhecido', () => {
     expect(detectMimeType(TXT)).toBeNull();
+  });
+
+  it('aceita ArrayBuffer e Buffer além de Uint8Array', () => {
+    expect(detectMimeType(PDF.buffer)).toBe('application/pdf');
+    expect(detectMimeType(Buffer.from(PNG))).toBe('image/png');
   });
 });
 

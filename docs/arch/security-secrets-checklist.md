@@ -47,6 +47,10 @@ de regressão: [`src/shared/__tests__/env-secrets.test.ts`](../../src/shared/__t
 - Role de banco dedicada de menor privilégio para a app (hoje conecta como owner
   no ambiente local; o trigger garante append-only à prova de owner).
 - Store distribuído de rate limit (`@upstash/ratelimit`) — o atual é em memória
-  por instância do Edge Middleware.
-- CSP por nonce/request (hoje `'unsafe-inline'` para compatibilidade com a
-  hidratação do Next.js 15).
+  por instância do Edge Middleware (podado por amostragem ~1%/request).
+- CSP por nonce/request (hoje `'unsafe-inline'` em `script-src`/`style-src`).
+  **Tradeoff deliberado:** o nonce + `'strict-dynamic'` do Next.js 15 exige
+  **renderização dinâmica**, o que desabilitaria o ISR das rotas `(public)/`
+  (home/vagas/servicos — ADR-0013). Migrar exige aplicar nonce apenas às rotas
+  `force-dynamic` (`(app)/`) e manter hash/`'unsafe-inline'` nas rotas ISR — ou
+  rever o ADR-0013. Follow-up rastreado, fora do escopo do MVP.

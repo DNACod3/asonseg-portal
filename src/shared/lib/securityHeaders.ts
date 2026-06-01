@@ -26,8 +26,19 @@ export interface SecurityHeadersOptions {
   readonly supabaseOrigin?: string;
 }
 
-/** Monta o valor da `Content-Security-Policy`. */
+/**
+ * Cache da CSP por origem do Supabase. A política só varia por `supabaseOrigin`
+ * (env, constante por deploy), então memoizamos para não reconstruir a string a
+ * cada request no hot path do Edge Middleware.
+ */
+const cspCache = new Map<string, string>();
+
+/** Monta o valor da `Content-Security-Policy` (memoizado por origem). */
 function buildCsp(supabaseOrigin?: string): string {
+  const cacheKey = supabaseOrigin ?? '';
+  const cached = cspCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   const connectSrc = ["'self'", TURNSTILE_ORIGIN];
   if (supabaseOrigin) {
     connectSrc.push(supabaseOrigin);
@@ -50,9 +61,11 @@ function buildCsp(supabaseOrigin?: string): string {
     'upgrade-insecure-requests': [],
   };
 
-  return Object.entries(directives)
+  const csp = Object.entries(directives)
     .map(([key, values]) => (values.length ? `${key} ${values.join(' ')}` : key))
     .join('; ');
+  cspCache.set(cacheKey, csp);
+  return csp;
 }
 
 /**

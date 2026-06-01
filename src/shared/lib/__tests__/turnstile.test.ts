@@ -59,4 +59,15 @@ describe('verifyTurnstileToken', () => {
     expect(result.ok).toBe(false);
     expect(result.errorCode).toBe('network-error');
   });
+
+  it('fail-closed com errorCode "timeout" quando a chamada é abortada', async () => {
+    const fetchImpl = vi.fn(async () => {
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    }) as unknown as typeof fetch;
+    const result = await verifyTurnstileToken('tok', { fetchImpl, secret: SECRET });
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('timeout');
+  });
 });
