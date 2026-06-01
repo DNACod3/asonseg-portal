@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
-import { childLogger } from '@/shared/lib/logger';
+import { childLogger, SENSITIVE_FIELDS } from '@/shared/lib/logger';
 import { type AuditEventName, requiresJustification } from './events';
 
 /**
@@ -26,6 +26,11 @@ import { type AuditEventName, requiresJustification } from './events';
  * ```
  *
  * Eventos simples podem ignorar o recorder: `withAudit('JOB_PUBLISHED', async (tx) => {...}, ctx)`.
+ *
+ * `before`/`after`/`context` passam por minimização de PII automática
+ * (`normalizeJson`): chaves sensíveis do baseline LGPD (senha, token, cpf,
+ * e-mail, telefone…) são gravadas como `[REDACTED]` em qualquer profundidade
+ * (USP-044-P-008). Ainda assim, prefira atribuir apenas o necessário ao recorder.
  */
 
 /** Cliente transacional interativo do Prisma (mesma conexão do `$transaction`). */
@@ -94,6 +99,9 @@ export async function withAudit<T>(
         context: toJsonInput(mergeContext(ctx.context, audit.context)),
         justification,
       },
+      // Só precisamos confirmar a gravação; não devolvemos before/after/context
+      // (JSONB potencialmente grandes) pela conexão para serem descartados.
+      select: { id: true },
     });
 
     log.info(
@@ -110,17 +118,73 @@ export async function withAudit<T>(
   });
 }
 
+const REDACTED = '[REDACTED]';
+
+/**
+ * Quebra uma chave em tokens normalizados (`accessToken` -> `access`,`token`;
+ * `actor_cpf` -> `actor`,`cpf`) para casar contra o denylist de campos sensíveis.
+ */
+function tokenizeKey(key: string): string[] {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^a-zA-Z0-9]+/)
+    .map((t) => t.toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * Denylist de minimização de PII para o `audit_log` (LGPD / USP-044-P-008).
+ * Reaproveita o baseline de redação do logger (`SENSITIVE_FIELDS`), tokenizado
+ * para casar variações camelCase/snake (`passwordHash`, `resetToken`, `actor_cpf`).
+ */
+const SENSITIVE_TOKENS: ReadonlySet<string> = new Set(SENSITIVE_FIELDS.flatMap(tokenizeKey));
+
+function isSensitiveKey(key: string): boolean {
+  return tokenizeKey(key).some((t) => SENSITIVE_TOKENS.has(t));
+}
+
+/**
+ * Normaliza recursivamente um valor para JSON serializável **em uma única
+ * passada** (sem o round-trip `JSON.parse(JSON.stringify(...))`), aplicando ao
+ * mesmo tempo a minimização de PII exigida pela auditoria append-only:
+ *  - `Date` -> ISO string; `bigint` -> string; números não-finitos -> `null`;
+ *  - chaves sensíveis (denylist) -> `[REDACTED]` em qualquer profundidade;
+ *  - `function`/`symbol`/`undefined` -> `null` (nunca lança dentro da transação).
+ *
+ * A tabela é imutável por 1 ano: um segredo persistido aqui é permanente, então
+ * a redação é defensiva e não depende de o caller lembrar de filtrar.
+ */
+function normalizeJson(value: unknown): Prisma.JsonValue {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value.toISOString();
+
+  const type = typeof value;
+  if (type === 'bigint') return (value as bigint).toString();
+  if (type === 'string' || type === 'boolean') return value as string | boolean;
+  if (type === 'number') return Number.isFinite(value as number) ? (value as number) : null;
+
+  if (Array.isArray(value)) return value.map(normalizeJson);
+
+  if (type === 'object') {
+    const out: Record<string, Prisma.JsonValue> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = isSensitiveKey(key) ? REDACTED : normalizeJson(val);
+    }
+    return out;
+  }
+
+  // function / symbol — não serializável.
+  return null;
+}
+
 /**
  * Normaliza um valor para coluna `Json?`: `null`/`undefined` viram SQL NULL
- * (`Prisma.DbNull`); demais valores são serializados de forma defensiva
- * (Dates -> ISO, BigInt -> string) para nunca lançar dentro da transação.
+ * (`Prisma.DbNull`); demais valores passam por {@link normalizeJson}
+ * (serialização defensiva + minimização de PII).
  */
 function toJsonInput(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
-  if (value === undefined || value === null) return Prisma.DbNull;
-  const normalized = JSON.parse(
-    JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? v.toString() : v)),
-  );
-  if (normalized === null || normalized === undefined) return Prisma.DbNull;
+  const normalized = normalizeJson(value);
+  if (normalized === null) return Prisma.DbNull;
   return normalized as Prisma.InputJsonValue;
 }
 

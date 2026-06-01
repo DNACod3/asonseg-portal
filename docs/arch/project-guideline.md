@@ -209,20 +209,42 @@ export async function createJobDraft(input: unknown) {
     return { ok: false, error: { code: 'MUST_ACT_AS_COMPANY' } }
   }
 
-  // 5. Executar com audit
-  return withAudit('JOB_DRAFT_CREATED', async (tx) => {
-    const job = await tx.job.create({
-      data: {
-        ...parsed.data,
-        companyId: user.actingAsCompany!.companyId,
-        createdByPersonId: user.personId,
-        status: 'DRAFT',
-      },
-    })
-    return { ok: true, data: { jobId: job.id } }
-  })
+  // 5. Executar com audit — assinatura `withAudit(event, fn, ctx?)`.
+  //    O callback recebe `(tx, audit)`: `tx` é o client transacional e `audit`
+  //    é um recorder mutável onde se anota entityType/entityId/before/after/
+  //    justification (before/after só existem DEPOIS da operação rodar).
+  return withAudit(
+    'JOB_DRAFT_CREATED',
+    async (tx, audit) => {
+      const job = await tx.job.create({
+        data: {
+          ...parsed.data,
+          companyId: user.actingAsCompany!.companyId,
+          createdByPersonId: user.personId,
+          status: 'DRAFT',
+        },
+      })
+      audit.entityType = 'job'
+      audit.entityId = job.id
+      audit.after = job // PII é minimizada automaticamente (ver nota abaixo)
+      return { ok: true, data: { jobId: job.id } }
+    },
+    // ctx (3º arg): ator + origem da request, preenchido na Server Action a
+    // partir de getCurrentUser() + headers (x-forwarded-for, user-agent).
+    { actorUserId: user.id, actorPersonId: user.personId, ip, userAgent },
+  )
 }
 ```
+
+> **Minimização de PII (USP-044-P-008):** `before`/`after`/`context` passam por
+> `normalizeJson`, que mascara como `[REDACTED]` as chaves sensíveis do baseline
+> LGPD do logger (`SENSITIVE_FIELDS`: senha, token, cpf, e-mail, telefone…) em
+> qualquer profundidade, além de normalizar `Date`→ISO e `BigInt`→string. É uma
+> rede de segurança — ainda assim, atribua ao recorder apenas o necessário.
+>
+> **Justificativa obrigatória:** eventos de revogação/rejeição/inativação/edição
+> retroativa (`JUSTIFICATION_REQUIRED_EVENTS`) exigem `audit.justification` não
+> vazia; sem ela o `withAudit` lança e **toda a transação sofre rollback**.
 
 ### Regras desse padrão
 

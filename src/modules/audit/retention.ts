@@ -56,6 +56,7 @@ export async function purgeExpiredAuditLogs(
           retentionDays: AUDIT_RETENTION_DAYS,
         },
       },
+      select: { id: true },
     });
 
     return res.count;
