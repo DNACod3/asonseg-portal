@@ -17,7 +17,7 @@ const isProd = process.env.NODE_ENV === 'production';
  * Módulos podem estender via `childLogger`, mas estes paths valem por padrão em
  * toda a aplicação. Ao logar PII mais profunda, achate o objeto antes de emitir.
  */
-const SENSITIVE_FIELDS = [
+export const SENSITIVE_FIELDS = [
   'password',
   'senha',
   'token',
