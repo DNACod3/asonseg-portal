@@ -13,10 +13,12 @@ import { rateLimiter, RATE_LIMITS, type RateLimitCategory } from '@/shared/lib/r
  *  2. **Headers de segurança** (CSP, HSTS, X-Content-Type-Options,
  *     X-Frame-Options, Referrer-Policy, Permissions-Policy) em toda resposta.
  *
- * O gancho de revalidação de sessão por request (ADR-0030 — fecha a janela de
- * "sessão zumbi" após USP-007) será adicionado pela T-08 da USP-004; por ora a
- * presença/ausência do cookie de sessão Supabase é usada apenas para distinguir
- * a categoria de rate limit (anônimo x autenticado).
+ * Gate de sessão (USP-004 — T-08): rotas autenticadas conhecidas exigem a
+ * presença do cookie de sessão Supabase; sem ele, redireciona a `/login`. Este
+ * é o gate *barato* (sem rede/DB) do Edge. A revalidação autoritativa de
+ * `Person.status` e o confinamento de 1º acesso por request (ADR-0030 / D-E,
+ * D-F) ficam em `requireActivePerson()` (layout `(app)`, runtime Node) — o
+ * Prisma não roda no Edge.
  *
  * **Edge Runtime:** o pino (Node) não roda aqui; eventos de limite atingido são
  * emitidos como JSON estruturado via `console.warn`, com o IP mascarado para não
@@ -36,7 +38,7 @@ export function middleware(request: NextRequest): NextResponse {
   const supabaseOrigin = env.NEXT_PUBLIC_SUPABASE_URL;
   const hsts = request.nextUrl.protocol === 'https:';
 
-  if (!result.allowed) {
+  if (!result.allowed && !env.RATE_LIMIT_DISABLED) {
     logRateLimited(category, ip, request.nextUrl.pathname);
     const res = NextResponse.json(
       { ok: false, error: { code: 'RATE_LIMITED', message: 'Muitas requisições. Tente novamente em instantes.' } },
@@ -48,10 +50,40 @@ export function middleware(request: NextRequest): NextResponse {
     return res;
   }
 
+  // Gate de sessão (T-08): rota autenticada sem cookie de sessão → /login.
+  if (isProtectedPath(request.nextUrl.pathname) && !isAuthenticated(request)) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.search = '';
+    const redirectRes = NextResponse.redirect(loginUrl);
+    applyRateLimitHeaders(redirectRes.headers, result.limit, result.remaining, result.resetAt);
+    applySecurityHeaders(redirectRes.headers, { hsts, supabaseOrigin });
+    return redirectRes;
+  }
+
   const res = NextResponse.next();
   applyRateLimitHeaders(res.headers, result.limit, result.remaining, result.resetAt);
   applySecurityHeaders(res.headers, { hsts, supabaseOrigin });
   return res;
+}
+
+/**
+ * Prefixos de rota que exigem sessão. Route groups (`(app)`) não aparecem na
+ * URL, então o gate de borda usa a lista de prefixos públicos das áreas
+ * autenticadas. A checagem autoritativa (status/papéis) é do layout `(app)`.
+ */
+const PROTECTED_PREFIXES = [
+  '/inicio',
+  '/perfil',
+  '/empresa',
+  '/candidato',
+  '/moderacao',
+  '/encaminhamentos',
+  '/admin',
+] as const;
+
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 /** Decide a categoria de rate limit a partir da rota e do cookie de sessão. */
@@ -112,6 +144,8 @@ export const config = {
      * - api (route handlers protegem-se por si)
      * - arquivos com extensão (favicon, fontes, imagens)
      */
-    String.raw`/((?!_next/static|_next/image|favicon.ico|manifest|robots|sitemap|api|.*\..*).+)`,
+    // Literal de string (não `String.raw`): o build do Next exige um nó
+    // estático e analisável no `config.matcher` (não um TaggedTemplateExpression).
+    '/((?!_next/static|_next/image|favicon.ico|manifest|robots|sitemap|api|.*\\..*).+)',
   ],
 };

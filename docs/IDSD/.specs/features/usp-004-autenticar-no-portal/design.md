@@ -40,7 +40,7 @@ Detalhes do contrato em `IDSD/architecture/technical-design.md §4.4` (entrada `
 | `SupabaseAuthAdapter` | `src/modules/identity/adapters/SupabaseAuthAdapter.ts` | Implementa `AuthProvider` port; isola Supabase. |
 | `LockoutGate` | `src/modules/identity/domain/lockout.ts` | Função pura `isLocked(attempts, now)` + `recordAttempt(...)`. |
 | `auth_attempts` repo | `src/modules/identity/adapters/AuthAttemptsRepo.ts` | INSERT por tentativa, query window. |
-| `requirePermission()` | `src/modules/identity/server/requirePermission.ts` | Helper revalidação por request (ADR-0030). Usado por Server Components autenticados. |
+| `requireActivePerson()` / `getCurrentPerson()` | `src/modules/identity/server/session.ts` | Helper de revalidação de sessão por request (ADR-0030). Usado por Server Components autenticados. (O nome `requirePermission()` fica reservado ao guard RBAC do passo 2 da sequência de Server Action sensível — ADR-0001, USP-007+.) |
 | `withAudit` | `src/modules/audit/withAudit.ts` (já planejado) | Wrapper de transação que escreve `audit_log` ao final. |
 | `auditEvents` | `src/modules/audit/events.ts` | Catálogo: `AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILURE`, `AUTH_SESSION_INVALIDATED`. |
 | Middleware Next | `src/middleware.ts` (atualização) | Lê cookie, valida sessão, re-checa `pessoa.status` via cache curta (≤30s) — ADR-0030. |

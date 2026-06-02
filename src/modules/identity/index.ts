@@ -10,3 +10,28 @@ export type { AcceptRoleConsentResult } from './actions/acceptRoleConsent';
 export { CAPTCHA_VERIFIER_TOKEN } from './ports/captchaVerifier';
 export type { CaptchaVerifier, CaptchaVerifyResult } from './ports/captchaVerifier';
 export { RegisterPersonForm } from './components/RegisterPersonForm';
+
+// ── Autenticação (USP-004) ────────────────────────────────────────────────────
+export { loginAction } from './actions/login';
+export type { LoginData } from './actions/login';
+export { changePasswordFirstAccess } from './actions/changePassword';
+export { signInSchema, GENERIC_AUTH_ERROR } from './schemas/signIn';
+export type { SignInInput } from './schemas/signIn';
+export { changePasswordFirstAccessSchema } from './schemas/changePassword';
+export type { ChangePasswordFirstAccessInput } from './schemas/changePassword';
+export { LoginForm } from './components/LoginForm';
+export { ChangePasswordForm } from './components/ChangePasswordForm';
+export {
+  isLocked,
+  withinWindow,
+  LOCKOUT_WINDOW_MS,
+  LOCKOUT_THRESHOLD,
+  LOCKOUT_DURATION_MS,
+} from './domain/lockout';
+export type { LockoutAttempt, LockoutPolicy } from './domain/lockout';
+export { AUTH_PROVIDER_TOKEN } from './ports/authProvider';
+export type { AuthProvider, AuthSignInResult } from './ports/authProvider';
+export { AUTH_ATTEMPTS_REPO_TOKEN } from './ports/authAttemptsRepo';
+export type { AuthAttemptsRepo, AttemptKey } from './ports/authAttemptsRepo';
+export { requireActivePerson, getCurrentPerson } from './server/session';
+export type { CurrentPerson } from './server/session';
