@@ -206,6 +206,9 @@ model Consent {
 
   @@unique([personId, purpose, acceptedAt])
   @@index([personId, purpose, revokedAt])
+  // Índice único PARCIAL `consents_active_purpose_unique (person_id, purpose)
+  // WHERE revoked_at IS NULL` garante no máximo um consentimento ATIVO por
+  // finalidade (USP-043 #37). Criado via SQL em migration (não expressável aqui).
   @@map("consents")
 }
 
