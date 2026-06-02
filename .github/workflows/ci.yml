@@ -56,20 +56,28 @@ jobs:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
-      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon
-      SUPABASE_SERVICE_ROLE_KEY: ci-service
+      # Backend real: stack local do Supabase CLI (ADR-0016). Postgres em :55322,
+      # API/Auth em :55321. As chaves anon/service_role abaixo são as chaves
+      # DEMO públicas e fixas do Supabase CLI (idênticas em toda instalação
+      # local) — não são segredos. O E2E precisa de backend para exercitar o
+      # round-trip da loginAction (mensagem genérica / anti-enumeração — AC-004-2).
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
       RESEND_API_KEY: re_ci
       EMAIL_FROM: ci@asonseg.org.br
       SENTRY_ENVIRONMENT: development
+      # Chaves de teste oficiais do Turnstile (sempre passam) — login em E2E.
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
       TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
       ANTHROPIC_API_KEY: sk-ant-ci
       B2_KEY_ID: ci-id
       B2_APPLICATION_KEY: ci-key
       B2_BUCKET: asonseg-ci
+      # Sem teto de rate limit no E2E (CI não é deploy Vercel — guard em shared/env.ts).
+      RATE_LIMIT_DISABLED: 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -81,11 +89,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase (Postgres + Auth)
+        # Exclui serviços não usados pelo login E2E para acelerar o boot.
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E smokes
         run: npm run test:e2e
+
+      - name: Stop Supabase
+        if: ${{ always() }}
+        run: supabase stop --no-backup || true
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
