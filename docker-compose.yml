@@ -1,6 +1,7 @@
-# Ambiente local de desenvolvimento (architecture-document.md §7.3):
-# Postgres 15 + MailHog em containers. Supabase Auth/Storage apontam para o
-# projeto dev (sem imagem fiel) — ou fakes via shared/container.ts.
+# [DESCONTINUADO] O ambiente local agora usa o Supabase CLI (`supabase start`),
+# que sobe Postgres + Auth + Storage + Mailpit (ver supabase/config.toml, portas 553xx).
+# Mantido apenas como referência/fallback — NÃO subir junto com `supabase start`
+# (dois Postgres locais). Estratégia anterior: architecture-document.md §7.3.
 services:
   postgres:
     image: postgres:15

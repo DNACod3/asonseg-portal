@@ -1,10 +1,12 @@
 # ASONSEG — Project Guideline
 
 **Projeto:** Portal Empregabilidade e Serviços (Release 1 — MVP) + fundação compartilhada
-**Versão:** 2.0
+**Versão:** 3.0
 **Audiência:** Tech Lead, desenvolvedores plenos, QA, DevOps da Bravi
 
 Este guia operacionaliza os ADRs técnicos para o time. Convenções marcadas como ✅ são padrão; ❌ são anti-padrões a evitar; 💡 são dicas práticas; 🚨 são regras críticas que falham CI; ⚠️ exigem atenção.
+
+> **Princípio orientador (v3.0):** a fonte da verdade não é o documento, é o artefato verificável. Specs descrevem intenção; só viram contrato quando existem em forma executável (teste, schema Zod, eval suite, property-based test). Ver **Seção 20 — Princípios Fact-Driven** para o detalhamento dos cinco princípios (P1–P5) que sustentam as práticas deste guia, especialmente as Seções 21 (Eval Suite LLM), 22 (Kickoff Gate) e 23 (EARS → Fact).
 
 ---
 
@@ -332,6 +334,8 @@ const result = await cvExtractor.extract({ personId, fileBuffer, mimeType, fileN
 
 Trocar de vendor = escrever novo adapter em `modules/cv-extraction/adapters/` + atualizar binding em `shared/container.ts`. Nenhuma outra linha de código muda.
 
+🚨 **Eval suite, versionamento de prompts e upgrade de modelo: ver Seção 21.** Não fazer mudança em `prompts/`, trocar modelo Claude, ou alterar binding do extractor sem passar pelo protocolo lá descrito.
+
 Detalhes no ADR-T-0012.
 
 ---
@@ -418,6 +422,20 @@ Retenção: **1 ano** para audit_log operacional.
 
 Cobertura geral alvo: **70%**. Falhas no CI se < 65%.
 
+### Rastreabilidade EARS → Fact
+
+🚨 **Todo critério de aceitação em EARS tem fact correspondente** (teste, schema, eval, property). Detalhamento e formato no issue: ver **Seção 23**.
+
+### Property-based testing (quando aplicável)
+
+✅ **Recomendado para invariantes**, com `fast-check` integrado ao Vitest. Casos típicos no portal:
+
+- **Máquina de estados de moderação** (Seção 6): propriedade "nenhuma sequência de transições válidas resulta em status inválido"
+- **Visibilidade conservadora** (Seção 5): propriedade "nenhum campo sensível vaza para papel não autorizado, em nenhuma combinação de papéis/ações afirmativas"
+- **Expiração de vagas** (`expireOverdueJobs`, ADR-T-0011): propriedade "após o cron, nenhuma vaga `ACTIVE` tem `expiresAt < now()`"
+
+💡 Property-based **não substitui** testes de exemplo (happy path, edge cases nomeados); complementa.
+
 ---
 
 ## 13. Performance defensiva
@@ -427,6 +445,9 @@ Cobertura geral alvo: **70%**. Falhas no CI se < 65%.
 - ✅ `select`/`include` explícito em queries quentes (não retornar tudo)
 - ✅ `unstable_cache` com tags para queries de conteúdo público (ADR-T-0013)
 - ❌ N+1 — usar `include` ou `findMany` agrupado
+- 💡 I/O **independente e read-only** → `Promise.all` (latência = max das chamadas, não a soma)
+- ❌ `Promise.all` de queries no mesmo `tx` dentro de `$transaction`/`withAudit` — a transação interativa do Prisma não é concurrency-safe na mesma conexão; manter sequencial
+- 💡 Quando precisar de todos os resultados mesmo com falha parcial → `Promise.allSettled` (não `Promise.all`, que é fail-fast e descarta as demais promises)
 
 ---
 
@@ -460,6 +481,7 @@ Exemplos:
 | Workflow | Trigger | Função |
 |---|---|---|
 | `ci.yml` | push/PR | lint + typecheck + test |
+| `eval-cv-extraction.yml` | PR que toca `modules/cv-extraction/prompts/`, `modules/cv-extraction/adapters/anthropic-*`, ou `shared/container.ts` | rodar eval suite + comparar com `baseline.json` (Seção 21) |
 | `backup-db.yml` | cron 04:00 UTC | dump Postgres → B2 |
 | `backup-storage.yml` | cron 04:30 UTC | rclone sync buckets → B2 |
 | `expire-jobs.yml` | cron 06:00 UTC | rodar `expireOverdueJobs` |
@@ -471,6 +493,8 @@ Exemplos:
 ---
 
 ## 17. Workflow de PR
+
+🚨 **Pré-condição: Kickoff Thread Gate aprovado** — issue de origem precisa ter label `kickoff-approved` (PO + Tech Lead) antes de PR sair de "Draft" para revisão. Ver **Seção 22**.
 
 - Branch a partir de `master`
 - **Tamanho de PR não é limitado.** O processo de desenvolvimento da Bravi é assistido por IA — PRs serão tipicamente maiores que o tradicional ~400 linhas porque uma única tarefa de feature pode entregar a Server Action completa, o View Model, o componente, os testes e a migration em um único fluxo. O critério não é tamanho, é **coesão**: o PR resolve um problema único e bem delimitado.
@@ -488,11 +512,13 @@ Exemplos:
 ## 18. Definition of Done (DoD)
 
 - [ ] Critérios de aceitação da US implementados
+- [ ] Mapeamento EARS → Fact atualizado no issue (Seção 23) — todo critério tem fact correspondente identificado por path/test name
 - [ ] Server Action segue padrão canônico (Seção 4)
 - [ ] View Models usados quando atravessa fronteira de papel (Seção 5)
 - [ ] Audit log capturado para operações sensíveis
 - [ ] Consentimentos verificados quando aplicável
 - [ ] Testes (unitário + integração) cobrindo critérios
+- [ ] Eval suite passa se PR toca `cv-extraction` (Seção 21); `baseline.json` atualizado se modelo foi trocado
 - [ ] Logs estruturados em pontos relevantes
 - [ ] Erros tratados com `ActionResult` (sem stack trace pro user)
 - [ ] Aprovação no PR
@@ -511,12 +537,238 @@ Operações recorrentes/raras vão em `runbooks/<nome>.md`:
 - `runbooks/atendimento-direito-de-acesso-lgpd.md`
 - `runbooks/troca-de-provedor-llm.md`
 - `runbooks/troca-de-captcha.md`
+- `runbooks/atualizar-eval-suite-cv-extraction.md` (Seção 21)
+- `runbooks/promover-prompt-nova-versao.md` (Seção 21)
+- `runbooks/upgrade-modelo-claude.md` (Seção 21)
 
 A partir de Fase 0.
 
 ---
 
-## 20. Sobre dores futuras (V2)
+## 20. Princípios Fact-Driven
+
+Esta seção é a **fundação conceitual** do guia. As Seções 21, 22 e 23 são a operacionalização concreta destes princípios para o portal ASONSEG. As demais seções já incorporam estes princípios na prática (Server Action canônica com Zod = P2; máquina de estados centralizada = P1; ports/adapters do LLM = P5).
+
+🚨 **Cinco princípios não-negociáveis:**
+
+- **P1 — Critério tem fact.** Todo critério de aceitação tem um artefato máquina-verificável correspondente (teste, schema, eval, property) versionado no mesmo PR ou em PR predecessor referenciado. Critério em prosa **sem fact não está pronto** e não passa no Kickoff Gate (Seção 22).
+
+- **P2 — Fronteira tem schema.** Toda fronteira de sistema tem schema versionado e validado em runtime:
+  - Server Actions e Route Handlers → schema Zod (já é parte do padrão canônico — Seção 4)
+  - Dados que cruzam papéis → View Models tipados (Seção 5)
+  - Migrations Prisma → schema versionado em PR (Seção 16)
+  - LLM → JSON Schema de saída validado no adapter (Seção 7 + ADR-T-0012)
+
+- **P3 — LLM tem eval suite.** Toda feature que depende de LLM em runtime tem eval suite fixa que roda em CI. No MVP, aplica-se a `cv-extraction` (Seção 21). Aplicar-se-á a qualquer integração LLM futura (triagem de moderação por IA na V2, etc.).
+
+- **P4 — Fact muda com PR explícito.** Mudança de fact (teste, schema, eval, baseline) é mudança de contrato. Justificativa obrigatória na descrição do PR; quebra de schema público exige bump de versão e ADR; mudança de `baseline.json` exige relatório de comparação.
+
+- **P5 — Código é regenerável, fact é mantido à mão.** O squad pode regenerar a implementação assistido por agente, refatorar, trocar lib. A suite de facts é o que define que o produto continua sendo o mesmo produto. Por isso o agente de PR review (Seção 17) tem foco especial em **detectar facts removidos ou enfraquecidos sem justificativa**.
+
+**Por que isso importa, na prática:** modelos de IA mudam (Sonnet 3.5 → 4 → 4.5 → 4.7 → ...); cada upgrade reinterpreta linguagem natural de forma sutilmente diferente. Um teste executável passa ou falha — não interpreta. Quanto mais comportamento estiver codificado em facts, menos esforço o squad gasta perseguindo regressões silenciosas a cada release de modelo ou refactor assistido por IA.
+
+---
+
+## 21. Avaliação de modelo LLM e versionamento de prompts
+
+🚨 **Princípio P3 materializado para `cv-extraction`**. Aplica-se a qualquer integração LLM futura.
+
+### 21.1 Estrutura de pastas
+
+```
+modules/cv-extraction/
+├── ports/
+│   └── cv-extractor.ts
+├── adapters/
+│   └── anthropic-claude-extractor.ts      # constante MODEL exportada
+├── prompts/
+│   ├── extract-cv-pt-br.v1.ts             # versão atualmente em produção
+│   └── extract-cv-pt-br.v2.ts             # nova versão coexiste durante migração
+├── evals/
+│   ├── dataset.jsonl                       # casos fixos, congelados
+│   ├── rubric.md                           # critério de avaliação por campo
+│   ├── baseline.json                       # métrica do modelo aprovado em prod
+│   ├── run-eval.ts                         # script CLI
+│   └── results/                            # histórico de runs (gitignored, salvo no artifact do CI)
+└── actions/
+```
+
+### 21.2 Eval suite — dataset e métricas
+
+✅ **Dataset:**
+
+- Mínimo **30 CVs anonimizados** representativos: variedade de formato (PDF gerado, PDF escaneado, DOCX exportado), qualidade (texto limpo, texto com OCR ruim), área (operacional, técnico, administrativo, saúde)
+- LGPD: usar **dados sintéticos** preferencialmente; se reais, com consentimento específico de uso para QA + anonimização (CPF, e-mail, telefone, nome alterados)
+- Versionado em `modules/cv-extraction/evals/dataset.jsonl`
+- 🚨 **Dataset é congelado.** Alterar dataset = alterar baseline = PR explícito com justificativa. Não modificar para "fazer o teste passar"
+
+✅ **Métricas mínimas (registradas em `baseline.json`):**
+
+| Métrica | Definição | Threshold de falha |
+|---|---|---|
+| `precision_per_field` | precisão por campo estruturado (nome, e-mail, telefone, área, anos exp.) | queda > 5% em qualquer campo |
+| `recall_per_field` | recall por campo (% extraído quando presente no CV) | queda > 5% em qualquer campo |
+| `extraction_completeness` | % média de campos extraídos com sucesso | queda > 5% absoluta |
+| `hallucination_rate` | % de campos extraídos que **não existem** no CV (golden test) | > 2% absoluto |
+| `latency_p95` | p95 de tempo de resposta end-to-end (s) | aumento > 30% relativo |
+
+💡 Métricas adicionais opcionais conforme aprendizado: erro estruturado de validação Zod no output, taxa de retry, custo médio por extração (tokens × preço).
+
+### 21.3 Versionamento de prompts
+
+🚨 **Prompt é código.** Toda mudança em prompt é PR e dispara eval suite.
+
+✅ **Convenção:**
+
+- Arquivos seguem `<nome>.v<N>.ts` (semver simples: incrementa em qualquer mudança comportamental)
+- Versão ativa selecionada via constante exportada no adapter:
+  ```typescript
+  // modules/cv-extraction/adapters/anthropic-claude-extractor.ts
+  import { extractCvPtBrV1 } from '../prompts/extract-cv-pt-br.v1'
+  // import { extractCvPtBrV2 } from '../prompts/extract-cv-pt-br.v2'
+
+  const ACTIVE_PROMPT = extractCvPtBrV1   // troca explícita em PR de migração
+  const MODEL = 'claude-sonnet-4-5'       // troca explícita em PR de upgrade
+  ```
+- v1 e v2 **coexistem no repo** durante a migração; remoção de v1 = PR separado após v2 estar em produção por **7 dias sem incidente**
+
+❌ **Anti-padrão:** alterar string de prompt in-place no v1. Lint custom planejado para detectar mudança em arquivo `prompts/*.v*.ts` sem renomeação para nova versão.
+
+### 21.4 Protocolo de upgrade de modelo
+
+🚨 **Trocar modelo Claude (ex.: `claude-sonnet-4-5` → `claude-sonnet-4-7`) NUNCA via variável de ambiente direto em produção. Sempre via PR.**
+
+✅ **Fluxo de upgrade:**
+
+1. PR muda a constante `MODEL` em `modules/cv-extraction/adapters/anthropic-claude-extractor.ts`
+2. CI dispara `eval-cv-extraction.yml` (Seção 16) contra o novo modelo
+3. Comparação automática contra `baseline.json` — relatório anexado como comentário no PR
+4. **Se passar** (sem regressão acima dos thresholds da tabela 21.2): merge aprovado, `baseline.json` é atualizado **no mesmo PR** com nova métrica, commit anterior, data
+5. **Se reprovar:** PR fica bloqueado. Caminhos possíveis: ajustar prompt (nova versão — Seção 21.3), enriquecer dataset com casos do novo modelo, ou rejeitar upgrade
+6. ADR opcional se o upgrade exigir mudança de prompt — torna-se obrigatório se o upgrade muda comportamento percebido pelo usuário (ex.: estrutura de output)
+
+⚠️ **Em incidente de produção** (custo, latência, qualidade): rollback de modelo via env var é permitido como medida emergencial **de até 24h**. PR de correção e re-evaluation obrigatório dentro deste prazo, ou o rollback vira definitivo via PR.
+
+Runbook: `runbooks/upgrade-modelo-claude.md`.
+
+### 21.5 Quando estender este protocolo
+
+Aplicar o protocolo desta seção a **qualquer nova feature que dependa de LLM em runtime**:
+
+- Triagem de moderação por IA (provável V2)
+- Sugestão de descrição de vaga (provável V2)
+- Busca semântica em catálogo de serviços (provável V2)
+
+Cada feature LLM nova adiciona sua própria pasta `evals/`, seu `baseline.json`, e seu workflow de eval no CI. ADR registra a decisão.
+
+---
+
+## 22. Kickoff Thread Gate
+
+🚨 **Toda US entra em sprint apenas após passar pelo Kickoff Thread Gate** — momento explícito de validação técnico-funcional entre PO e Tech Lead, registrado no issue.
+
+### 22.1 Artefatos obrigatórios no issue
+
+| Artefato | Onde mora | Obrigatório quando |
+|---|---|---|
+| US escrita em EARS (WHEN/IF/SHALL) | corpo do issue no GitHub Projects | sempre |
+| Mapeamento EARS → Fact (Seção 23) | seção `## Facts` no corpo do issue | sempre |
+| ADR(s) novo(s) | `docs/adr/NNNN-<titulo>.md` | há decisão arquitetural |
+| Schema Zod novo/alterado | `modules/<m>/schemas/` | US toca Server Action ou Route Handler |
+| Eval suite atualizada/revisada | `modules/cv-extraction/evals/` | US toca `cv-extraction` ou integração LLM futura |
+| View Model novo | `modules/<m>/views/` | US atravessa fronteira entre papéis |
+
+### 22.2 Critérios de rejeição (PO ou Tech Lead vetam)
+
+❌ Critério EARS sem fact identificado (mesmo que stub)
+❌ Comportamento descrito no PRD/US sem fact correspondente
+❌ Nova Route Handler em `app/api/` sem schema Zod definido
+❌ Mudança que toca `cv-extraction` sem revisão explícita da eval suite
+❌ US que muda visibilidade entre papéis sem View Model novo ou alteração registrada
+❌ Schema sem versionamento quando aplicável a contrato público (raríssimo no MVP — predominam Server Actions internas)
+
+### 22.3 Aprovação e movimentação
+
+✅ **Aprovação registrada via label:**
+
+- Tech Lead aprova → label `kickoff-tech-approved`
+- PO aprova → label `kickoff-po-approved`
+- Quando ambas existem → automação adiciona label `kickoff-approved` (GitHub Actions)
+
+✅ **Coluna "In Progress" do board só aceita cards com `kickoff-approved`** — workflow `gate-in-progress.yml` (planejado) bloqueia movimentação caso contrário; até a automação existir, é regra de revisão para o Tech Lead.
+
+💡 **Espírito do gate:** não é burocracia. É o momento em que "tá pronto pra dev?" deixa de ser opinião e vira critério verificável. Sem fact, não há contrato; sem contrato, qualquer regeneração de código assistida por IA é apostar no escuro.
+
+### 22.4 Spike e exceção
+
+Branch nomeado `spike/<nome>` está dispensado do Kickoff Gate, **desde que**:
+- Não vá para produção
+- Seja deletado após conclusão
+- Gere ADR ou nota de aprendizado em `docs/adr/`
+
+Hotfix crítico em produção (impacto financeiro/legal imediato) pode pular o gate em PR de correção, **com obrigação de PR de follow-up criando o fact de regressão em até 24h**. Sem follow-up = hotfix bloqueia próximas releases.
+
+---
+
+## 23. EARS → Fact (rastreabilidade de critérios)
+
+🚨 **Todo critério de aceitação em EARS tem fact correspondente identificado no issue.** A rastreabilidade é parte do issue, não documento externo.
+
+### 23.1 Formato no issue
+
+Cada US contém duas seções claramente separadas:
+
+```markdown
+## Critérios de Aceitação (EARS)
+
+AC1 — WHEN um candidato submete CV PDF até 5MB
+      IF consentimento CV_AI_EXTRACTION está ativo
+      THE SYSTEM SHALL extrair os campos estruturados em até 30s
+
+AC2 — WHEN consentimento CV_AI_EXTRACTION está inativo ou ausente
+      THE SYSTEM SHALL retornar erro `CONSENT_REQUIRED` e UI exibe termo da finalidade
+
+AC3 — WHEN extração falha por timeout do provedor LLM
+      THE SYSTEM SHALL retornar erro amigável e registrar incidente no Sentry
+
+## Facts
+
+- AC1 (happy path) → `modules/cv-extraction/__tests__/extractCV.integration.test.ts::happy-path-pdf`
+- AC1 (latência p95) → `modules/cv-extraction/evals/baseline.json::latency_p95` (threshold em Seção 21.2)
+- AC2 → `modules/cv-extraction/__tests__/extractCV.integration.test.ts::consent-missing-returns-error`
+- AC3 → `modules/cv-extraction/__tests__/extractCV.integration.test.ts::timeout-fallback`
+- Schema de input → `modules/cv-extraction/schemas/extractCVInput.ts` (Zod)
+```
+
+### 23.2 Tipos de fact aceitáveis
+
+| Tipo | Quando usar | Onde mora |
+|---|---|---|
+| Teste unit/integration (Vitest) | regra de negócio, Server Action, fluxo entre módulos | `modules/<m>/__tests__/` |
+| Teste E2E (Playwright) | fluxo crítico de usuário ponta-a-ponta | `e2e/` |
+| Schema Zod | validação de fronteira (input/output de Action) | `modules/<m>/schemas/` |
+| Métrica de eval suite | comportamento LLM, qualidade probabilística | `modules/<m>/evals/baseline.json` |
+| Property-based test (`fast-check` + Vitest) | invariante sobre conjunto de entradas | `modules/<m>/__tests__/properties/` |
+| View Model tipado | regra de visibilidade entre papéis | `modules/<m>/views/` |
+
+❌ **Não são facts aceitáveis:**
+
+- "Será coberto por teste manual"
+- "Validação visual em homologação"
+- "Garantido pelo TypeScript" (só vale se o tipo é gerado de schema versionado)
+- "Comportamento padrão do framework" (precisa de teste que ancora a expectativa)
+
+### 23.3 Regra de promoção e enfraquecimento
+
+✅ **Promoção:** AC novo precisa de fact novo (mesmo que seja stub que falha) **antes** de a US sair do gate.
+
+🚨 **Enfraquecimento de fact** (remover teste, afrouxar assertion, baixar threshold de eval): **PR explícito com justificativa**, aprovado por Tech Lead. Agente de PR review marca como "atenção crítica" qualquer remoção/relaxamento de fact que não venha acompanhada de fact equivalente ou superior.
+
+💡 **Refactor que muda código mas mantém facts passando** é situação ideal — exatamente o cenário em que código regenerável + facts mantidos à mão (P5) entrega valor.
+
+---
+
+## 24. Sobre dores futuras (V2)
 
 Quando estes sinais aparecerem, considere:
 

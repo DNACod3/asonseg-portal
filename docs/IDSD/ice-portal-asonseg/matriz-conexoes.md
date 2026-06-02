@@ -730,7 +730,7 @@
 
 ### USP-045 — Reativar Pessoa (fluxo inverso da USP-007)
 
-> Criada na fase de arquitetura (2026-05-29). Intent/expectations (ICE) a gerar pela `po-bravi-idsd`. Fluxo inverso da USP-007.
+> Criada na fase de arquitetura (2026-05-29). Fluxo inverso da USP-007. **ICE gerado (2026-05-31):** [intent](intents/intent-USP-045.md) · [expectations](expectations/expectations-USP-045.md).
 
 - **Upstream:** USP-007 (Pessoa precisa estar inativada)
 - **Downstream:** USP-004 (volta a poder logar)
