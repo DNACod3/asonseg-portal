@@ -71,9 +71,12 @@ modules/<name>/
 ├── views/         # View Models per viewer role (privacy)
 ├── ports/         # Interfaces (DI)
 ├── adapters/      # Concrete implementations
+├── server/        # (optional) server-only Node helpers: session guards / per-request revalidation (ADR-0030)
 ├── __tests__/
 └── index.ts       # Barrel export — all imports go through here
 ```
+
+`server/` is optional — for helpers that run only on the Node server (e.g. `requireActivePerson`/`getCurrentPerson`, ADR-0030 session revalidation) and fit neither `actions/` (mutations) nor `queries/` (read-only reads). Not to be confused with the RBAC `requirePermission()` of the sensitive Server Action sequence.
 
 **Import rule:** Always import via barrel (`@/modules/persons`), never via deep paths.
 

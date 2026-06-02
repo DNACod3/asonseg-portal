@@ -29,7 +29,10 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     // O rate limiting de hardening (US #200) tem teto anônimo de 10/min, que o
-    // volume de requests do Next dev + Playwright estoura. Desligado só p/ E2E.
+    // volume de requests do Next + Playwright estoura. Desligado no E2E (dev e
+    // CI). É seguro: o guard de `shared/env.ts` mira `VERCEL_ENV` (deploy real),
+    // e nem o dev local nem o CI são deploy Vercel — só num deploy de
+    // produção/preview a flag travaria o boot.
     env: { RATE_LIMIT_DISABLED: 'true' },
   },
 });

@@ -1,8 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { env } from '@/shared/env';
 import { prisma } from '@/shared/lib/prisma';
 import { childLogger } from '@/shared/lib/logger';
+
+/**
+ * Compara dois segredos em tempo constante. Faz hash de ambos com SHA-256 antes
+ * do `timingSafeEqual` para que os buffers tenham sempre o mesmo tamanho — assim
+ * não se vaza nem o tamanho nem o prefixo coincidente do segredo por timing.
+ */
+function secretsMatch(provided: string, expected: string): boolean {
+  const a = createHash('sha256').update(provided).digest();
+  const b = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(a, b);
+}
 
 /**
  * Job de retenção de `auth_attempts` (USP-004 — T-11, L-006).
@@ -31,7 +43,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ??
     null;
 
-  if (provided !== secret) {
+  if (!provided || !secretsMatch(provided, secret)) {
     return NextResponse.json({ ok: false, error: 'Não autorizado' }, { status: 401 });
   }
 

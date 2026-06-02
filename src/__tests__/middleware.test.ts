@@ -96,3 +96,38 @@ describe('middleware — extração de IP confiável (anti-spoof)', () => {
     expect(blocked.status).toBe(429);
   });
 });
+
+describe('middleware — gate de sessão (USP-004, T-08)', () => {
+  // Prefixos protegidos (sem aparecer o route group `(app)` na URL).
+  const PROTECTED = ['/inicio', '/perfil', '/empresa', '/candidato', '/moderacao', '/encaminhamentos', '/admin'];
+
+  it.each(PROTECTED)('rota protegida %s sem cookie de sessão → redirect /login', (path) => {
+    const res = middleware(req(path, { 'x-real-ip': '4.4.4.4' }));
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://portal.asonseg.org.br/login');
+    // Headers de segurança presentes mesmo no redirect.
+    expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
+  });
+
+  it('rota protegida em subcaminho (/perfil/editar) sem cookie → redirect /login', () => {
+    const res = middleware(req('/perfil/editar', { 'x-real-ip': '4.4.4.5' }));
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://portal.asonseg.org.br/login');
+  });
+
+  it('rota protegida COM cookie de sessão → não redireciona (segue para revalidação no layout)', () => {
+    const res = middleware(req('/inicio', { 'x-real-ip': '4.4.4.6', ...AUTH_COOKIE }));
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('rota pública (/vagas) sem cookie → não redireciona', () => {
+    const res = middleware(req('/vagas', { 'x-real-ip': '4.4.4.7' }));
+    expect(res.status).not.toBe(307);
+  });
+
+  it('não confunde prefixo (/inicior não é protegido)', () => {
+    const res = middleware(req('/inicior', { 'x-real-ip': '4.4.4.8' }));
+    expect(res.status).not.toBe(307);
+  });
+});

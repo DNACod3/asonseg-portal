@@ -142,7 +142,7 @@
 
 **Why:** P-004 (Pessoa inativada não pode operar com sessão de 12h) e P-006 (reset invalida sessões antigas).
 **What:** No `src/middleware.ts`: para rotas `(app)/*`, ler cookie, decodificar; consultar `Person.status` (com cache LRU local 30s opcional); se `INATIVO` → invalidar cookie + redirect `/login`. Adicionar `session_version` custom claim (bump em USP-005/USP-007 quando implementadas) — preparar leitura aqui mesmo (Pessoa.sessionVersion compare com claim).
-**Where:** `src/middleware.ts`, `src/modules/identity/server/requirePermission.ts` (criar mínimo).
+**Where:** `src/middleware.ts`, `src/modules/identity/server/session.ts` (criar mínimo — `requireActivePerson`/`getCurrentPerson`).
 **Depends on:** T-00, T-06
 **Reuses:** Padrões do Next 15 middleware + `@supabase/ssr`.
 **Done when:** Inativar uma Pessoa via Prisma Studio → próxima request autenticada redireciona em ≤30s.

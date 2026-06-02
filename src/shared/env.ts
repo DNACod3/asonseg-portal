@@ -11,6 +11,10 @@ const envSchema = z.object({
   // Ambiente
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  // Ambiente do deploy Vercel (ADR-0019). Injetado automaticamente pela Vercel
+  // (`production` | `preview` | `development`); ausente em CI/local. Usado para
+  // distinguir um deploy real de um build de produção rodado em CI/E2E.
+  VERCEL_ENV: z.enum(['development', 'preview', 'production']).optional(),
 
   // Banco de dados (Supabase Postgres) — ADR-T-0002
   DATABASE_URL: z.string().url(), // Pooler (PgBouncer) — runtime da aplicação
@@ -58,12 +62,37 @@ const envSchema = z.object({
   // `/api/cron/*` contra acionamento externo. Opcional em dev (string vazia = ausente).
   CRON_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
 
-  // Desliga o rate limiting do middleware. Destinado APENAS a E2E/dev local
-  // (o volume de requests do Next dev + Playwright estoura o teto anônimo de
-  // 10/min). NUNCA habilitar em produção — fica `false` por padrão.
+  // Desliga o rate limiting do middleware. Destinado a E2E/dev local e ao E2E de
+  // CI (o volume de requests do Next + Playwright estoura o teto anônimo de
+  // 10/min). Num deploy real da Vercel é proibido (trava no boot — ver
+  // `superRefine` abaixo).
   RATE_LIMIT_DISABLED: z
     .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() === 'true' : v), z.boolean())
     .default(false),
+});
+
+/**
+ * Schema usado no parse de runtime: o `envSchema` base + invariantes entre
+ * campos. Mantemos os dois separados para que `envSchema.shape` continue
+ * disponível (guarda de regressão de secrets em `env-secrets.test.ts`).
+ */
+const runtimeEnvSchema = envSchema.superRefine((env, ctx) => {
+  // Fail-closed: nunca permitir desligar o rate limiting (hardening US #200 /
+  // ADR-0029) num deploy real da Vercel. Se a flag vazar para o ambiente de um
+  // deploy, o boot falha de forma ruidosa em vez de silenciosamente derrubar a
+  // proteção do `/login` e demais rotas. Mira `VERCEL_ENV` (deploy real), não
+  // `NODE_ENV` — o build de produção rodado em CI/E2E também é `production`, mas
+  // ali precisamos da flag para o Playwright não estourar o teto anônimo.
+  const isVercelDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
+  if (isVercelDeploy && env.RATE_LIMIT_DISABLED) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['RATE_LIMIT_DISABLED'],
+      message:
+        'RATE_LIMIT_DISABLED não pode ser `true` num deploy Vercel (production/preview) — ' +
+        'hardening US #200 / ADR-0029. Use apenas em desenvolvimento/E2E.',
+    });
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -75,7 +104,7 @@ export { envSchema };
  * em PT-BR quando alguma variável obrigatória está ausente ou malformada.
  */
 export function parseEnv(source: Record<string, unknown> = process.env): Env {
-  const parsed = envSchema.safeParse(source);
+  const parsed = runtimeEnvSchema.safeParse(source);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join('.') || '(raiz)'}: ${i.message}`)

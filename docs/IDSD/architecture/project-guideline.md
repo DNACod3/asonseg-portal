@@ -77,6 +77,7 @@ src/
 │       ├── views/          # View Models por papel (privacidade)
 │       ├── ports/          # interfaces (DI)
 │       ├── adapters/       # implementações concretas
+│       ├── server/         # (opcional) helpers server-only (Node): guards de sessão (ADR-0030)
 │       ├── __tests__/
 │       └── index.ts        # barrel export — todo import passa por aqui
 └── shared/

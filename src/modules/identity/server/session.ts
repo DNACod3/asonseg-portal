@@ -5,6 +5,11 @@ import { createSupabaseServerClient } from '@/shared/lib/supabase/server';
 /**
  * Revalidação de sessão por request (USP-004 — T-08, ADR-0030).
  *
+ * Helper de **sessão** (não confundir com o `requirePermission()` do passo 2 da
+ * sequência de Server Action sensível, que checa permissões RBAC delegadas —
+ * ADR-0001, a criar em USP-007+). Aqui apenas resolvemos a Pessoa autenticada e
+ * revalidamos seu `status`.
+ *
  * **Nota de arquitetura (SPEC_DEVIATION leve):** o `design.md §D-E` previa a
  * checagem de `Person.status` dentro do `middleware.ts`. O middleware roda no
  * Edge Runtime, onde o Prisma (driver TCP) não roda; por isso a revalidação
@@ -44,7 +49,10 @@ export async function getCurrentPerson(): Promise<CurrentPerson | null> {
       status: true,
       supabaseUserId: true,
       credential: { select: { primeiroAcesso: true } },
-      roleGrants: { where: { status: 'ACTIVE' }, select: { role: true } },
+      // Paginação defensiva (convenção Prisma `take`): este helper roda no
+      // layout `(app)` a cada request autenticada; nenhuma Pessoa terá dezenas
+      // de papéis ativos, mas o `take` evita carregar coleção ilimitada no hot path.
+      roleGrants: { where: { status: 'ACTIVE' }, select: { role: true }, take: 50 },
     },
   });
 

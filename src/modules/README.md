@@ -18,9 +18,16 @@ modules/<nome>/
 ├── views/         # View Models por papel do observador (privacidade)
 ├── ports/         # Interfaces (DI)
 ├── adapters/      # Implementações concretas
+├── server/         # (opcional) Helpers server-only (Node): guards de sessão (ADR-0030)
 ├── __tests__/
 └── index.ts       # Barrel export — todos os imports passam por aqui
 ```
+
+> `server/` é **opcional**: helpers que só rodam no servidor Node (ex.:
+> `requireActivePerson`/`getCurrentPerson` — revalidação de sessão por request,
+> ADR-0030) e que não se encaixam em `actions/` (mutações) nem `queries/`
+> (leituras read-only). Não confundir com o `requirePermission()` RBAC do passo
+> 2 da sequência de Server Action sensível.
 
 ## Regra de import (obrigatória)
 

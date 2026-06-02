@@ -33,5 +33,5 @@ export { AUTH_PROVIDER_TOKEN } from './ports/authProvider';
 export type { AuthProvider, AuthSignInResult } from './ports/authProvider';
 export { AUTH_ATTEMPTS_REPO_TOKEN } from './ports/authAttemptsRepo';
 export type { AuthAttemptsRepo, AttemptKey } from './ports/authAttemptsRepo';
-export { requireActivePerson, getCurrentPerson } from './server/requirePermission';
-export type { CurrentPerson } from './server/requirePermission';
+export { requireActivePerson, getCurrentPerson } from './server/session';
+export type { CurrentPerson } from './server/session';
