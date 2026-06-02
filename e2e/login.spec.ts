@@ -44,6 +44,8 @@ test.describe('Login (USP-004)', () => {
     await page.fill('#email', uniqueEmail());
     await page.fill('#senha', 'senha-errada-123');
     await page.getByRole('button', { name: 'Entrar' }).click();
-    await expect(page.getByRole('alert')).toContainText(GENERIC);
+    // Filtra pelo texto: além do alerta de erro do form, o Next mantém um
+    // `role="alert"` vazio (#__next-route-announcer__) que tornaria o seletor ambíguo.
+    await expect(page.getByRole('alert').filter({ hasText: GENERIC })).toBeVisible();
   });
 });
