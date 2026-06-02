@@ -38,6 +38,20 @@ npm run db:seed          # Seed data
 npm run db:studio        # Prisma Studio
 ```
 
+### Ambiente local — Supabase CLI (ADR-0016)
+
+O backend local é a stack do **Supabase CLI** (Postgres 15 + Auth + Storage + Mailpit),
+não o `docker-compose.yml` (descontinuado). Config em `supabase/config.toml`, portas `553xx`.
+
+```bash
+supabase start    # sobe a stack local (API/Auth/Storage em :55321, DB em :55322)
+supabase stop     # para sem apagar dados
+supabase status   # URLs e chaves locais (anon/service_role demo)
+supabase db reset # recria do zero (migrations + seed + buckets declarativos)
+```
+
+Studio em http://127.0.0.1:55323 · Mailpit (e-mails de Auth) em http://127.0.0.1:55324.
+
 ## Architecture
 
 **Monolito modular fullstack** with 11 domain modules under `src/modules/`:
@@ -130,7 +144,7 @@ All sensitive writes are wrapped in `withAudit('EVENT_TYPE', ...)`. Event types 
 | `docs/arch/architecture-document.md` | Full architecture vision, quality attributes, risks, phase plan |
 | `docs/arch/technical-design.md` | Prisma schema, sequence diagrams, integration contracts |
 | `docs/arch/project-guideline.md` | Developer operational guide — canonical patterns, conventions, DoD |
-| `docs/arch/0001-0015.md` | 15 ADRs (monolith, platform, auth, audit, storage, backup, PWA, pessoa unificada, LGPD, visibility, moderation, LLM, ISR, CAPTCHA, empresa) |
+| `docs/arch/0001-0016.md` | 16 ADRs (monolith, platform, auth, audit, storage, backup, PWA, pessoa unificada, LGPD, visibility, moderation, LLM, ISR, CAPTCHA, empresa, ambiente local Supabase CLI) |
 | `docs/prd/prd-asonseg-portal-mvp.md` | PRD with 44 user stories, 13 epics, personas |
 | `docs/prototipo/index.html` | UI prototype (static HTML) |
 

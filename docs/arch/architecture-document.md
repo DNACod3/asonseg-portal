@@ -298,7 +298,7 @@ Premissas: 500 extrações de CV/ano em volume confortável; volume baixo de e-m
 
 ### 7.3 Ambientes
 
-- **Local** — Docker Compose com Postgres + MailHog
+- **Local** — stack do **Supabase CLI** (Postgres 15 + Auth + Storage + Mailpit), via `supabase start` — ver **ADR-0016**. _(Estratégia anterior — Docker Compose com Postgres + MailHog — descontinuada; o `docker-compose.yml` permanece apenas como fallback.)_
 - **Staging** — projeto Supabase + projeto Vercel dedicados (data sintético)
 - **Produção** — projeto Supabase + projeto Vercel dedicados
 
@@ -361,6 +361,7 @@ Premissas: 500 extrações de CV/ano em volume confortável; volume baixo de e-m
 | ADR-T-0013 | ISR + on-demand revalidation (detalhado) | Novo |
 | ADR-T-0014 | CAPTCHA Cloudflare Turnstile | Novo |
 | ADR-T-0015 | Empresa sem login + toggle "atuar como" | Novo |
+| ADR-T-0016 | Ambiente de desenvolvimento local via Supabase CLI | Novo |
 
 ADRs de negócio 0001-0018 estão sob `decisions/` do projeto (ADRs 0011-0018 são deste release; 0001-0010 ficam aplicáveis ao Release 2).
 
