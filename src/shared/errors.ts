@@ -24,6 +24,7 @@ export type ActionErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'PRECONDITION_FAILED'
+  | 'MAINTENANCE'
   | 'INTERNAL';
 
 export function ok<T>(data: T): ActionResult<T> {

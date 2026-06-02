@@ -63,3 +63,16 @@ import { CAPTCHA_VERIFIER_TOKEN } from '@/modules/identity/ports/captchaVerifier
 // eslint-disable-next-line no-restricted-imports
 import { TurnstileCaptchaVerifier } from '@/modules/identity/adapters/turnstileCaptchaVerifier';
 container.register(CAPTCHA_VERIFIER_TOKEN, () => new TurnstileCaptchaVerifier());
+
+// Autenticação (USP-004): provedor de auth (Supabase) + repositório de tentativas.
+// eslint-disable-next-line no-restricted-imports
+import { AUTH_PROVIDER_TOKEN } from '@/modules/identity/ports/authProvider';
+// eslint-disable-next-line no-restricted-imports
+import { SupabaseAuthProvider } from '@/modules/identity/adapters/supabaseAuthProvider';
+container.register(AUTH_PROVIDER_TOKEN, () => new SupabaseAuthProvider());
+
+// eslint-disable-next-line no-restricted-imports
+import { AUTH_ATTEMPTS_REPO_TOKEN } from '@/modules/identity/ports/authAttemptsRepo';
+// eslint-disable-next-line no-restricted-imports
+import { PrismaAuthAttemptsRepo } from '@/modules/identity/adapters/authAttemptsRepo';
+container.register(AUTH_ATTEMPTS_REPO_TOKEN, () => new PrismaAuthAttemptsRepo());

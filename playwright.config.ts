@@ -28,5 +28,8 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    // O rate limiting de hardening (US #200) tem teto anônimo de 10/min, que o
+    // volume de requests do Next dev + Playwright estoura. Desligado só p/ E2E.
+    env: { RATE_LIMIT_DISABLED: 'true' },
   },
 });

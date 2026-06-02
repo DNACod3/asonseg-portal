@@ -53,6 +53,17 @@ const envSchema = z.object({
   AUTH_LOGIN_ENABLED: z
     .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() !== 'false' : v), z.boolean())
     .default(true),
+
+  // Segredo dos jobs de cron (Vercel Cron). Protege os route handlers em
+  // `/api/cron/*` contra acionamento externo. Opcional em dev (string vazia = ausente).
+  CRON_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+
+  // Desliga o rate limiting do middleware. Destinado APENAS a E2E/dev local
+  // (o volume de requests do Next dev + Playwright estoura o teto anônimo de
+  // 10/min). NUNCA habilitar em produção — fica `false` por padrão.
+  RATE_LIMIT_DISABLED: z
+    .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() === 'true' : v), z.boolean())
+    .default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;
