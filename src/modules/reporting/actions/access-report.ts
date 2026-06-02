@@ -2,13 +2,18 @@
 
 import { headers } from 'next/headers';
 import { AuditEvent, withAudit } from '@/modules/audit';
-import { purposeMetadata } from '@/modules/consents';
 import { getCurrentPerson } from '@/modules/identity';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
-import { prisma } from '@/shared/lib/prisma';
 import { accessReportSchema, type AccessReportInput } from '../schemas/access-report';
+import { viewPersonForAccessReport, type AccessReportData } from '../views/access-report.view';
+
+export type {
+  AccessReportConsent,
+  AccessReportProfile,
+  AccessReportRoleGrant,
+} from '../views/access-report.view';
 
 /**
  * Papéis internos autorizados a emitir o relatório de acesso de um titular
@@ -17,43 +22,8 @@ import { accessReportSchema, type AccessReportInput } from '../schemas/access-re
  */
 export const ACCESS_REPORT_ROLES = ['SOCIAL_ASSISTANT', 'BOARD', 'COORDINATOR'] as const;
 
-/** Linha do histórico de papéis no relatório. */
-export interface AccessReportRoleGrant {
-  role: string;
-  status: string;
-  activatedAt: Date;
-  revokedAt: Date | null;
-}
-
-/** Linha do histórico de consentimento no relatório (com nome humano + status). */
-export interface AccessReportConsent {
-  purpose: string;
-  purposeName: string;
-  status: 'vigente' | 'revogado';
-  termVersion: string;
-  acceptedAt: Date;
-  revokedAt: Date | null;
-  revokedReason: string | null;
-}
-
-/** Bloco de perfil do titular consolidado no relatório. */
-export interface AccessReportProfile {
-  id: string;
-  fullName: string;
-  cpf: string | null;
-  emailLogin: string | null;
-  phone: string | null;
-  birthDate: Date | null;
-  fullAddress: string | null;
-  status: string;
-  createdAt: Date;
-}
-
 /** Relatório de acesso consolidado (perfil + papéis + consentimentos). */
-export interface AccessReportResult {
-  profile: AccessReportProfile;
-  roleGrants: AccessReportRoleGrant[];
-  consents: AccessReportConsent[];
+export interface AccessReportResult extends AccessReportData {
   issuedAt: Date;
   issuedByPersonId: string;
 }
@@ -69,7 +39,8 @@ export interface AccessReportResult {
  * Sequência:
  *  1. Valida o `personId` com Zod.
  *  2. AuthN (`getCurrentPerson`) + AuthZ (papel interno) do solicitante.
- *  3. Carrega o titular + papéis + consentimentos (selects explícitos + `take`).
+ *  3. Consolida o titular via View Model `viewPersonForAccessReport` (ADR-0010 —
+ *     a leitura cross-Pessoa nunca é Prisma direto na action).
  *  4. Registra a emissão na auditoria.
  */
 export async function issueAccessReport(
@@ -96,71 +67,11 @@ export async function issueAccessReport(
     return fail('FORBIDDEN', 'Você não tem permissão para emitir este relatório.');
   }
 
-  // 3. Carrega o titular + papéis + consentimentos (selects explícitos, `take`).
-  const subject = await prisma.person.findUnique({
-    where: { id: personId },
-    select: {
-      id: true,
-      fullName: true,
-      cpf: true,
-      emailLogin: true,
-      phone: true,
-      birthDate: true,
-      fullAddress: true,
-      status: true,
-      createdAt: true,
-      // Art. 19 exige histórico COMPLETO. Mantemos `take` (convenção anti-N+1),
-      // mas com tetos altos o suficiente para um titular real nunca ser truncado
-      // silenciosamente neste relatório de titular único.
-      roleGrants: {
-        select: { role: true, status: true, activatedAt: true, revokedAt: true },
-        take: 500,
-      },
-      consents: {
-        select: {
-          purpose: true,
-          termVersion: true,
-          acceptedAt: true,
-          revokedAt: true,
-          revokedReason: true,
-        },
-        orderBy: { acceptedAt: 'desc' },
-        take: 2000,
-      },
-    },
-  });
-  if (!subject) {
+  // 3. Consolida via View Model (leitura cross-Pessoa encapsulada — ADR-0010).
+  const data = await viewPersonForAccessReport(personId);
+  if (!data) {
     return fail('NOT_FOUND', 'Pessoa não encontrada.');
   }
-
-  const profile: AccessReportProfile = {
-    id: subject.id,
-    fullName: subject.fullName,
-    cpf: subject.cpf,
-    emailLogin: subject.emailLogin,
-    phone: subject.phone,
-    birthDate: subject.birthDate,
-    fullAddress: subject.fullAddress,
-    status: subject.status,
-    createdAt: subject.createdAt,
-  };
-
-  const roleGrants: AccessReportRoleGrant[] = subject.roleGrants.map((g) => ({
-    role: g.role,
-    status: g.status,
-    activatedAt: g.activatedAt,
-    revokedAt: g.revokedAt,
-  }));
-
-  const consents: AccessReportConsent[] = subject.consents.map((c) => ({
-    purpose: c.purpose,
-    purposeName: purposeMetadata(c.purpose).humanName,
-    status: c.revokedAt === null ? 'vigente' : 'revogado',
-    termVersion: c.termVersion,
-    acceptedAt: c.acceptedAt,
-    revokedAt: c.revokedAt,
-    revokedReason: c.revokedReason,
-  }));
 
   // 4. Contexto da request para o audit_log.
   const hdrs = await headers();
@@ -169,9 +80,7 @@ export async function issueAccessReport(
   const userAgent = hdrs.get('user-agent') ?? null;
 
   const report: AccessReportResult = {
-    profile,
-    roleGrants,
-    consents,
+    ...data,
     issuedAt: new Date(),
     issuedByPersonId: requester.id,
   };
@@ -186,8 +95,8 @@ export async function issueAccessReport(
         audit.entityId = personId;
         audit.after = {
           reportFor: personId,
-          consents: consents.length,
-          roleGrants: roleGrants.length,
+          consents: data.consents.length,
+          roleGrants: data.roleGrants.length,
         };
         return report;
       },

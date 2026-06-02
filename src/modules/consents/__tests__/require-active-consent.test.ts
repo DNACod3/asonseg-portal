@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { requireActiveConsent } from '../domain/require-active-consent';
+import { requireActiveConsent } from '../server/require-active-consent';
 
 /**
  * `requireActiveConsent` recebe um cliente injetável — testamos a regra de

@@ -1,11 +1,15 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
-import type { ConsentPurpose } from './purposes';
-import { isCurrentTermVersion } from './terms-registry';
+import type { ConsentPurpose } from '../domain/purposes';
+import { isCurrentTermVersion } from '../domain/terms-registry';
 
 /**
  * Guarda de consentimento on-read (LGP-03 / ADR-0025). Decide se uma Pessoa tem
  * consentimento **ativo** para uma finalidade, no momento da operação.
+ *
+ * Vive em `server/` (não em `domain/`): a decisão é pura, mas a checagem faz IO
+ * no Prisma — `domain/` é reservado a regras sem IO (CLAUDE.md / project-guideline
+ * §3). Espelha o `identity/server/session.ts`.
  *
  * Ativo ⇔ existe um registro de consentimento da finalidade **não revogado**
  * (`revokedAt` nulo) **na versão vigente** do termo. Versão antiga (mudança

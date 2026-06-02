@@ -3,12 +3,16 @@
 
 // ── Relatório de acesso (LGPD art. 19 — direito de acesso) ───────────────────
 export { issueAccessReport, ACCESS_REPORT_ROLES } from './actions/access-report';
+export type { AccessReportResult } from './actions/access-report';
+
+// View Model (ADR-0010): leitura/projeção cross-Pessoa encapsulada.
+export { viewPersonForAccessReport } from './views/access-report.view';
 export type {
-  AccessReportResult,
+  AccessReportData,
   AccessReportProfile,
   AccessReportRoleGrant,
   AccessReportConsent,
-} from './actions/access-report';
+} from './views/access-report.view';
 
 export { accessReportSchema } from './schemas/access-report';
 export type { AccessReportInput } from './schemas/access-report';

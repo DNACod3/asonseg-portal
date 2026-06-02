@@ -77,6 +77,7 @@ const PROTECTED_PREFIXES = [
   '/perfil',
   '/empresa',
   '/candidato',
+  '/consentimentos',
   '/moderacao',
   '/encaminhamentos',
   '/admin',

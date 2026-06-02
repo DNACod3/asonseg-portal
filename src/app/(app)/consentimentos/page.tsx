@@ -4,16 +4,13 @@ import {
   buildOwnConsentsView,
   listOwnConsents,
   loadTerm,
+  stripTermFrontMatter,
+  TERM_BODY_UNAVAILABLE,
   type ConsentsPanelItem,
 } from '@/modules/consents';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
-
-/** Remove o front-matter YAML (`---...---`) do termo para exibição ao titular. */
-function termBody(content: string): string {
-  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
-}
 
 /**
  * Painel "Meus consentimentos" (USP-043 / LGP-05). Lista os consentimentos
@@ -25,24 +22,29 @@ export default async function ConsentimentosPage() {
   const rows = await listOwnConsents(person.id);
   const views = buildOwnConsentsView(rows);
 
-  // Carrega o corpo do termo da versão aceita (cache por finalidade+versão).
-  const termCache = new Map<string, string>();
-  const items: ConsentsPanelItem[] = await Promise.all(
-    views.map(async (view) => {
+  // Carrega o corpo do termo da versão aceita, deduplicando por finalidade+versão
+  // ANTES do fan-out: várias linhas (revogar + re-aceitar a mesma versão) leem o
+  // disco uma única vez. Resolver as chaves distintas primeiro evita a corrida do
+  // `Promise.all` (todas as callbacks veriam o cache vazio antes de qualquer
+  // `set`), que faria `loadTerm` rodar uma vez por linha.
+  const uniqueKeys = new Map(views.map((v) => [`${v.purpose}@${v.termVersion}`, v]));
+  const loaded = await Promise.all(
+    [...uniqueKeys.values()].map(async (view) => {
       const key = `${view.purpose}@${view.termVersion}`;
-      let body = termCache.get(key);
-      if (body === undefined) {
-        try {
-          const term = await loadTerm(view.purpose, view.termVersion);
-          body = termBody(term.content);
-        } catch {
-          body = 'Não foi possível carregar o texto desta versão do termo.';
-        }
-        termCache.set(key, body);
+      try {
+        const term = await loadTerm(view.purpose, view.termVersion);
+        return [key, stripTermFrontMatter(term.content)] as const;
+      } catch {
+        return [key, TERM_BODY_UNAVAILABLE] as const;
       }
-      return { ...view, termBody: body };
     }),
   );
+  const termCache = new Map(loaded);
+
+  const items: ConsentsPanelItem[] = views.map((view) => ({
+    ...view,
+    termBody: termCache.get(`${view.purpose}@${view.termVersion}`) ?? TERM_BODY_UNAVAILABLE,
+  }));
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-10">

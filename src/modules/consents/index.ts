@@ -21,10 +21,12 @@ export type { TermRegistryEntry } from './domain/terms-registry';
 export { loadTerm, TermLoaderError } from './adapters/term-loader';
 export type { LoadedTerm, TermLoaderErrorCode } from './adapters/term-loader';
 
+export { stripTermFrontMatter, TERM_BODY_UNAVAILABLE } from './domain/term-body';
+
 // ── Matriz de cascata + guarda on-read (#37) ─────────────────────────────────
 export { PURPOSE_ROLE_MAP, roleForPurpose } from './domain/purpose-role-map';
-export { requireActiveConsent } from './domain/require-active-consent';
-export type { ConsentCheck, ConsentCheckReason } from './domain/require-active-consent';
+export { requireActiveConsent } from './server/require-active-consent';
+export type { ConsentCheck, ConsentCheckReason } from './server/require-active-consent';
 
 // ── Server Actions (#37) ─────────────────────────────────────────────────────
 export { grantConsent } from './actions/grant-consent';

@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client';
  * `requireActiveConsent` em queries reais. Pulado quando não há `DATABASE_URL`.
  */
 const { prisma } = await import('@/shared/lib/prisma');
-const { requireActiveConsent } = await import('../domain/require-active-consent');
+const { requireActiveConsent } = await import('../server/require-active-consent');
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 

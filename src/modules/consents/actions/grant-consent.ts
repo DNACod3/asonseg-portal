@@ -10,7 +10,7 @@ import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import type { ConsentPurpose } from '../domain/purposes';
 import { roleForPurpose } from '../domain/purpose-role-map';
-import { requireActiveConsent } from '../domain/require-active-consent';
+import { requireActiveConsent } from '../server/require-active-consent';
 import { loadTerm, TermLoaderError } from '../adapters/term-loader';
 import { grantConsentSchema, type GrantConsentInput } from '../schemas/consent';
 
