@@ -114,9 +114,9 @@ Fonte: [`(app)/consentimentos/page.tsx`](<../../src/app/(app)/consentimentos/pag
 - [ ] Caso especial `PORTAL_ACCESS`: a cascata desativa a base de acesso **sem
       excluir** histórico institucional.
 - 🔶 **Semântica da cascata sobre visibilidade** (dados já compartilhados / vínculos
-      ativos: candidaturas em andamento, contatos já revelados, conteúdo já moderado)
-      **a confirmar pela DPO + jurídico** antes do go-live (ADR-0025 — "semântica a
-      definir pela DPO"). Registrar a decisão como adendo ao ADR-0025.
+      ativos: candidaturas em andamento, contatos já revelados, conteúdo já moderado).
+      **Draft de proposta gerado** em [cascata-revogacao-semantica.md](cascata-revogacao-semantica.md)
+      — **em revisão pela DPO + jurídico**. Vira adendo ao ADR-0025 ao ser aprovado.
 
 ## 5. Direito de acesso do titular — art. 19 (LGP-06)
 
@@ -174,8 +174,9 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
       consentimentos anteriores permanecem válidos na versão aceita.
 - [ ] Troca de provedor de IA (finalidade 7) exige **nova versão + re-aceite**
       (ADR-0009 / ADR-0012).
-- ⚠️ **Status atual dos 8 termos = DRAFT v1.0** (`status: aguardando-revisao-juridica`).
-      A revisão jurídica (D-002) é **pré-requisito de go-live** — ver §8.
+- [x] **Os 8 termos v1.0 estão `status: aprovado`** — revisão jurídica (D-002)
+      concluída em 2026-06-03. Hashes revalidados no `TERMS_REGISTRY` (teste de
+      integridade verde). Ver registro em [dpo.md §5](dpo.md#5-registro-de-aprova%C3%A7%C3%B5es).
 
 ---
 
@@ -183,8 +184,8 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
 
 | # | Pendência | Responsável | Status | Bloqueia |
 |---|---|---|---|---|
-| **D-002** | Revisão jurídica e aprovação dos **8 termos** (hoje DRAFT v1.0). Após aprovação, atualizar `status` no header de cada termo e revalidar o hash em `TERMS_REGISTRY`. | Jurídico + DPO (Angélica) | ⚠️ **Aberto** | go-live da USP-043 |
-| **Cascade semantics** | Definir e registrar (adendo ao ADR-0025) o que a revogação faz com **dados já compartilhados / vínculos ativos** (candidaturas, contatos revelados, conteúdo moderado). | DPO (Angélica) + jurídico | 🔶 **Aberto** | go-live da USP-043 |
+| **D-002** | Revisão jurídica e aprovação dos **8 termos**. | Jurídico + DPO (Angélica) | ✅ **Resolvido (2026-06-03)** — 8 termos `aprovado`, hashes revalidados. | — |
+| **Cascade semantics** | Definir o que a revogação faz com **dados já compartilhados / vínculos ativos**. | DPO (Angélica) + jurídico | 🔶 **Em revisão** — [draft](cascata-revogacao-semantica.md) gerado, aguardando DPO+jurídico. | go-live da USP-043 |
 | **RBAC do art. 19** | Confirmar que a checagem **inline** de papel no `issueAccessReport` é suficiente para go-live, ou antecipar `requirePermission()` (USP-007+). | DPO + Tech Lead | ⚠️ **A confirmar** | aceitação de §5 |
 | **UI de emissão** | Definir como a equipe interna dispara o relatório de acesso no go-live. | Bravi PO + Tech Lead | ⚠️ **A definir** | operação do art. 19 |
 | **D-001** | Designação formal do DPO. | Diretoria ASONSEG | ✅ **Resolvido (2026-05-29)** — diretora **Angélica** designada DPO. Ver [dpo.md](dpo.md). | — |

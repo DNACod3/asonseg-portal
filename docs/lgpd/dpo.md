@@ -57,16 +57,16 @@ Conforme LGPD art. 41, §2º, e a operação do Portal ASONSEG:
 5. **Aprovar versões dos termos** de consentimento em conjunto com o jurídico
    (D-002) — uma nova versão de termo só entra em produção após aprovação registrada.
 
-## 4. Revisão jurídica dos termos (D-002) — pendente
+## 4. Revisão jurídica dos termos (D-002) — concluída ✅
 
 | Campo | Valor |
 |---|---|
 | **Decisão** | D-002 — revisão jurídica e aprovação dos 8 termos de consentimento |
 | **Responsável** | Jurídico + DPO (Angélica) |
-| **Status** | ⚠️ **Em andamento** — termos hoje em DRAFT v1.0 (`status: aguardando-revisao-juridica`) |
-| **Bloqueia** | go-live da USP-043 |
+| **Status** | ✅ **Resolvido (2026-06-03)** — os 8 termos v1.0 estão `status: aprovado`; hashes revalidados no `TERMS_REGISTRY` (teste de integridade verde) |
+| **Bloqueia** | — |
 
-Encaminhamento ao jurídico — revisar os 8 termos em
+Termos revisados e aprovados (v1.0) em
 [`legal/consent-terms/`](../../legal/consent-terms/README.md):
 
 | # | Finalidade | Termo | Base legal | Atenção |
@@ -96,8 +96,8 @@ Encaminhamento ao jurídico — revisar os 8 termos em
 | Item | Data | DPO | Jurídico | Observações |
 |---|---|---|---|---|
 | Designação do DPO (D-001) | 2026-05-29 | Angélica | — | Registrado na matriz de conexões |
-| Revisão dos 8 termos (D-002) | _pendente_ | _a preencher_ | _a preencher_ | DRAFT v1.0 → aprovado + hash atualizado |
-| Semântica da cascata (ADR-0025) | _pendente_ | _a preencher_ | _a preencher_ | Adendo ao ADR-0025 |
+| Revisão dos 8 termos (D-002) | 2026-06-03 | Angélica | _a preencher_ | ✅ 8 termos v1.0 `aprovado`; hashes revalidados no `TERMS_REGISTRY` |
+| Semântica da cascata (ADR-0025) | _em revisão_ | _a preencher_ | _a preencher_ | [Draft](cascata-revogacao-semantica.md) gerado — aguardando DPO+jurídico; vira adendo ao ADR-0025 |
 
 ---
 
