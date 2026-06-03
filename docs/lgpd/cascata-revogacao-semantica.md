@@ -187,7 +187,7 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 |---|---|---|---|
 | DPO (encarregada) | Diretora Angélica | 2026-06-03 | ☑ aprovado |
 | Jurídico | Lino | 2026-06-03 | ☑ aprovado |
-| Tech Lead | _a preencher_ | 2026-06-03 | ☑ ciente |
+| Tech Lead | Nei | 2026-06-03 | ☑ ciente |
 
 ## Referências
 
