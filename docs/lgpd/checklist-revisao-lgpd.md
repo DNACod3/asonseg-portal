@@ -206,8 +206,8 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
 | DPO (encarregada) | Diretora Angélica |
 | Jurídico | Lino |
 | Tech Lead | Nei |
-| Veredito | ☐ Apto a go-live · ☐ Apto com ressalvas · ☐ Bloqueado |
-| Pendências remanescentes | _listar itens ⚠️/🔶 não fechados_ |
+| Veredito | ☐ Apto a go-live · ☑ **Apto com ressalvas** · ☐ Bloqueado |
+| Pendências remanescentes | ⚠️ **RBAC do art. 19** — confirmar a checagem inline de papel no `issueAccessReport` ou antecipar o `requirePermission()` canônico (USP-007+); ⚠️ **UI interna de emissão** do relatório de acesso (operação do art. 19). Nenhuma bloqueia a entrega da USP-043 — condicionam a operação plena no go-live. |
 
 ---
 
