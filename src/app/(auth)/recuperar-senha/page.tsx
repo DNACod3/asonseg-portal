@@ -1,3 +1,4 @@
+import { env } from '@/shared/env';
 import { PasswordResetRequestForm } from '@/modules/identity';
 
 export const metadata = {
@@ -19,7 +20,7 @@ export default function RecuperarSenhaPage() {
         </p>
       </div>
 
-      <PasswordResetRequestForm />
+      <PasswordResetRequestForm siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
     </main>
   );
 }

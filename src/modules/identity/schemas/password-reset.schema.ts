@@ -18,9 +18,14 @@ export const RESET_LINK_EXPIRY_HOURS = 24;
 export const GENERIC_RESET_REQUEST_MESSAGE =
   'Se houver uma conta associada a este e-mail, você receberá um link para redefinir a senha.';
 
-/** Solicitação: apenas o e-mail (normalizado para lowercase + trim). */
+/**
+ * Solicitação: e-mail (normalizado para lowercase + trim) + token do CAPTCHA.
+ * O CAPTCHA é obrigatório (ADR-0014 / USP-005): protege o endpoint público de
+ * mail-bombing e de enumeração por volume — mesma exigência do auto-cadastro.
+ */
 export const requestPasswordResetSchema = z.object({
   email: z.string().trim().toLowerCase().email('Informe um e-mail válido'),
+  captchaToken: z.string().min(1, 'CAPTCHA obrigatório'),
 });
 export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetSchema>;
 

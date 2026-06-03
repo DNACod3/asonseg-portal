@@ -14,8 +14,9 @@ import { resetPasswordSchema, type ResetPasswordInput } from '../schemas/passwor
  *
  * Consome o token de recuperação com `verifyOtp` (uso único — o GoTrue invalida
  * o link após consumir e o rejeita se expirado >24h), atualiza a senha no
- * provedor e encerra a sessão de recuperação: o usuário entra de novo já com a
- * senha nova (não fazemos login automático a partir de um link de e-mail).
+ * provedor e encerra **todas** as sessões do usuário (scope global): o usuário
+ * entra de novo já com a senha nova (não fazemos login automático a partir de um
+ * link de e-mail) e um eventual invasor logado é expelido.
  *
  * **Exceção à sequência canônica:** a autorização vem da posse do token, não de
  * `requirePermission`. Conclusão auditada em `AUTH_PASSWORD_RESET_COMPLETED`.
@@ -89,8 +90,11 @@ export async function resetPassword(
     },
   );
 
-  // 6. Encerra a sessão de recuperação — login explícito com a senha nova.
-  await supabase.auth.signOut();
+  // 6. Encerra TODAS as sessões do usuário (scope global), não só a de
+  // recuperação: redefinir a senha invalida sessões anteriores e expele um
+  // eventual invasor que ainda esteja logado (E-003 / ADR-0030). O usuário
+  // entra de novo, explicitamente, com a senha nova.
+  await supabase.auth.signOut({ scope: 'global' });
 
   log.info({ actorPersonId: person?.id ?? null }, 'reset:completed');
   return ok({ redirectTo: '/login?redefinida=1' });

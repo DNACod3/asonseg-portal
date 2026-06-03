@@ -22,6 +22,23 @@ vi.mock('../actions/reset-password', () => ({
   resetPassword: (...a: unknown[]) => actionState.resetPassword(...a),
 }));
 
+// Mock do widget Turnstile: um botão que, ao clicar, simula o desafio resolvido
+// (entrega o token via onSuccess) — sem rede nem o SDK do Cloudflare.
+vi.mock('@marsidev/react-turnstile', () => ({
+  Turnstile: ({ onSuccess }: { onSuccess: (token: string) => void }) => (
+    <button type="button" onClick={() => onSuccess('captcha-tok')}>
+      resolver-captcha
+    </button>
+  ),
+}));
+
+const SITE_KEY = '1x00000000000000000000AA';
+
+/** Simula a resolução do CAPTCHA clicando no widget mockado. */
+function resolveCaptcha() {
+  fireEvent.click(screen.getByRole('button', { name: 'resolver-captcha' }));
+}
+
 const { PasswordResetRequestForm } = await import('../components/password-reset-request-form');
 const { PasswordResetForm } = await import('../components/password-reset-form');
 
@@ -34,13 +51,17 @@ beforeEach(() => {
 });
 
 describe('PasswordResetRequestForm', () => {
-  it('e-mail válido → chama a action e exibe a confirmação genérica', async () => {
-    render(<PasswordResetRequestForm />);
+  it('e-mail válido + CAPTCHA → chama a action e exibe a confirmação genérica', async () => {
+    render(<PasswordResetRequestForm siteKey={SITE_KEY} />);
     fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'maria@example.com' } });
+    resolveCaptcha();
     fireEvent.click(screen.getByRole('button', { name: 'Enviar link de recuperação' }));
 
     await waitFor(() =>
-      expect(actionState.requestPasswordReset).toHaveBeenCalledWith({ email: 'maria@example.com' }),
+      expect(actionState.requestPasswordReset).toHaveBeenCalledWith({
+        email: 'maria@example.com',
+        captchaToken: 'captcha-tok',
+      }),
     );
     expect(await screen.findByText(GENERIC)).toBeInTheDocument();
     // O formulário some após o envio (mostra só a confirmação).
@@ -48,11 +69,23 @@ describe('PasswordResetRequestForm', () => {
   });
 
   it('e-mail inválido → validação client-side, NÃO chama a action', async () => {
-    render(<PasswordResetRequestForm />);
+    render(<PasswordResetRequestForm siteKey={SITE_KEY} />);
+    // Resolve o CAPTCHA para isolar o erro no campo de e-mail.
+    resolveCaptcha();
     fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'nao-email' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enviar link de recuperação' }));
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await screen.findByText('Informe um e-mail válido')).toBeInTheDocument();
+    expect(actionState.requestPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it('sem CAPTCHA → validação bloqueia o envio, NÃO chama a action', async () => {
+    render(<PasswordResetRequestForm siteKey={SITE_KEY} />);
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'maria@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar link de recuperação' }));
+
+    // Zod recusa o token de CAPTCHA ausente antes de chamar a action.
+    expect(await screen.findByText('CAPTCHA obrigatório')).toBeInTheDocument();
     expect(actionState.requestPasswordReset).not.toHaveBeenCalled();
   });
 });

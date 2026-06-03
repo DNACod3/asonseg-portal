@@ -15,6 +15,7 @@ import {
 const auditState = vi.hoisted(() => ({ events: [] as string[] }));
 const prismaState = vi.hoisted(() => ({ findUnique: vi.fn() }));
 const emailState = vi.hoisted(() => ({ send: vi.fn() }));
+const captchaState = vi.hoisted(() => ({ verify: vi.fn() }));
 const supaState = vi.hoisted(() => ({
   generateLink: vi.fn(),
   verifyOtp: vi.fn(),
@@ -26,9 +27,16 @@ vi.mock('next/headers', () => ({
   headers: async () => new Headers({ 'x-real-ip': '10.0.0.9', 'user-agent': 'vitest' }),
 }));
 
+// `container.resolve` distingue a porta pelo description do token (createToken
+// mockado abaixo devolve Symbol(description)): CAPTCHA vs EmailSender.
 vi.mock('@/shared/container', () => ({
   createToken: (d: string) => Symbol(d),
-  container: { resolve: () => ({ send: (...a: unknown[]) => emailState.send(...a) }) },
+  container: {
+    resolve: (token: symbol) =>
+      token.description === 'CaptchaVerifier'
+        ? { verify: (...a: unknown[]) => captchaState.verify(...a) }
+        : { send: (...a: unknown[]) => emailState.send(...a) },
+  },
 }));
 
 vi.mock('@/shared/lib/supabase/server', () => ({
@@ -84,18 +92,30 @@ beforeEach(() => {
   supaState.updateUser.mockResolvedValue({ error: null });
   supaState.signOut.mockResolvedValue(undefined);
   emailState.send.mockResolvedValue({ ok: true, id: 'e1' });
+  captchaState.verify.mockResolvedValue({ ok: true });
 });
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
 describe('schemas de recuperação de senha', () => {
   it('solicitação: normaliza e-mail (lowercase + trim)', () => {
-    const parsed = requestPasswordResetSchema.safeParse({ email: '  Maria@Example.COM ' });
+    const parsed = requestPasswordResetSchema.safeParse({
+      email: '  Maria@Example.COM ',
+      captchaToken: 'captcha-ok',
+    });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.email).toBe('maria@example.com');
   });
   it('solicitação: rejeita e-mail inválido', () => {
-    expect(requestPasswordResetSchema.safeParse({ email: 'nao-email' }).success).toBe(false);
+    expect(
+      requestPasswordResetSchema.safeParse({ email: 'nao-email', captchaToken: 'captcha-ok' }).success,
+    ).toBe(false);
+  });
+  it('solicitação: rejeita sem CAPTCHA', () => {
+    expect(requestPasswordResetSchema.safeParse({ email: 'maria@example.com' }).success).toBe(false);
+    expect(
+      requestPasswordResetSchema.safeParse({ email: 'maria@example.com', captchaToken: '' }).success,
+    ).toBe(false);
   });
   it('redefinição: aceita token + senha forte com confirmação igual', () => {
     expect(
@@ -117,7 +137,7 @@ describe('schemas de recuperação de senha', () => {
 
 describe('requestPasswordReset', () => {
   it('e-mail existente → gera link, envia e-mail, audita e devolve mensagem genérica', async () => {
-    const result = await requestPasswordReset({ email: 'maria@example.com' });
+    const result = await requestPasswordReset({ email: 'maria@example.com', captchaToken: 'captcha-ok' });
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.message).toBe(GENERIC_RESET_REQUEST_MESSAGE);
@@ -136,7 +156,7 @@ describe('requestPasswordReset', () => {
   it('e-mail inexistente → mesma mensagem genérica, sem link/e-mail/auditoria', async () => {
     prismaState.findUnique.mockResolvedValueOnce(null);
 
-    const result = await requestPasswordReset({ email: 'ninguem@example.com' });
+    const result = await requestPasswordReset({ email: 'ninguem@example.com', captchaToken: 'captcha-ok' });
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.message).toBe(GENERIC_RESET_REQUEST_MESSAGE);
@@ -146,9 +166,9 @@ describe('requestPasswordReset', () => {
   });
 
   it('mensagem é idêntica para e-mail existente e inexistente (anti-enumeração)', async () => {
-    const existente = await requestPasswordReset({ email: 'maria@example.com' });
+    const existente = await requestPasswordReset({ email: 'maria@example.com', captchaToken: 'captcha-ok' });
     prismaState.findUnique.mockResolvedValueOnce(null);
-    const inexistente = await requestPasswordReset({ email: 'ninguem@example.com' });
+    const inexistente = await requestPasswordReset({ email: 'ninguem@example.com', captchaToken: 'captcha-ok' });
 
     expect(existente.ok && inexistente.ok).toBe(true);
     if (existente.ok && inexistente.ok) {
@@ -163,22 +183,36 @@ describe('requestPasswordReset', () => {
       fullName: 'X',
       supabaseUserId: 'u1',
     });
-    const result = await requestPasswordReset({ email: 'inativo@example.com' });
+    const result = await requestPasswordReset({ email: 'inativo@example.com', captchaToken: 'captcha-ok' });
     expect(result.ok).toBe(true);
     expect(emailState.send).not.toHaveBeenCalled();
   });
 
   it('falha ao gerar o link → ainda devolve mensagem genérica, sem e-mail', async () => {
     supaState.generateLink.mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
-    const result = await requestPasswordReset({ email: 'maria@example.com' });
+    const result = await requestPasswordReset({ email: 'maria@example.com', captchaToken: 'captcha-ok' });
     expect(result.ok).toBe(true);
     expect(emailState.send).not.toHaveBeenCalled();
   });
 
   it('formato inválido → VALIDATION', async () => {
-    const result = await requestPasswordReset({ email: 'nao-email' });
+    const result = await requestPasswordReset({ email: 'nao-email', captchaToken: 'captcha-ok' });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('VALIDATION');
+  });
+
+  it('CAPTCHA inválido → PRECONDITION_FAILED, sem lookup/link/e-mail/auditoria', async () => {
+    captchaState.verify.mockResolvedValueOnce({ ok: false });
+
+    const result = await requestPasswordReset({ email: 'maria@example.com', captchaToken: 'ruim' });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('PRECONDITION_FAILED');
+    // CAPTCHA é checado antes de tocar o banco/provedor — nada acontece.
+    expect(prismaState.findUnique).not.toHaveBeenCalled();
+    expect(supaState.generateLink).not.toHaveBeenCalled();
+    expect(emailState.send).not.toHaveBeenCalled();
+    expect(auditState.events).toHaveLength(0);
   });
 });
 
@@ -187,14 +221,15 @@ describe('requestPasswordReset', () => {
 describe('resetPassword', () => {
   const VALID = { token: 'hashed-abc', senhaNova: 'novaSenha123', confirmar: 'novaSenha123' };
 
-  it('token válido → atualiza senha, audita, encerra sessão e redireciona ao login', async () => {
+  it('token válido → atualiza senha, audita, encerra TODAS as sessões e redireciona ao login', async () => {
     const result = await resetPassword(VALID);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.redirectTo).toContain('/login');
     expect(supaState.verifyOtp).toHaveBeenCalledWith({ token_hash: 'hashed-abc', type: 'recovery' });
     expect(supaState.updateUser).toHaveBeenCalledWith({ password: 'novaSenha123' });
-    expect(supaState.signOut).toHaveBeenCalledTimes(1);
+    // Invalida todas as sessões do usuário (E-003 / ADR-0030), não só a de recuperação.
+    expect(supaState.signOut).toHaveBeenCalledWith({ scope: 'global' });
     expect(auditState.events).toContain('AUTH_PASSWORD_RESET_COMPLETED');
   });
 

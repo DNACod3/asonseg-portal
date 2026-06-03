@@ -10,6 +10,7 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/server';
 import { EMAIL_SENDER_TOKEN } from '@/shared/lib/email/email-sender.port';
+import { CAPTCHA_VERIFIER_TOKEN } from '../ports/captchaVerifier';
 import {
   requestPasswordResetSchema,
   GENERIC_RESET_REQUEST_MESSAGE,
@@ -20,11 +21,16 @@ import {
 /**
  * Solicitação de redefinição de senha (USP-005 — IDN-13).
  *
+ * **Anti-abuso (ADR-0014):** endpoint público — exige CAPTCHA (fail-closed) antes
+ * de qualquer efeito, para conter mail-bombing e enumeração por volume. O
+ * middleware ainda aplica um teto por IP (categoria `passwordReset`).
+ *
  * **Anti-enumeração (AC):** devolve sempre a MESMA mensagem genérica, exista ou
  * não a conta. Só quando há Pessoa ATIVA com credencial é que geramos o link de
  * recuperação (válido 24h — `otp_expiry` do GoTrue) via Supabase Admin e o
  * enviamos pela porta `EmailSender`. Falhas de provedor (gerar link / enviar
- * e-mail) são logadas, mas nunca alteram a resposta ao usuário.
+ * e-mail) são logadas, mas nunca alteram a resposta ao usuário. (A recusa de
+ * CAPTCHA é independente do e-mail, então não vaza existência de conta.)
  *
  * **Exceção à sequência canônica:** o solicitante não está autenticado, então
  * não há `requirePermission`/`requireActiveConsent`. A auditoria
@@ -41,12 +47,25 @@ export async function requestPasswordReset(
   if (!parsed.success) {
     return fail('VALIDATION', 'Dados inválidos', parsed.error.flatten().fieldErrors);
   }
-  const { email } = parsed.data;
+  const { email, captchaToken } = parsed.data;
+
+  // 2. Contexto da request (IP, user-agent) para CAPTCHA e auditoria.
+  const hdrs = await headers();
+  const rawIp = clientIp(hdrs);
+  const ip = rawIp === 'unknown' ? null : rawIp;
+  const userAgent = hdrs.get('user-agent');
+
+  // 3. CAPTCHA (fail-closed — ADR-0014 / P-005). Recusa é independente do e-mail.
+  const captcha = container.resolve(CAPTCHA_VERIFIER_TOKEN);
+  const captchaResult = await captcha.verify(captchaToken, ip ?? undefined);
+  if (!captchaResult.ok) {
+    return fail('PRECONDITION_FAILED', 'CAPTCHA inválido ou expirado. Tente novamente.');
+  }
 
   // Resposta genérica única — retornada em TODOS os caminhos de sucesso/no-op.
   const generic = ok({ message: GENERIC_RESET_REQUEST_MESSAGE });
 
-  // 2. Pré-condição: existe Pessoa ATIVA com credencial para este e-mail?
+  // 4. Pré-condição: existe Pessoa ATIVA com credencial para este e-mail?
   const person = await prisma.person.findUnique({
     where: { emailLogin: email },
     select: { id: true, status: true, fullName: true, supabaseUserId: true },
@@ -56,13 +75,7 @@ export async function requestPasswordReset(
     return generic;
   }
 
-  // 3. Contexto da request (IP, user-agent) para auditoria.
-  const hdrs = await headers();
-  const rawIp = clientIp(hdrs);
-  const ip = rawIp === 'unknown' ? null : rawIp;
-  const userAgent = hdrs.get('user-agent');
-
-  // 4. Gera o link de recuperação (uso único, expira em 24h) via Supabase Admin.
+  // 5. Gera o link de recuperação (uso único, expira em 24h) via Supabase Admin.
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
   const hashedToken = data?.properties?.hashed_token;
@@ -71,7 +84,7 @@ export async function requestPasswordReset(
     return generic; // não revela falha de infraestrutura.
   }
 
-  // 5. Monta o link para a NOSSA página (não o link hospedado do Supabase) e envia.
+  // 6. Monta o link para a NOSSA página (não o link hospedado do Supabase) e envia.
   const baseUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
   const resetUrl = `${baseUrl}/redefinir-senha?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`;
 
@@ -85,7 +98,7 @@ export async function requestPasswordReset(
     log.error({ actorPersonId: person.id }, 'reset:email_send_failed');
   }
 
-  // 6. Audita a solicitação (houve pedido válido, mesmo se o e-mail falhou).
+  // 7. Audita a solicitação (houve pedido válido, mesmo se o e-mail falhou).
   await withAudit(
     AuditEvent.AUTH_PASSWORD_RESET_REQUESTED,
     async (_tx, audit) => {
