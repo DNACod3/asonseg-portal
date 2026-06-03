@@ -51,22 +51,22 @@ export const TERMS_REGISTRY: Record<ConsentPurpose, TermRegistryEntry> = {
   COMPANY_REPRESENTATION: {
     purpose: 'COMPANY_REPRESENTATION',
     currentVersion: 'v1.0',
-    expectedHash: '854f64764ce2e86c296e5797ed48e9f49bed24d4e0d26ea5bc93353e816212ff',
+    expectedHash: 'e72b433324098c03e7800f4e71b64605bf7153b914e24f869e74e944835e1200',
   },
   SOCIAL_ASSISTANCE: {
     purpose: 'SOCIAL_ASSISTANCE',
     currentVersion: 'v1.0',
-    expectedHash: '3df4493c4b1666a943d11b62bc71c77011f0960a16d2cd6890e8ed39e659ab2d',
+    expectedHash: '6d15978756b5f6b943c977dfdf1f9fb0dbe492eae013f5f03069fce5ca4c2c6f',
   },
   CV_AI_EXTRACTION: {
     purpose: 'CV_AI_EXTRACTION',
     currentVersion: 'v1.0',
-    expectedHash: '5e1e7ed0c31dabdc34553f6d70c7f2edac1cf8260d9e0952066fa6c38774771f',
+    expectedHash: '1b988046e2a8d82612dfac9b8b535c0908a222f15c9fe6d3cebd72eda0d2acdd',
   },
   SOCIAL_REFERRAL_TO_JOB: {
     purpose: 'SOCIAL_REFERRAL_TO_JOB',
     currentVersion: 'v1.0',
-    expectedHash: 'a5025d5d12c5c0ab371ad30bb34fee6abecb950d32ba017db22dd6c61ee8ade6',
+    expectedHash: '34e5c3019bba147558815979a068099399f119254f1e860ea6e794c584099f3e',
   },
 };
 
