@@ -24,7 +24,7 @@ export interface TermRegistryEntry {
  * Fonte da verdade da versão vigente + hash por finalidade.
  *
  * Os hashes abaixo são o `shasum -a 256` de cada `legal/consent-terms/<slug>/v1.0.md`.
- * O teste `terms-registry.int.test.ts` falha se o arquivo divergir, impedindo
+ * O teste `term-loader.test.ts` falha se o arquivo divergir, impedindo
  * que um termo seja alterado sem atualizar o registro.
  */
 export const TERMS_REGISTRY: Record<ConsentPurpose, TermRegistryEntry> = {

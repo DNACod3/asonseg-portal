@@ -800,7 +800,7 @@
 | Dep | Owner | USPs bloqueadas |
 |---|---|---|
 | D-001 — Designação formal do DPO | Diretoria ASONSEG | **RESOLVIDO (2026-05-29): diretora Angélica designada DPO.** Desbloqueia USP-036, 037, 039, 042, 043 e USP-007 (inativação por titular) — agora condicionadas só a D-002 |
-| D-002 — Termos de consentimento por finalidade e revisão jurídica | Diretoria + jurídico | **EM ANDAMENTO:** atividade de Fase 0 redige rascunho dos 8 termos e submete à aprovação **antes da USP-043**. Bloqueia: USP-001, 006, 009, 010, 011, 012, 025, 033, 036, 037, 040, 043 |
+| D-002 — Termos de consentimento por finalidade e revisão jurídica | Diretoria + jurídico | **RESOLVIDO (2026-06-03):** os 8 termos revisados e aprovados (`status: aprovado`); hashes revalidados no `TERMS_REGISTRY` (PR #249). Registro em `docs/lgpd/dpo.md`. Desbloqueia: USP-001, 006, 009, 010, 011, 012, 025, 033, 036, 037, 040, 043 |
 | D-003 — Designação do sponsor | Diretoria ASONSEG | Bloqueante de kickoff — sem USP específica |
 | D-004 — Metas concretas para MP1–MP10 | Sponsor + Bravi PO | Não bloqueia código; bloqueia avaliação de sucesso |
 | D-005 — Refinamento de filtros/agrupamentos dos relatórios | Bravi PO + diretoria | USP-042 |
@@ -930,6 +930,8 @@ Quem é upstream de muita coisa — mexer dói. Mudança de design dessas USPs t
 USPs cujo expectations file marca gate explícito — código pronto não basta. Lista mais útil para sponsor.
 
 > **Atualização 2026-05-29:** **D-001 (DPO) resolvido** — diretora Angélica designada DPO; **D-011/QP-001 (verificação de identidade) resolvido** — manual pela AS; **D-012/QP-004 (cache) resolvido** — TTL 600s; **checklists de Fase 0 validadas**. Resta **D-002** (8 termos — em redação/aprovação na Fase 0, antes da USP-043) e a **definição da semântica da cascata** pela DPO. As linhas abaixo registram o gate original; os que dependiam só de D-001/D-011/D-012/checklists já estão liberados.
+>
+> **Atualização 2026-06-03:** **D-002 resolvido** — os 8 termos de consentimento foram revisados e aprovados (`status: aprovado`), com hashes revalidados no `TERMS_REGISTRY` (PR #249; registro em `docs/lgpd/dpo.md`). Resta apenas a **semântica da cascata de revogação**: há um **draft** em `docs/lgpd/cascata-revogacao-semantica.md` aguardando DPO (Angélica) + jurídico, que vira adendo ao ADR-0025. Gates que dependiam só de D-002 já estão liberados.
 
 | USP | Gate | Responsável |
 |---|---|---|
