@@ -12,7 +12,7 @@ import {
  * (anti-enumeração), redefinição com token válido e recusa de token inválido.
  */
 
-const auditState = vi.hoisted(() => ({ events: [] as string[] }));
+const auditState = vi.hoisted(() => ({ events: [] as string[], credentialUpdate: vi.fn() }));
 const prismaState = vi.hoisted(() => ({ findUnique: vi.fn() }));
 const emailState = vi.hoisted(() => ({ send: vi.fn() }));
 const captchaState = vi.hoisted(() => ({ verify: vi.fn() }));
@@ -66,7 +66,7 @@ vi.mock('@/modules/audit', () => ({
     fn: (tx: unknown, audit: Record<string, unknown>) => Promise<unknown>,
   ) => {
     auditState.events.push(event);
-    const tx = { credential: { update: vi.fn(async () => ({})) } };
+    const tx = { credential: { update: auditState.credentialUpdate } };
     return fn(tx, {});
   },
 }));
@@ -230,6 +230,25 @@ describe('resetPassword', () => {
     expect(supaState.updateUser).toHaveBeenCalledWith({ password: 'novaSenha123' });
     // Invalida todas as sessões do usuário (E-003 / ADR-0030), não só a de recuperação.
     expect(supaState.signOut).toHaveBeenCalledWith({ scope: 'global' });
+    expect(auditState.events).toContain('AUTH_PASSWORD_RESET_COMPLETED');
+    // Credencial não estava em 1º acesso → nada a baixar.
+    expect(auditState.credentialUpdate).not.toHaveBeenCalled();
+  });
+
+  it('credencial em 1º acesso → conclui primeiroAcesso na mesma transação do audit', async () => {
+    prismaState.findUnique.mockResolvedValueOnce({
+      id: 'p1',
+      credential: { id: 'c1', primeiroAcesso: true },
+    });
+
+    const result = await resetPassword(VALID);
+
+    expect(result.ok).toBe(true);
+    // Redefinir senha durante o 1º acesso baixa a flag (D-F) dentro do withAudit.
+    expect(auditState.credentialUpdate).toHaveBeenCalledWith({
+      where: { id: 'c1' },
+      data: { primeiroAcesso: false },
+    });
     expect(auditState.events).toContain('AUTH_PASSWORD_RESET_COMPLETED');
   });
 
