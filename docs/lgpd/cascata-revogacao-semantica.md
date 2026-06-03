@@ -1,14 +1,17 @@
-# DRAFT — Semântica da cascata de revogação de consentimento
+# Semântica da cascata de revogação de consentimento
 
-> 🟡 **STATUS: DRAFT — para revisão de DPO (diretora Angélica) + jurídico.**
-> Este documento **propõe** a semântica concreta da cascata de revogação por
-> finalidade (o "destino" de dados já compartilhados e artefatos ativos). É o
-> insumo para **preencher a matriz finalidade→efeitos** do
+> ✅ **STATUS: APROVADO em 2026-06-03 pela DPO (diretora Angélica) + jurídico.**
+> Define a semântica concreta da cascata de revogação por finalidade (o "destino"
+> de dados já compartilhados e artefatos ativos) que o
 > [ADR-0025](../IDSD/architecture/adrs/0025-cascata-de-revogacao-de-consentimento.md)
-> e, uma vez aprovado, vira **adendo ao ADR-0025**.
+> deixou em aberto. Este documento é o **adendo ao ADR-0025**; a matriz está
+> materializada em código em
+> [`src/modules/consents/domain/revocation-cascade.ts`](../../src/modules/consents/domain/revocation-cascade.ts)
+> (`REVOCATION_CASCADE_MATRIX`).
 >
-> **Cada decisão abaixo precisa ser confirmada (☐ → ☑) pela DPO + jurídico.**
-> As recomendações são propostas técnicas/de produto, **não** decisões fechadas.
+> As decisões abaixo (coluna **Decisão** = ☑) estão **aprovadas**. A aplicação de
+> cada efeito em seu módulo (`jobs`, `services`, `referrals`, …) é trabalho das
+> USPs desses módulos que consomem a matriz.
 >
 > Origem: USP-043 (#209) · pendência 🔶 "semântica da cascata" do
 > [checklist de go-live](checklist-revisao-lgpd.md#8-pend%C3%AAncias-bloqueantes-de-go-live).
@@ -75,19 +78,19 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
 | Papel `CANDIDATE` | → `REVOKED` (já no mecanismo) | ☑ (mecanismo) |
-| **Candidaturas ativas** (em avaliação) | **ENCERRAR + MARCAR** como "retirada por revogação"; saem do pipeline ativo do empregador (on-read bloqueia novas leituras do perfil). Histórico preservado. | ☐ |
-| **Perfil do candidato** visível a empregadores | **OCULTAR** de buscas/listagens dali para frente (View Models — ADR-0010). | ☐ |
-| **Dados já vistos pelo empregador** (perfil/contato já acessado antes da revogação) | **MANTER** (tratamento lícito já realizado — não-retroativo). Sem "desfazer". | ☐ |
-| Notificar o empregador? | **NÃO** notificar individualmente (candidatura apenas deixa de constar como ativa). | ☐ |
+| **Candidaturas ativas** (em avaliação) | **ENCERRAR + MARCAR** como "retirada por revogação"; saem do pipeline ativo do empregador (on-read bloqueia novas leituras do perfil). Histórico preservado. | ☑ |
+| **Perfil do candidato** visível a empregadores | **OCULTAR** de buscas/listagens dali para frente (View Models — ADR-0010). | ☑ |
+| **Dados já vistos pelo empregador** (perfil/contato já acessado antes da revogação) | **MANTER** (tratamento lícito já realizado — não-retroativo). Sem "desfazer". | ☑ |
+| Notificar o empregador? | **NÃO** notificar individualmente (candidatura apenas deixa de constar como ativa). | ☑ |
 
 ### 4.2 `SERVICE_OFFERING` → papel `PROVIDER`
 
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
 | Papel `PROVIDER` | → `REVOKED` | ☑ (mecanismo) |
-| **Serviços publicados** no catálogo | **OCULTAR/despublicar** do catálogo público dali para frente; histórico preservado (transição via máquina de estados — ADR-0011, sem `prisma.update` direto). | ☐ |
-| **Contratações/manifestações em andamento** dirigidas ao prestador | **MARCAR**; o prestador deixa de ser contatável por novos clientes. In-flight: ver §4.3. | ☐ |
-| Notificar clientes com manifestação ativa? | **A definir** — ver dependência com 4.3. | ☐ |
+| **Serviços publicados** no catálogo | **OCULTAR/despublicar** do catálogo público dali para frente; histórico preservado (transição via máquina de estados — ADR-0011, sem `prisma.update` direto). | ☑ |
+| **Contratações/manifestações em andamento** dirigidas ao prestador | **MARCAR**; o prestador deixa de ser contatável por novos clientes. In-flight: ver §4.3. | ☑ |
+| Notificar clientes com manifestação ativa? | **NÃO** (regra geral — terceiros não são notificados; a manifestação ativa é encerrada, cf. §4.3). | ☑ |
 
 ### 4.3 `SERVICE_HIRING` → papel `CLIENT`
 
@@ -95,32 +98,32 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 |---|---|---|
 | Papel `CLIENT` | → `REVOKED` | ☑ (mecanismo) |
 | **Novas manifestações de interesse** | Bloqueadas (on-read). | ☑ (mecanismo) |
-| **Contato do cliente já revelado** a um prestador (antes da revogação) | **MANTER** (já compartilhado licitamente — não-retroativo). | ☐ |
-| **Manifestações ativas** ainda não respondidas | **ENCERRAR + MARCAR** ("retirada"); contato deixa de ser compartilhado com novos prestadores. | ☐ |
+| **Contato do cliente já revelado** a um prestador (antes da revogação) | **MANTER** (já compartilhado licitamente — não-retroativo). | ☑ |
+| **Manifestações ativas** ainda não respondidas | **ENCERRAR + MARCAR** ("retirada"); contato deixa de ser compartilhado com novos prestadores. | ☑ |
 
 ### 4.4 `COMPANY_REPRESENTATION` → papel `COMPANY_RESPONSIBLE`
 
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
 | Papel `COMPANY_RESPONSIBLE` | → `REVOKED` (`COMPANY_RESPONSIBLE_REMOVED`) | ☑ (mecanismo) |
-| **Vagas publicadas pela empresa** (a empresa é entidade sem login — ADR-0015) | **MANTER** ativas (pertencem à empresa, não à pessoa); apenas a *pessoa* deixa de representá-la. | ☐ |
-| ⚠️ **Edge: pessoa é a única responsável da empresa** | **A DECIDIR** — opções: (a) bloquear a revogação até designar outro responsável; (b) permitir e deixar a empresa "sem responsável" (órfã) até nova designação pela coordenação. Recomendação: **(b) + alerta à coordenação**. | ☐ |
+| **Vagas publicadas pela empresa** (a empresa é entidade sem login — ADR-0015) | **MANTER** ativas (pertencem à empresa, não à pessoa); apenas a *pessoa* deixa de representá-la. | ☑ |
+| ⚠️ **Edge: pessoa é a única responsável da empresa** | **APROVADO — opção (b):** permitir a revogação e **alertar a coordenação** para nova designação (a empresa fica temporariamente sem responsável). | ☑ |
 
 ### 4.5 `SOCIAL_ASSISTANCE` → **sem papel** (dado sensível, art. 11)
 
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
 | Uso futuro de dado sensível de atendimento | **Bloqueado** on-read (`requireActiveConsent`). | ☑ (mecanismo) |
-| **Histórico de atendimento social** | **MARCAR** + **restringir acesso**; preservar pelo prazo de **guarda legal** (não excluir) — exceção do art. 16 / dado sensível. Acesso só por necessidade legal/DPO. | ☐ |
-| Notificar a equipe de assistência social? | **SIM** — sinalizar à AS responsável (operacional, não ao titular). | ☐ |
-| ⚠️ Especificidade do dado sensível | Confirmar com jurídico se há **dever legal de guarda** que se sobreponha ao pedido de eliminação. | ☐ |
+| **Histórico de atendimento social** | **MARCAR** + **restringir acesso**; preservar pelo prazo de **guarda legal** (não excluir) — exceção do art. 16 / dado sensível. Acesso só por necessidade legal/DPO. | ☑ |
+| Notificar a equipe de assistência social? | **SIM** — sinalizar à AS responsável (operacional, não ao titular). | ☑ |
+| ⚠️ Especificidade do dado sensível | **APROVADO:** preservar por **dever legal de guarda** (prazo a confirmar pelo jurídico) com **acesso restrito**; não excluir. | ☑ |
 
 ### 4.6 `CV_AI_EXTRACTION` → **sem papel**
 
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
 | Novos envios de CV ao provedor de IA | **Bloqueados** on-read. | ☑ (mecanismo) |
-| **Dados já extraídos** do CV | **MANTER** se ainda sob `JOB_APPLICATION` ativo (foram processados licitamente); o provedor (Anthropic) opera em **ZDR — sem retenção** (ADR-0027), então não há cópia no terceiro a expurgar. | ☐ |
+| **Dados já extraídos** do CV | **MANTER** se ainda sob `JOB_APPLICATION` ativo (foram processados licitamente); o provedor (Anthropic) opera em **ZDR — sem retenção** (ADR-0027), então não há cópia no terceiro a expurgar. | ☑ |
 | Re-extração futura | Exige **novo consentimento** (e nova versão de termo se trocar o provedor — ADR-0009/0012). | ☑ (mecanismo) |
 
 ### 4.7 `SOCIAL_REFERRAL_TO_JOB` → **sem papel**
@@ -128,20 +131,27 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
 | Novos encaminhamentos institucionais pela AS | **Bloqueados** on-read. | ☑ (mecanismo) |
-| **Encaminhamentos já realizados** (perfil já enviado a um empregador/vaga) | **MANTER + MARCAR** (não-retroativo; perfil já compartilhado). | ☐ |
-| Notificar a AS? | **SIM** (operacional). | ☐ |
+| **Encaminhamentos já realizados** (perfil já enviado a um empregador/vaga) | **MANTER + MARCAR** (não-retroativo; perfil já compartilhado). | ☑ |
+| Notificar a AS? | **SIM** (operacional). | ☑ |
 
 ### 4.8 `PORTAL_ACCESS` → **sem papel** (sustenta o acesso)
 
 | Item | Recomendação (draft) | Decisão |
 |---|---|---|
-| Conta de acesso | **Inativação da conta** (cascata da base de acesso — já descrito no termo v1.0). Sem login ⇒ todas as demais finalidades ficam inalcançáveis. | ☐ |
-| **Histórico institucional** (atendimentos, candidaturas, auditoria) | **MANTER** (não exclusão — ADR-0008; audit append-only). | ☐ |
-| Demais consentimentos ativos | **A DECIDIR**: revogar `PORTAL_ACCESS` revoga os demais em cascata, ou apenas inativa o acesso deixando os consentimentos "suspensos" para re-aceite num eventual retorno? Recomendação: **suspender** (não revogar), permitindo re-aceite no retorno (cf. matriz §re-aceite). | ☐ |
+| Conta de acesso | **Inativação da conta** (cascata da base de acesso — já descrito no termo v1.0). Sem login ⇒ todas as demais finalidades ficam inalcançáveis. | ☑ |
+| **Histórico institucional** (atendimentos, candidaturas, auditoria) | **MANTER** (não exclusão — ADR-0008; audit append-only). | ☑ |
+| Demais consentimentos ativos | **APROVADO — suspender:** a revogação inativa o acesso e deixa os demais consentimentos **suspensos** (não revogados), permitindo re-aceite no retorno. | ☑ |
 
 ---
 
 ## 5. Questões transversais para a DPO + jurídico
+
+> ✅ **Respostas aprovadas (2026-06-03):** (1) re-concessão exige **novo aceite**;
+> (2) **sem carência** — efeito imediato (P-002); (3) terceiros indivíduos **não**
+> são notificados; (4) dado sensível **preservado** por guarda legal (prazo pelo
+> jurídico) com **acesso restrito**; (5) empresa órfã: **opção (b)** — permitir +
+> alertar a coordenação. Codificadas em `CASCADE_CROSS_CUTTING` e nos `policyNote`
+> da `REVOCATION_CASCADE_MATRIX`.
 
 1. **Re-concessão (re-grant):** quando o titular reativa uma finalidade antes
    revogada, exige-se **novo aceite** (novo `acceptedAt`/hash) — confirmar que não
@@ -158,13 +168,16 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 
 ## 6. Próximos passos (após aprovação)
 
-1. DPO + jurídico preenchem as colunas **Decisão** (☑) e respondem §5.
-2. Materializar a coluna "efeitos" da matriz em código
-   ([`purpose-role-map.ts`](../../src/modules/consents/domain/purpose-role-map.ts) →
-   `revocation_cascade_matrix`), com testes por finalidade.
-3. Registrar este documento como **adendo ao ADR-0025** e marcar a pendência 🔶 do
+1. ✅ Decisões aprovadas pela DPO + jurídico (2026-06-03).
+2. ✅ Matriz materializada em código:
+   [`revocation-cascade.ts`](../../src/modules/consents/domain/revocation-cascade.ts)
+   (`REVOCATION_CASCADE_MATRIX`) + testes por finalidade
+   ([`revocation-cascade.test.ts`](../../src/modules/consents/__tests__/revocation-cascade.test.ts)).
+3. ✅ Registrado como **adendo ao ADR-0025**; pendência 🔶 do
    [checklist §8](checklist-revisao-lgpd.md#8-pend%C3%AAncias-bloqueantes-de-go-live)
-   como resolvida.
+   resolvida.
+4. ⏭️ **Próximo (USPs dos módulos):** consumir a matriz para aplicar os efeitos em
+   `jobs` (encerrar candidaturas), `services` (despublicar), `referrals` etc.
 
 ---
 
@@ -172,9 +185,9 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 
 | Papel | Nome | Data | Veredito |
 |---|---|---|---|
-| DPO (encarregada) | Diretora Angélica | _pendente_ | ☐ aprovado · ☐ ajustes |
-| Jurídico | _a preencher_ | _pendente_ | ☐ aprovado · ☐ ajustes |
-| Tech Lead | _a preencher_ | _pendente_ | ☐ ciente |
+| DPO (encarregada) | Diretora Angélica | 2026-06-03 | ☑ aprovado |
+| Jurídico | Lino | 2026-06-03 | ☑ aprovado |
+| Tech Lead | Nei | 2026-06-03 | ☑ ciente |
 
 ## Referências
 

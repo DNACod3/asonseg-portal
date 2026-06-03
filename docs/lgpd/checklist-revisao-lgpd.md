@@ -113,10 +113,12 @@ Fonte: [`(app)/consentimentos/page.tsx`](<../../src/app/(app)/consentimentos/pag
       tudo em transação dentro de `withAudit('CONSENT_REVOKED', ...)`.
 - [ ] Caso especial `PORTAL_ACCESS`: a cascata desativa a base de acesso **sem
       excluir** histórico institucional.
-- 🔶 **Semântica da cascata sobre visibilidade** (dados já compartilhados / vínculos
-      ativos: candidaturas em andamento, contatos já revelados, conteúdo já moderado).
-      **Draft de proposta gerado** em [cascata-revogacao-semantica.md](cascata-revogacao-semantica.md)
-      — **em revisão pela DPO + jurídico**. Vira adendo ao ADR-0025 ao ser aprovado.
+- [x] **Semântica da cascata sobre visibilidade** (dados já compartilhados / vínculos
+      ativos) — **APROVADA (2026-06-03)** pela DPO + jurídico em
+      [cascata-revogacao-semantica.md](cascata-revogacao-semantica.md) (adendo ao
+      ADR-0025) e materializada em código em
+      [`revocation-cascade.ts`](../../src/modules/consents/domain/revocation-cascade.ts).
+      Resta a **aplicação** dos efeitos nos módulos consumidores (USPs de jobs/services/referrals).
 
 ## 5. Direito de acesso do titular — art. 19 (LGP-06)
 
@@ -185,7 +187,7 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
 | # | Pendência | Responsável | Status | Bloqueia |
 |---|---|---|---|---|
 | **D-002** | Revisão jurídica e aprovação dos **8 termos**. | Jurídico + DPO (Angélica) | ✅ **Resolvido (2026-06-03)** — 8 termos `aprovado`, hashes revalidados. | — |
-| **Cascade semantics** | Definir o que a revogação faz com **dados já compartilhados / vínculos ativos**. | DPO (Angélica) + jurídico | 🔶 **Em revisão** — [draft](cascata-revogacao-semantica.md) gerado, aguardando DPO+jurídico. | go-live da USP-043 |
+| **Cascade semantics** | Definir o que a revogação faz com **dados já compartilhados / vínculos ativos**. | DPO (Angélica) + jurídico | ✅ **Resolvido (2026-06-03)** — [adendo](cascata-revogacao-semantica.md) aprovado + matriz em código. Resta a aplicação nos módulos consumidores. | — |
 | **RBAC do art. 19** | Confirmar que a checagem **inline** de papel no `issueAccessReport` é suficiente para go-live, ou antecipar `requirePermission()` (USP-007+). | DPO + Tech Lead | ⚠️ **A confirmar** | aceitação de §5 |
 | **UI de emissão** | Definir como a equipe interna dispara o relatório de acesso no go-live. | Bravi PO + Tech Lead | ⚠️ **A definir** | operação do art. 19 |
 | **D-001** | Designação formal do DPO. | Diretoria ASONSEG | ✅ **Resolvido (2026-05-29)** — diretora **Angélica** designada DPO. Ver [dpo.md](dpo.md). | — |
@@ -200,12 +202,12 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
 
 | Campo | Valor |
 |---|---|
-| Data da revisão | _a preencher_ |
+| Data da revisão | 2026-06-03 |
 | DPO (encarregada) | Diretora Angélica |
-| Jurídico | _a preencher_ |
-| Tech Lead | _a preencher_ |
-| Veredito | ☐ Apto a go-live · ☐ Apto com ressalvas · ☐ Bloqueado |
-| Pendências remanescentes | _listar itens ⚠️/🔶 não fechados_ |
+| Jurídico | Lino |
+| Tech Lead | Nei |
+| Veredito | ☐ Apto a go-live · ☑ **Apto com ressalvas** · ☐ Bloqueado |
+| Pendências remanescentes | ⚠️ **RBAC do art. 19** — confirmar a checagem inline de papel no `issueAccessReport` ou antecipar o `requirePermission()` canônico (USP-007+); ⚠️ **UI interna de emissão** do relatório de acesso (operação do art. 19). Nenhuma bloqueia a entrega da USP-043 — condicionam a operação plena no go-live. |
 
 ---
 

@@ -25,6 +25,17 @@ export { stripTermFrontMatter, TERM_BODY_UNAVAILABLE } from './domain/term-body'
 
 // ── Matriz de cascata + guarda on-read (#37) ─────────────────────────────────
 export { PURPOSE_ROLE_MAP, roleForPurpose } from './domain/purpose-role-map';
+export {
+  REVOCATION_CASCADE_MATRIX,
+  revocationCascadeFor,
+  CASCADE_EFFECTS,
+  CASCADE_CROSS_CUTTING,
+} from './domain/revocation-cascade';
+export type {
+  CascadeEffect,
+  CascadeArtifactRule,
+  RevocationCascadeRule,
+} from './domain/revocation-cascade';
 export { requireActiveConsent } from './server/require-active-consent';
 export type { ConsentCheck, ConsentCheckReason } from './server/require-active-consent';
 
