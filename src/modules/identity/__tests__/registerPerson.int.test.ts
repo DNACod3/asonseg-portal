@@ -39,9 +39,30 @@ const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
 skipIfNoDb('registerPerson — integração TX1', () => {
   const BASE_CPF = '529.982.247-25';
+  // CPF é persistido só com dígitos (a normalização do schema remove a máscara).
+  const BASE_CPF_DIGITS = BASE_CPF.replace(/\D/g, '');
   let createdPersonId: string | null = null;
 
-  beforeAll(() => {
+  /**
+   * Remove qualquer Person remanescente com o CPF fixo do teste. O CPF é fixo
+   * (precisa passar na validação de dígito verificador), então é o único ponto
+   * de colisão entre runs; se um run anterior tiver deixado resíduo, o happy
+   * path falharia com CONFLICT. Roda no beforeAll para tornar a suíte
+   * autossuficiente (mesmo padrão de `fullClean` em login.int.test.ts).
+   */
+  async function cleanResidualByCpf() {
+    const stale = await prisma.person.findFirst({
+      where: { cpf: BASE_CPF_DIGITS },
+      select: { id: true },
+    });
+    if (!stale) return;
+    await prisma.consent.deleteMany({ where: { personId: stale.id } });
+    await prisma.personRoleGrant.deleteMany({ where: { personId: stale.id } });
+    await prisma.person.deleteMany({ where: { id: stale.id } });
+  }
+
+  beforeAll(async () => {
+    await cleanResidualByCpf();
     // Substitui o adapter real do Turnstile por um stub que sempre aprova.
     container.register(CAPTCHA_VERIFIER_TOKEN, () => ({
       verify: async () => ({ ok: true }),
@@ -56,10 +77,12 @@ skipIfNoDb('registerPerson — integração TX1', () => {
 
   afterEach(async () => {
     if (createdPersonId) {
-      // Limpa na ordem correta (FK: consents/grants → person).
+      // Limpa na ordem correta (FK: consents/grants → person). O `audit_log` é
+      // append-only (ADR-T-0004): não se apaga e não há FK p/ person, então
+      // não entra na limpeza — tentar deletá-lo aborta a cascata e deixa a
+      // Person órfã, fazendo o CPF fixo colidir nos próximos runs (issue #247).
       await prisma.consent.deleteMany({ where: { personId: createdPersonId } });
       await prisma.personRoleGrant.deleteMany({ where: { personId: createdPersonId } });
-      await prisma.auditLog.deleteMany({ where: { actorPersonId: createdPersonId } });
       await prisma.person.deleteMany({ where: { id: createdPersonId } });
       createdPersonId = null;
     }
@@ -198,7 +221,7 @@ skipIfNoDb('registerPerson — integração TX1', () => {
 
     const second = await registerPerson({
       fullName: 'Pessoa Email Dois',
-      cpf: '271.298.060-06', // CPF diferente mas mesmo e-mail
+      cpf: '111.444.777-35', // CPF válido e diferente, mas mesmo e-mail
       email,
       password: 'Senha@12345',
       role: 'CANDIDATE',

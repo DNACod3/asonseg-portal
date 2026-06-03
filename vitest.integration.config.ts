@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react';
 
 /**
  * Suíte de integração — exercita as garantias que vivem no Postgres
@@ -9,9 +10,13 @@ import tsconfigPaths from 'vite-tsconfig-paths';
  * `.env.local` (DATABASE_URL/DIRECT_URL). Rode via `npm run test:integration`.
  * Os testes fazem `describe.skipIf(!process.env.DATABASE_URL)`, então degradam
  * com graça quando não há banco (ex.: CI sem serviço de Postgres).
+ *
+ * `react()` espelha o config unitário: o barrel `@/modules/identity` reexporta
+ * componentes `.tsx`; sem o plugin, o esbuild respeita `jsx: preserve` do
+ * tsconfig e aborta o transform dos testes que importam o barrel (issue #247).
  */
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [tsconfigPaths(), react()],
   test: {
     environment: 'node',
     globals: true,
