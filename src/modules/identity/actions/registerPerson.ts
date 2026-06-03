@@ -3,13 +3,12 @@
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
-import { Resend } from 'resend';
-import { env } from '@/shared/env';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/server';
 import { clientIp } from '@/shared/lib/clientIp';
 import { container } from '@/shared/container';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
+import { EMAIL_SENDER_TOKEN } from '@/shared/lib/email/email-sender.port';
 import { CAPTCHA_VERIFIER_TOKEN } from '../ports/captchaVerifier';
 import {
   registerPersonSchema,
@@ -22,12 +21,6 @@ import {
 // Hash SHA-256 de legal/consent-terms/portal-access/v1.0.md.
 const PORTAL_ACCESS_TERM_VERSION = 'portal-access@v1.0';
 const PORTAL_ACCESS_TERM_HASH = 'b9791c01cdf4cf5177d33a8938693671b97ab7f24293665f70024ea83006a0d2';
-
-// Singleton por processo — sem IO na inicialização.
-let _resend: Resend | null = null;
-function getResend(): Resend {
-  return (_resend ??= new Resend(env.RESEND_API_KEY));
-}
 
 export interface RegisterPersonResult {
   personId: string;
@@ -153,9 +146,19 @@ export async function registerPerson(
       { ip: ip !== 'unknown' ? ip : undefined, userAgent: userAgent ?? undefined },
     );
 
-    // 6. E-mail de boas-vindas (best-effort, fora da transação — falha não reverte o cadastro)
+    // 6. E-mail de boas-vindas via porta EmailSender (best-effort, fora da
+    // transação — falha não reverte o cadastro). A porta nunca lança; o `try`
+    // protege apenas contra falha na resolução do adapter.
     try {
-      await sendWelcomeEmail(person.fullName, person.emailLogin!, input.role);
+      const emailSender = container.resolve(EMAIL_SENDER_TOKEN);
+      const sent = await emailSender.send({
+        to: person.emailLogin!,
+        template: 'welcome',
+        data: { nome: person.fullName, papel: ROLE_LABEL[input.role] },
+      });
+      if (!sent.ok) {
+        console.error('[registerPerson] Falha ao enviar e-mail de boas-vindas (provedor).');
+      }
     } catch (emailErr) {
       console.error('[registerPerson] Falha ao enviar e-mail de boas-vindas:', emailErr);
     }
@@ -197,31 +200,9 @@ export async function registerPerson(
 
 // ── Helpers privados ──────────────────────────────────────────────────────────
 
+// Rótulo amigável do papel, usado no e-mail de boas-vindas (template `welcome`).
 const ROLE_LABEL: Record<PublicRole, string> = {
   CANDIDATE: 'candidato(a)',
   PROVIDER: 'prestador(a) de serviços',
   CLIENT: 'cliente',
 };
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
-
-async function sendWelcomeEmail(name: string, email: string, role: PublicRole): Promise<void> {
-  await getResend().emails.send({
-    from: env.EMAIL_FROM,
-    to: email,
-    subject: 'Bem-vindo(a) ao Portal ASONSEG!',
-    html: `
-      <h1>Olá, ${escapeHtml(name)}!</h1>
-      <p>Seu cadastro como <strong>${ROLE_LABEL[role]}</strong> foi realizado com sucesso.</p>
-      <p>O próximo passo é aceitar os termos do seu papel para ativar o acesso completo.</p>
-      <p>Equipe ASONSEG</p>
-    `,
-  });
-}

@@ -68,6 +68,17 @@ describe('templates de e-mail', () => {
     expect(email.text).toContain('Ana');
   });
 
+  it('boas-vindas com papel: menciona o papel e o próximo passo, escapando HTML', () => {
+    const email = renderWelcomeEmail({ nome: 'João', papel: '<b>candidato(a)</b>' });
+    expect(email.html).toContain('João');
+    expect(email.html).toContain('próximo passo é aceitar os termos');
+    // Papel é interpolado no HTML escapado (anti-injeção).
+    expect(email.html).not.toContain('<b>candidato(a)</b>');
+    expect(email.html).toContain('&lt;b&gt;candidato(a)&lt;/b&gt;');
+    // No texto plano o papel aparece sem escape (sem parser de markup).
+    expect(email.text).toContain('Seu cadastro como <b>candidato(a)</b> foi realizado');
+  });
+
   it('redefinição: inclui URL e validade, e escapa HTML do nome (anti-injeção)', () => {
     const email = renderPasswordResetEmail({
       nome: '<script>alert(1)</script>',

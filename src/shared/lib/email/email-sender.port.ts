@@ -19,6 +19,12 @@ export interface RenderedEmail {
 /** Dados do template de boas-vindas (USP-001 / USP-003). */
 export interface WelcomeEmailData {
   nome: string;
+  /**
+   * Rótulo do papel escolhido no cadastro (ex.: "candidato(a)"). Opcional:
+   * quando presente, o e-mail menciona o papel e o próximo passo (aceite da
+   * finalidade — E-002). Ausente em cadastros sem papel público.
+   */
+  papel?: string;
 }
 
 /** Dados do template de redefinição de senha (USP-005). */
