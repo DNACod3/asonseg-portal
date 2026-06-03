@@ -204,7 +204,7 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
 |---|---|
 | Data da revisão | _a preencher_ |
 | DPO (encarregada) | Diretora Angélica |
-| Jurídico | _a preencher_ |
+| Jurídico | Lino |
 | Tech Lead | _a preencher_ |
 | Veredito | ☐ Apto a go-live · ☐ Apto com ressalvas · ☐ Bloqueado |
 | Pendências remanescentes | _listar itens ⚠️/🔶 não fechados_ |

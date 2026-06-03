@@ -186,7 +186,7 @@ Combinações são possíveis (ex.: **ENCERRAR + MARCAR**, sem **NOTIFICAR**).
 | Papel | Nome | Data | Veredito |
 |---|---|---|---|
 | DPO (encarregada) | Diretora Angélica | 2026-06-03 | ☑ aprovado |
-| Jurídico | _a preencher_ | 2026-06-03 | ☑ aprovado |
+| Jurídico | Lino | 2026-06-03 | ☑ aprovado |
 | Tech Lead | _a preencher_ | 2026-06-03 | ☑ ciente |
 
 ## Referências
