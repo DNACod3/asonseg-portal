@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { env } from '@/shared/env';
 import { ResendEmailSender, type ResendClient } from '../resend-email-sender';
 import { renderWelcomeEmail } from '../templates/welcome';
 import { renderPasswordResetEmail } from '../templates/password-reset';
@@ -27,7 +28,7 @@ describe('ResendEmailSender', () => {
     expect(result).toEqual({ ok: true, id: 'email-123' });
     expect(sendMock).toHaveBeenCalledTimes(1);
     const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
-    expect(payload.from).toBe('teste@asonseg.org.br'); // EMAIL_FROM de vitest.setup
+    expect(payload.from).toBe(env.EMAIL_FROM); // remetente vem do env (varia entre local e CI)
     expect(payload.to).toBe('maria@example.com');
     expect(payload.subject).toContain('Bem-vindo');
     expect(payload.html).toContain('Maria');

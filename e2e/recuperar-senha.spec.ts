@@ -37,7 +37,9 @@ test.describe('Recuperação de senha (USP-005)', () => {
 
   test('redefinição sem token → orienta a solicitar novo link', async ({ page }) => {
     await page.goto('/redefinir-senha');
-    await expect(page.getByRole('alert')).toContainText('Link inválido ou incompleto');
+    // Texto direto: o Next mantém um role="alert" vazio (#__next-route-announcer__)
+    // que tornaria getByRole('alert') ambíguo (strict mode).
+    await expect(page.getByText('Link inválido ou incompleto')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Solicitar novo link' })).toBeVisible();
     // Sem o formulário de nova senha quando o token está ausente.
     await expect(page.locator('#senhaNova')).toHaveCount(0);
