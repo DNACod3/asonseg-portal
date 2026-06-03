@@ -62,10 +62,11 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
   });
 
   afterEach(async () => {
-    // Limpa dados do teste na ordem correta (FK).
+    // Limpa dados do teste na ordem correta (FK). O `audit_log` é append-only
+    // (ADR-T-0004): não se apaga e não há FK p/ person — deletá-lo aborta a
+    // cascata e deixa Person órfã no banco entre runs (issue #247).
     await prisma.consent.deleteMany({ where: { personId } });
     await prisma.personRoleGrant.deleteMany({ where: { personId } });
-    await prisma.auditLog.deleteMany({ where: { actorPersonId: personId } });
     await prisma.person.deleteMany({ where: { id: personId } });
   });
 
@@ -161,10 +162,9 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
     });
     expect(consent).not.toBeNull();
 
-    // Cleanup extra.
+    // Cleanup extra (audit_log fica — append-only, ADR-T-0004; ver afterEach).
     await prisma.consent.deleteMany({ where: { personId: pId } });
     await prisma.personRoleGrant.deleteMany({ where: { personId: pId } });
-    await prisma.auditLog.deleteMany({ where: { actorPersonId: pId } });
     await prisma.person.deleteMany({ where: { id: pId } });
   });
 });
