@@ -12,9 +12,12 @@
  * (architecture-document §"Rate limiting por IP/usuário/endpoint").
  *
  * As categorias e limites vêm de technical-design §8:
- *   - anônimo:       10 req / 1 min
- *   - autenticado:   60 req / 1 min
- *   - cadastro/IP:    3 req / 15 min
+ *   - anônimo:        10 req / 1 min
+ *   - autenticado:    60 req / 1 min
+ *   - cadastro/IP:     3 req / 15 min
+ *   - recuperação/IP:  5 req / 15 min (USP-005 — endpoint público que dispara
+ *                      e-mail real; teto baixo p/ conter mail-bombing, em adição
+ *                      ao CAPTCHA da Server Action)
  */
 
 export interface RateLimitRule {
@@ -44,6 +47,7 @@ export const RATE_LIMITS = {
   anonymous: { limit: 10, windowMs: MINUTE_MS },
   authenticated: { limit: 60, windowMs: MINUTE_MS },
   registration: { limit: 3, windowMs: 15 * MINUTE_MS },
+  passwordReset: { limit: 5, windowMs: 15 * MINUTE_MS },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitCategory = keyof typeof RATE_LIMITS;
@@ -100,6 +104,7 @@ export class SlidingWindowRateLimiter {
       RATE_LIMITS.anonymous.windowMs,
       RATE_LIMITS.authenticated.windowMs,
       RATE_LIMITS.registration.windowMs,
+      RATE_LIMITS.passwordReset.windowMs,
     );
     for (const [key, timestamps] of this.hits) {
       const alive = timestamps.filter((t) => t > now - longestWindow);

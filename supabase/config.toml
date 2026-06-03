@@ -239,7 +239,9 @@ max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# 24h (86400) — AC-005-1 da USP-005: o link de redefinição de senha vale 24h.
+# Espelha RESET_LINK_EXPIRY_HOURS (src/modules/identity/schemas/password-reset.schema.ts).
+otp_expiry = 86400
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]

@@ -30,6 +30,8 @@ const ALLOWED_PUBLIC = new Set([
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'NEXT_PUBLIC_SENTRY_DSN',
   'NEXT_PUBLIC_TURNSTILE_SITE_KEY',
+  // URL base pública da app (links absolutos em e-mails — USP-005). Não é segredo.
+  'NEXT_PUBLIC_SITE_URL',
 ]);
 
 describe('env — fronteira de secrets (#205)', () => {

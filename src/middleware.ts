@@ -93,6 +93,11 @@ function resolveCategory(request: NextRequest): RateLimitCategory {
   if (path.startsWith('/cadastro') || path.startsWith('/cadastrar')) {
     return 'registration';
   }
+  // Recuperação de senha (USP-005): endpoint público que dispara e-mail real —
+  // teto por IP mais baixo, em adição ao CAPTCHA da Server Action (ADR-0014).
+  if (path.startsWith('/recuperar-senha')) {
+    return 'passwordReset';
+  }
   return isAuthenticated(request) ? 'authenticated' : 'anonymous';
 }
 

@@ -81,6 +81,12 @@ export function LoginForm() {
             {errors.senha.message}
           </p>
         )}
+        <a
+          href="/recuperar-senha"
+          className="self-end text-xs font-medium text-blue-600 hover:underline"
+        >
+          Esqueci minha senha
+        </a>
       </div>
 
       {/* Erro do servidor (mensagem única, anti-enumeração) */}

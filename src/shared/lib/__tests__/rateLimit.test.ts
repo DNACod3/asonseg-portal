@@ -88,6 +88,18 @@ describe('SlidingWindowRateLimiter', () => {
       expect(rl.check('reg', RATE_LIMITS.registration, t0 + 14 * 60_000).allowed).toBe(false);
       expect(rl.check('reg', RATE_LIMITS.registration, t0 + 15 * 60_000 + 1).allowed).toBe(true);
     });
+
+    it('recuperação de senha: 5 req/15min por IP (USP-005)', () => {
+      const rl = new SlidingWindowRateLimiter();
+      const t0 = 0;
+      expect(RATE_LIMITS.passwordReset.windowMs).toBe(15 * 60_000);
+      for (let i = 0; i < 5; i++) {
+        expect(rl.check('pwr', RATE_LIMITS.passwordReset, t0 + i).allowed).toBe(true);
+      }
+      expect(rl.check('pwr', RATE_LIMITS.passwordReset, t0 + 5).allowed).toBe(false);
+      // Liberado após a janela de 15 min.
+      expect(rl.check('pwr', RATE_LIMITS.passwordReset, t0 + 15 * 60_000 + 1).allowed).toBe(true);
+    });
   });
 
   it('prune remove chaves expiradas', () => {

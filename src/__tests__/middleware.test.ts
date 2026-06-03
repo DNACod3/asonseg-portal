@@ -68,6 +68,16 @@ describe('middleware — categorização e rate limit', () => {
     const fourth = middleware(req('/cadastro', ip));
     expect(fourth.status).toBe(429);
   });
+
+  it('usa o limite de recuperação de senha (5/15min) na rota /recuperar-senha', () => {
+    const ip = { 'x-real-ip': '3.3.3.3' };
+    expect(middleware(req('/recuperar-senha', ip)).headers.get('X-RateLimit-Limit')).toBe('5');
+    for (let i = 0; i < 4; i++) {
+      expect(middleware(req('/recuperar-senha', ip)).status).not.toBe(429);
+    }
+    const sixth = middleware(req('/recuperar-senha', ip));
+    expect(sixth.status).toBe(429);
+  });
 });
 
 describe('middleware — extração de IP confiável (anti-spoof)', () => {

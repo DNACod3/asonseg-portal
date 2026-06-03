@@ -76,3 +76,8 @@ import { AUTH_ATTEMPTS_REPO_TOKEN } from '@/modules/identity/ports/authAttemptsR
 // eslint-disable-next-line no-restricted-imports
 import { PrismaAuthAttemptsRepo } from '@/modules/identity/adapters/authAttemptsRepo';
 container.register(AUTH_ATTEMPTS_REPO_TOKEN, () => new PrismaAuthAttemptsRepo());
+
+// E-mail transacional (IDN-12 / USP-005): porta EmailSender → adapter Resend.
+import { EMAIL_SENDER_TOKEN } from '@/shared/lib/email/email-sender.port';
+import { ResendEmailSender } from '@/shared/lib/email/resend-email-sender';
+container.register(EMAIL_SENDER_TOKEN, () => new ResendEmailSender());

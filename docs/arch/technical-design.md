@@ -906,7 +906,7 @@ Caso de falha: `Ext` retorna `{ok:false}`. `SA2` registra `CV_EXTRACTION_FAILED`
 
 - Headers HTTP: CSP, HSTS, X-Frame-Options, X-Content-Type-Options configurados via `next.config.js`
 - Cookies HttpOnly + Secure + SameSite=Lax
-- Rate limit (Edge Middleware): 10 req/min anônimo, 60 req/min autenticado, 3 cadastros/15min/IP
+- Rate limit (Edge Middleware): 10 req/min anônimo, 60 req/min autenticado, 3 cadastros/15min/IP, 5 recuperações de senha/15min/IP (USP-005 — endpoint público que dispara e-mail; ADR-0014)
 - Audit log retenção 1 ano (job mensal de purge)
 - Audit log nunca inclui senhas, tokens, conteúdo de CV cru
 
