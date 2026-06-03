@@ -36,6 +36,18 @@ import {
  * não há `requirePermission`/`requireActiveConsent`. A auditoria
  * (`AUTH_PASSWORD_RESET_REQUESTED`) só é gravada quando o e-mail corresponde a
  * uma Pessoa (evita poluir o log e enumerar via auditoria — espelha o login).
+ *
+ * **Link único por usuário (P-001):** o GoTrue mantém um único `recovery_token`
+ * por usuário; cada `generateLink({ type: 'recovery' })` substitui o anterior, de
+ * modo que uma nova solicitação invalida links pendentes (não coexistem dois
+ * links válidos). O uso único é garantido pelo `verifyOtp` no `resetPassword`.
+ *
+ * **Timing (P-002):** o caminho "conta existe" faz I/O extra (gerar link + enviar
+ * e-mail) e responde mais devagar que o caminho no-op — uma diferença de timing
+ * teoricamente observável apesar da mensagem idêntica. Risco residual aceito: o
+ * CAPTCHA fail-closed e o teto de 5/15min por IP (categoria `passwordReset`)
+ * tornam a amostragem estatística necessária para um ataque de timing inviável.
+ * Normalização constante (padding de I/O de rede) fica como hardening futuro.
  */
 export async function requestPasswordReset(
   rawInput: RequestPasswordResetInput,
@@ -76,6 +88,8 @@ export async function requestPasswordReset(
   }
 
   // 5. Gera o link de recuperação (uso único, expira em 24h) via Supabase Admin.
+  // Substitui o recovery_token anterior do usuário — links pendentes deixam de
+  // valer (P-001: não coexistem dois links válidos).
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
   const hashedToken = data?.properties?.hashed_token;
