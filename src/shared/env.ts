@@ -28,6 +28,10 @@ const envSchema = z.object({
   // E-mail transacional (Resend)
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().email(),
+  // URL pública base da aplicação — monta links absolutos em e-mails (ex.: link
+  // de redefinição de senha, USP-005). Default para o dev local; em deploy é
+  // setada para o domínio real.
+  NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
 
   // Observabilidade (Sentry) — opcional em dev (string vazia = ausente)
   NEXT_PUBLIC_SENTRY_DSN: z.preprocess(

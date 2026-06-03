@@ -21,6 +21,20 @@ export { changePasswordFirstAccessSchema } from './schemas/changePassword';
 export type { ChangePasswordFirstAccessInput } from './schemas/changePassword';
 export { LoginForm } from './components/LoginForm';
 export { ChangePasswordForm } from './components/ChangePasswordForm';
+
+// ── Recuperação de senha (USP-005) ────────────────────────────────────────────
+export { requestPasswordReset } from './actions/request-password-reset';
+export { resetPassword } from './actions/reset-password';
+export {
+  requestPasswordResetSchema,
+  resetPasswordSchema,
+  GENERIC_RESET_REQUEST_MESSAGE,
+  RESET_LINK_EXPIRY_HOURS,
+} from './schemas/password-reset.schema';
+export type {
+  RequestPasswordResetInput,
+  ResetPasswordInput,
+} from './schemas/password-reset.schema';
 export {
   isLocked,
   withinWindow,
