@@ -97,7 +97,7 @@ Termos revisados e aprovados (v1.0) em
 |---|---|---|---|---|
 | Designação do DPO (D-001) | 2026-05-29 | Angélica | — | Registrado na matriz de conexões |
 | Revisão dos 8 termos (D-002) | 2026-06-03 | Angélica | _a preencher_ | ✅ 8 termos v1.0 `aprovado`; hashes revalidados no `TERMS_REGISTRY` |
-| Semântica da cascata (ADR-0025) | _em revisão_ | _a preencher_ | _a preencher_ | [Draft](cascata-revogacao-semantica.md) gerado — aguardando DPO+jurídico; vira adendo ao ADR-0025 |
+| Semântica da cascata (ADR-0025) | 2026-06-03 | Angélica | _a preencher_ | ✅ Aprovada — [adendo](cascata-revogacao-semantica.md) + matriz em código [`revocation-cascade.ts`](../../src/modules/consents/domain/revocation-cascade.ts) |
 
 ---
 

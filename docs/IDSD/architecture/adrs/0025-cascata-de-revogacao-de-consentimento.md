@@ -1,6 +1,6 @@
 # ADR-0025 — Cascata de revogação de consentimento por finalidade
 
-- **Status:** Accepted (mecanismo) · D-002 (termos) resolvido em 2026-06-03 · semântica em revisão pela DPO (diretora Angélica) + jurídico — draft em `docs/lgpd/cascata-revogacao-semantica.md`
+- **Status:** Accepted — mecanismo + **semântica APROVADA em 2026-06-03** (DPO diretora Angélica + jurídico). D-002 (termos) resolvido em 2026-06-03. Adendo da semântica: `docs/lgpd/cascata-revogacao-semantica.md`; matriz em código: `src/modules/consents/domain/revocation-cascade.ts`
 - **Data:** 2026-05-28 (atualizado 2026-05-29)
 - **Decisores:** Arquiteto Bravi, Tech Lead · semântica: DPO diretora Angélica (D-001 resolvido) + jurídico (D-002 resolvido em 2026-06-03)
 - **Tags:** LGPD, domínio, data
@@ -33,7 +33,7 @@ Há duas dimensões: o **mecanismo** (como garantir que nenhuma operação ligad
 
 ## Decisão
 
-Adotamos a **Opção A** para o **mecanismo**: matriz declarativa de cascata + `requireActiveConsent` on-read em toda operação ligada a finalidade + registro de revogação append-only (ADR-0023). A **semântica concreta** de cada finalidade (em especial o destino de candidaturas/manifestações ativas e se a Empresa é notificada) será **definida pela DPO designada (diretora Angélica) + jurídico** (D-001 resolvido; D-002 resolvido em 2026-06-03) **antes da USP-043**, preenchendo a matriz finalidade→efeitos. Um **draft de proposta** dessa matriz está em `docs/lgpd/cascata-revogacao-semantica.md`, aguardando aprovação da DPO + jurídico para virar adendo deste ADR. O owner está confirmado; a arquitetura aceita qualquer semântica que a DPO definir — basta preencher a matriz, sem mudança estrutural.
+Adotamos a **Opção A** para o **mecanismo**: matriz declarativa de cascata + `requireActiveConsent` on-read em toda operação ligada a finalidade + registro de revogação append-only (ADR-0023). A **semântica concreta** de cada finalidade (em especial o destino de candidaturas/manifestações ativas e se a Empresa é notificada) será **definida pela DPO designada (diretora Angélica) + jurídico** (D-001 resolvido; D-002 resolvido em 2026-06-03) **antes da USP-043**, preenchendo a matriz finalidade→efeitos. Essa semântica foi **aprovada em 2026-06-03** e está registrada no **adendo** `docs/lgpd/cascata-revogacao-semantica.md` e materializada em código em `src/modules/consents/domain/revocation-cascade.ts` (`REVOCATION_CASCADE_MATRIX`). O owner está confirmado; a arquitetura aceita qualquer semântica que a DPO definir — basta preencher a matriz, sem mudança estrutural.
 
 ## Consequências
 
@@ -43,7 +43,7 @@ Adotamos a **Opção A** para o **mecanismo**: matriz declarativa de cascata + `
 
 **Negativas (trade-offs aceitos):**
 - Verificação on-read adiciona uma checagem barata em operações ligadas a finalidade.
-- USP-043 (e dependentes) **não vão a produção** até a semântica ser definida pela DPO e os termos aprovados (D-001 resolvido; D-002/termos aprovados em 2026-06-03; resta a definição da semântica — draft em revisão).
+- USP-043 (e dependentes): gates de definição resolvidos — D-001 resolvido; D-002/termos aprovados em 2026-06-03; **semântica aprovada em 2026-06-03** (adendo + matriz em código). Resta a **aplicação** dos efeitos nos módulos consumidores (USPs de `jobs`/`services`/`referrals`), garantida no curto prazo on-read por `requireActiveConsent`.
 
 **Neutras / a monitorar:**
 - A matriz é parametrizável; revisões da semântica não exigem mudança estrutural.
