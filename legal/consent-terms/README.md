@@ -7,10 +7,12 @@ são da Fase 1 (módulo `consents`, issues #30/#37). O hash SHA-256 de cada arqu
 
 ## Status
 
-> ⚠️ **Drafts v1.0 — aguardando revisão jurídica (D-002).** Cada arquivo está
-> marcado com `status: aguardando-revisao-juridica` no header. Os textos só devem
-> ser tratados como definitivos após aprovação jurídica registrada. Conforme
-> `technical-design.md §5` (entregável de Fase 0).
+> ✅ **v1.0 — revisão jurídica concluída (D-002).** As 8 finalidades estão com
+> `status: aprovado` no header. A aprovação está registrada em
+> [`docs/lgpd/dpo.md`](../../docs/lgpd/dpo.md) e revisada no
+> [checklist de go-live](../../docs/lgpd/checklist-revisao-lgpd.md). Conforme
+> `technical-design.md §5` (entregável de Fase 0). Qualquer alteração futura de
+> texto exige **nova versão** (`vN+1.md`) + novo hash no `TERMS_REGISTRY`.
 
 ## As 8 finalidades do MVP
 
