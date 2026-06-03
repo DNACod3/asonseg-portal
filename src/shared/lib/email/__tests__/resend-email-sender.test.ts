@@ -1,0 +1,83 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ResendEmailSender, type ResendClient } from '../resend-email-sender';
+import { renderWelcomeEmail } from '../templates/welcome';
+import { renderPasswordResetEmail } from '../templates/password-reset';
+
+/**
+ * Testes da infra de e-mail (USP-005 / #69): adapter Resend com client mockado
+ * (sucesso e erro de provedor) + renderização dos templates (PT-BR, fuga de HTML).
+ */
+
+type SendPayload = { from: string; to: string; subject: string; html: string; text: string };
+
+const sendMock = vi.fn();
+const fakeClient: ResendClient = { emails: { send: sendMock } };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  sendMock.mockResolvedValue({ data: { id: 'email-123' }, error: null });
+});
+
+describe('ResendEmailSender', () => {
+  it('envia boas-vindas com remetente do env e devolve o id do provedor', async () => {
+    const sender = new ResendEmailSender(fakeClient);
+
+    const result = await sender.send({ to: 'maria@example.com', template: 'welcome', data: { nome: 'Maria' } });
+
+    expect(result).toEqual({ ok: true, id: 'email-123' });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
+    expect(payload.from).toBe('teste@asonseg.org.br'); // EMAIL_FROM de vitest.setup
+    expect(payload.to).toBe('maria@example.com');
+    expect(payload.subject).toContain('Bem-vindo');
+    expect(payload.html).toContain('Maria');
+    expect(payload.text).toContain('Maria');
+  });
+
+  it('envia redefinição de senha com o link e a validade no corpo', async () => {
+    const sender = new ResendEmailSender(fakeClient);
+
+    await sender.send({
+      to: 'joao@example.com',
+      template: 'password-reset',
+      data: { nome: 'João', resetUrl: 'https://portal.test/redefinir-senha?token_hash=abc', expiraEmHoras: 24 },
+    });
+
+    const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
+    expect(payload.subject).toContain('Redefinição de senha');
+    expect(payload.html).toContain('https://portal.test/redefinir-senha?token_hash=abc');
+    expect(payload.html).toContain('24 horas');
+    expect(payload.text).toContain('https://portal.test/redefinir-senha?token_hash=abc');
+  });
+
+  it('erro do provedor → { ok: false } (não lança)', async () => {
+    sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    const sender = new ResendEmailSender(fakeClient);
+
+    const result = await sender.send({ to: 'x@example.com', template: 'welcome', data: { nome: 'X' } });
+
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe('templates de e-mail', () => {
+  it('boas-vindas: assunto, html e texto com o nome', () => {
+    const email = renderWelcomeEmail({ nome: 'Ana' });
+    expect(email.subject).toContain('Bem-vindo');
+    expect(email.html).toContain('Ana');
+    expect(email.text).toContain('Ana');
+  });
+
+  it('redefinição: inclui URL e validade, e escapa HTML do nome (anti-injeção)', () => {
+    const email = renderPasswordResetEmail({
+      nome: '<script>alert(1)</script>',
+      resetUrl: 'https://portal.test/redefinir-senha?token_hash=xyz',
+      expiraEmHoras: 24,
+    });
+    expect(email.html).toContain('https://portal.test/redefinir-senha?token_hash=xyz');
+    expect(email.html).toContain('24 horas');
+    // Nome malicioso não aparece como tag executável — foi escapado.
+    expect(email.html).not.toContain('<script>alert(1)</script>');
+    expect(email.html).toContain('&lt;script&gt;');
+  });
+});
