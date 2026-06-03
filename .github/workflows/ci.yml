@@ -22,6 +22,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-service
       RESEND_API_KEY: re_ci
       EMAIL_FROM: ci@asonseg.org.br
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
       SENTRY_ENVIRONMENT: development
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
       TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
@@ -68,6 +69,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
       RESEND_API_KEY: re_ci
       EMAIL_FROM: ci@asonseg.org.br
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
       SENTRY_ENVIRONMENT: development
       # Chaves de teste oficiais do Turnstile (sempre passam) — login em E2E.
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA

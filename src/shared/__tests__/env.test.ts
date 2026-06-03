@@ -10,6 +10,7 @@ const validEnv: Record<string, string> = {
   SUPABASE_SERVICE_ROLE_KEY: 'service',
   RESEND_API_KEY: 're_x',
   EMAIL_FROM: 'no-reply@asonseg.org.br',
+  NEXT_PUBLIC_SITE_URL: 'https://portal.asonseg.org.br',
   SENTRY_ENVIRONMENT: 'production',
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'site',
   TURNSTILE_SECRET_KEY: 'secret',
@@ -38,6 +39,16 @@ describe('shared/env parseEnv', () => {
   it('lança quando uma URL é malformada', () => {
     expect(() => parseEnv({ ...validEnv, DATABASE_URL: 'não-é-url' })).toThrow(
       /Variáveis de ambiente inválidas/,
+    );
+  });
+
+  it('exige NEXT_PUBLIC_SITE_URL (sem default — fail-fast, USP-005)', () => {
+    const semSiteUrl = { ...validEnv };
+    delete semSiteUrl.NEXT_PUBLIC_SITE_URL;
+    expect(() => parseEnv(semSiteUrl)).toThrow(/NEXT_PUBLIC_SITE_URL/);
+    // E rejeita valor malformado (precisa ser URL).
+    expect(() => parseEnv({ ...validEnv, NEXT_PUBLIC_SITE_URL: 'localhost-sem-esquema' })).toThrow(
+      /NEXT_PUBLIC_SITE_URL/,
     );
   });
 
