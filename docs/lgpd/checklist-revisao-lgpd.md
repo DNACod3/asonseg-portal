@@ -202,7 +202,7 @@ Fonte: [`legal/consent-terms/README.md`](../../legal/consent-terms/README.md).
 
 | Campo | Valor |
 |---|---|
-| Data da revisão | _a preencher_ |
+| Data da revisão | 2026-06-03 |
 | DPO (encarregada) | Diretora Angélica |
 | Jurídico | Lino |
 | Tech Lead | Nei |
