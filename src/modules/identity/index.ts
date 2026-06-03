@@ -35,6 +35,8 @@ export type {
   RequestPasswordResetInput,
   ResetPasswordInput,
 } from './schemas/password-reset.schema';
+export { PasswordResetRequestForm } from './components/password-reset-request-form';
+export { PasswordResetForm } from './components/password-reset-form';
 export {
   isLocked,
   withinWindow,
