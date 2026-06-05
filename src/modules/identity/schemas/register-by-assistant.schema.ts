@@ -77,6 +77,23 @@ export const registerByAssistantSchema = z
 
     fullAddress: optionalText(255),
 
+    // Data da assinatura física do termo de atendimento social, colhido em papel
+    // (E-004 / finalidade 6 — ADR-0013). Opcional: quando ausente, a Server Action
+    // assume a data do cadastro. Mesmo padrão de validação de `birthDate`.
+    signedOnPaperAt: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => v || undefined)
+      .refine(
+        (v) => {
+          if (v === undefined) return true;
+          const t = Date.parse(v);
+          return !Number.isNaN(t) && t <= Date.now();
+        },
+        { message: 'Data da assinatura inválida ou no futuro' },
+      ),
+
     // Papel pretendido (opcional) — mesmos papéis públicos. O grant nasce
     // AWAITING_CONSENT e só ativa com o consentimento da finalidade (ADR-0020).
     // O `<select>` da UI envia "" para "Não definir agora" → normaliza a undefined.

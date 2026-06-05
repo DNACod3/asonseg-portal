@@ -16,7 +16,7 @@ Esta USP é a porta de entrada institucional alternativa à USP-001 — existe p
 - Marca de exceção de CPF só pode ser criada por AS ou diretoria — nunca pelo auto-cadastro público.
 - Pessoa cadastrada sem e-mail/senha existe no sistema mas não pode fazer login.
 - Termo de consentimento (papel ficha social/atendimento social — finalidade 6 do ADR-0013) é assinado **em papel ou fora do sistema** no momento do atendimento. O sistema registra a referência ao termo assinado, não captura o aceite eletrônico — porque a Pessoa frequentemente nem tem capacidade digital de aceitar online.
-  ✅ DECIDIDO (dono do intent): registrar data + responsável (AS) no sistema; sem upload obrigatório de digitalização no MVP. ❓ Redação jurídica do registro a validar com jurídico (D-002).
+  ✅ DECIDIDO (dono do intent): registrar data + responsável (AS) no sistema; sem upload obrigatório de digitalização no MVP. ✅ Redação jurídica do registro validada pelo jurídico/DPO (2026-06-05 — D-002 liberado).
 - Auditoria imutável obrigatória (responsável, data/hora, dados informados).
 
 ## 3. Cenários de fracasso (de resultado)

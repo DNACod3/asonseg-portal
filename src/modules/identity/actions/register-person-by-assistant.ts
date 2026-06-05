@@ -3,8 +3,10 @@
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
+import { prisma } from '@/shared/lib/prisma';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
+import { formatSaoPaulo } from '@/shared/lib/time';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { getCurrentPerson } from '../server/session';
@@ -20,6 +22,15 @@ export interface RegisterByAssistantResult {
   cpfException: boolean;
 }
 
+// ── Termo de atendimento social (finalidade 6 — ADR-0013) ─────────────────────
+// Evidência do consentimento colhido em PAPEL (E-004). Espelha o registro
+// canônico de `src/modules/consents/domain/terms-registry.ts` (SOCIAL_ASSISTANCE)
+// e `legal/consent-terms/social-assistance/v1.0.md`. A redação do atestado vive em
+// `legal/consent-terms/social-assistance/evidence-statement-v1.0.md` (aprovado — D-002 liberado em 2026-06-05).
+const SOCIAL_ASSISTANCE_TERM_VERSION = 'social-assistance@v1.0';
+const SOCIAL_ASSISTANCE_TERM_HASH =
+  '6d15978756b5f6b943c977dfdf1f9fb0dbe492eae013f5f03069fce5ca4c2c6f';
+
 /**
  * Cadastro assistido de Pessoa pela assistente social (USP-002 / IDN-04..06).
  *
@@ -30,9 +41,10 @@ export interface RegisterByAssistantResult {
  * Sequência canônica (project-guideline §9):
  *   1. Zod (`registerByAssistantSchema`)
  *   2. `requirePermission` — inline: apenas SOCIAL_ASSISTANT/BOARD (P-001/P-005)
- *   3. Consentimento — N/A: o termo de atendimento social é assinado em papel
- *      fora do sistema (ADR-0013 finalidade 6 / E-004), sem captura eletrônica
- *      no MVP, então não há `requireActiveConsent` aqui.
+ *   3. Consentimento — o termo de atendimento social é assinado em PAPEL fora do
+ *      sistema (ADR-0013 finalidade 6); não há `requireActiveConsent`. Em vez
+ *      disso registramos a EVIDÊNCIA da coleta (E-004) no `after` do audit do
+ *      cadastro: data, responsável (AS), referência ao termo e versão.
  *   4. Pré-condições — unicidade de CPF garantida pelo índice único (catch P2002)
  *   5. `withAudit('PERSON_CREATED_BY_AS')` — Pessoa + grant opcional + evento
  *      dedicado de exceção, tudo em uma transação.
@@ -51,6 +63,14 @@ export async function registerPersonByAssistant(
   }
   const input = parsed.data;
 
+  // Contexto da request (IP, user-agent). Resolvido antes do gate de permissão
+  // porque também alimenta o log de tentativa indevida (D-004) e a auditoria do
+  // cadastro (P-005 — operador sempre registrado).
+  const hdrs = await headers();
+  const rawIp = clientIp(hdrs);
+  const ip = rawIp === 'unknown' ? null : rawIp;
+  const userAgent = hdrs.get('user-agent');
+
   // 2. requirePermission (inline): a Pessoa autenticada precisa ser AS ou
   //    diretoria. `getCurrentPerson()` revalida status no DB (ADR-0030) e devolve
   //    apenas papéis ATIVOS. Defesa em profundidade: a rota `(app)` também gateia,
@@ -60,6 +80,25 @@ export async function registerPersonByAssistant(
     return fail('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.');
   }
   if (!canRegisterAssisted(operator.roles)) {
+    // D-004: a tentativa indevida (papel sem privilégio chamando a action direto)
+    // gera log de AUDITORIA imutável, além do log de aplicação. Best-effort: a
+    // falha na gravação não mascara o FORBIDDEN nem lança.
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: AuditEvent.PERSON_ASSISTED_EXCEPTION_DENIED,
+          actorUserId: operator.supabaseUserId,
+          actorPersonId: operator.id,
+          ip,
+          userAgent,
+          entityType: 'person',
+          after: { vector: 'ASSISTED_ACTION', attemptedRoles: operator.roles },
+        },
+        select: { id: true },
+      });
+    } catch (auditErr) {
+      log.error({ err: auditErr }, 'assisted-register:denial-audit-failed');
+    }
     log.warn(
       { actorPersonId: operator.id, roles: operator.roles },
       'assisted-register:forbidden',
@@ -69,12 +108,6 @@ export async function registerPersonByAssistant(
       'Apenas assistentes sociais ou diretoria podem realizar o cadastro assistido.',
     );
   }
-
-  // 4. Contexto da request para auditoria (P-005 — operador sempre registrado).
-  const hdrs = await headers();
-  const rawIp = clientIp(hdrs);
-  const ip = rawIp === 'unknown' ? null : rawIp;
-  const userAgent = hdrs.get('user-agent');
 
   // 5. Persistência + auditoria atômica.
   try {
@@ -136,6 +169,11 @@ export async function registerPersonByAssistant(
           });
         }
 
+        // E-004: data da assinatura física do termo. Quando a AS não informa,
+        // usamos a data do cadastro (atendimento presencial), no fuso de SP.
+        const signedOnPaperAt =
+          input.signedOnPaperAt ?? formatSaoPaulo(new Date(), 'yyyy-MM-dd');
+
         audit.entityType = 'person';
         audit.entityId = personId;
         audit.after = {
@@ -145,6 +183,16 @@ export async function registerPersonByAssistant(
           cpfException: input.cpfException,
           credentialLess: true,
           createdByPersonId: operator.id,
+          // E-004: evidência do consentimento de atendimento social colhido em
+          // papel (finalidade 6 — ADR-0013). Sem PII (data/termo/versão/canal);
+          // o responsável (AS) é o `actorPersonId` do próprio evento.
+          paperConsent: {
+            purpose: 'SOCIAL_ASSISTANCE',
+            termVersion: SOCIAL_ASSISTANCE_TERM_VERSION,
+            termContentHash: SOCIAL_ASSISTANCE_TERM_HASH,
+            consentChannel: 'PAPER',
+            signedOnPaperAt,
+          },
         };
 
         return personId;

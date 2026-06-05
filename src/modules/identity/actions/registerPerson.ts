@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/server';
 import { clientIp } from '@/shared/lib/clientIp';
+import { prisma } from '@/shared/lib/prisma';
 import { container } from '@/shared/container';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
@@ -42,6 +43,33 @@ export interface RegisterPersonResult {
 export async function registerPerson(
   rawInput: RegisterPersonInput,
 ): Promise<ActionResult<RegisterPersonResult>> {
+  // 0. D-004 (USP-002): a marca "Pessoa sem documento — exceção" é privilégio
+  //    institucional do cadastro assistido. Tentar injetá-la pelo fluxo público é
+  //    rejeitado de forma determinística e registrado na auditoria imutável. O Zod
+  //    faria `strip` silencioso do campo; esta checagem o torna um erro auditável.
+  if (
+    rawInput !== null &&
+    typeof rawInput === 'object' &&
+    ('cpfException' in rawInput || 'cpfExceptionJustification' in rawInput)
+  ) {
+    const denialHdrs = await headers();
+    const denialIp = clientIp(denialHdrs);
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: AuditEvent.PERSON_ASSISTED_EXCEPTION_DENIED,
+          ip: denialIp !== 'unknown' ? denialIp : null,
+          userAgent: denialHdrs.get('user-agent') ?? null,
+          after: { vector: 'PUBLIC_SELF_REGISTRATION' },
+        },
+        select: { id: true },
+      });
+    } catch (auditErr) {
+      console.error('[registerPerson] Falha ao auditar tentativa de exceção indevida:', auditErr);
+    }
+    return fail('FORBIDDEN', 'Operação não permitida por este fluxo de cadastro.');
+  }
+
   // 1. Validação de input
   const parsed = registerPersonSchema.safeParse(rawInput);
   if (!parsed.success) {

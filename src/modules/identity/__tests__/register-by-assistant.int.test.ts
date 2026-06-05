@@ -106,6 +106,37 @@ skipIfNoDb('registerPersonByAssistant — integração', () => {
     });
     expect(audit).not.toBeNull();
     expect(audit?.actorPersonId).toBe(OP_ID);
+
+    // E-004: evidência do consentimento em papel registrada no `after`.
+    const paperConsent = (audit?.after as Record<string, unknown> | null)?.paperConsent as
+      | Record<string, unknown>
+      | undefined;
+    expect(paperConsent).toMatchObject({
+      purpose: 'SOCIAL_ASSISTANCE',
+      termVersion: 'social-assistance@v1.0',
+      consentChannel: 'PAPER',
+    });
+    // Sem data informada → assume a data do cadastro (string YYYY-MM-DD).
+    expect(paperConsent?.signedOnPaperAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('E-004: data da assinatura informada é gravada na evidência', async () => {
+    const result = await registerPersonByAssistant({
+      fullName: 'Com Data Assinatura',
+      cpf: VALID_CPF,
+      signedOnPaperAt: '2026-05-20',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    createdIds.push(result.data.personId);
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: 'PERSON_CREATED_BY_AS', entityId: result.data.personId },
+    });
+    const paperConsent = (audit?.after as Record<string, unknown> | null)?.paperConsent as
+      | Record<string, unknown>
+      | undefined;
+    expect(paperConsent?.signedOnPaperAt).toBe('2026-05-20');
   });
 
   it('exceção de CPF: cria Pessoa sem CPF, grava justificativa e evento dedicado', async () => {
@@ -169,6 +200,17 @@ skipIfNoDb('registerPersonByAssistant — integração', () => {
 
     const count = await prisma.person.count({ where: { cpf: VALID_CPF_DIGITS } });
     expect(count).toBe(0);
+
+    // D-004: a tentativa indevida (papel sem privilégio) gera log de auditoria imutável.
+    const denial = await prisma.auditLog.findFirst({
+      where: {
+        action: 'PERSON_ASSISTED_EXCEPTION_DENIED',
+        actorPersonId: 'cccccccc-1111-2222-3333-666666666666',
+      },
+      orderBy: { occurredAt: 'desc' },
+    });
+    expect(denial).not.toBeNull();
+    expect((denial?.after as Record<string, unknown> | null)?.vector).toBe('ASSISTED_ACTION');
   });
 
   it('não autenticado: getCurrentPerson nulo recebe UNAUTHENTICATED', async () => {

@@ -130,6 +130,34 @@ skipIfNoDb('registerPerson — integração TX1', () => {
     expect(consent?.revokedAt).toBeNull();
   });
 
+  it('D-004: injetar a marca de exceção pelo fluxo público é FORBIDDEN e auditado', async () => {
+    const before = await prisma.auditLog.count({
+      where: { action: 'PERSON_ASSISTED_EXCEPTION_DENIED' },
+    });
+
+    const result = await registerPerson({
+      fullName: 'Tentativa Injeção',
+      cpf: BASE_CPF,
+      email: `injection-${Date.now()}@example.com`,
+      password: 'Senha@12345',
+      role: 'CANDIDATE',
+      captchaToken: 'token',
+      cpfException: true,
+      cpfExceptionJustification: 'tentando burlar pelo cadastro público',
+    } as unknown as Parameters<typeof registerPerson>[0]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('FORBIDDEN');
+    // A guarda retorna antes de tocar o Supabase Auth.
+    expect(mockCreateUser).not.toHaveBeenCalled();
+
+    const after = await prisma.auditLog.count({
+      where: { action: 'PERSON_ASSISTED_EXCEPTION_DENIED' },
+    });
+    expect(after).toBe(before + 1);
+  });
+
   it('Zod: rejeita CPF inválido sem chegar ao banco', async () => {
     const result = await registerPerson({
       fullName: 'Teste',

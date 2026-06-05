@@ -222,6 +222,30 @@ export function AssistedRegisterForm() {
         )}
       </div>
 
+      {/* Evidência do consentimento de atendimento social colhido em papel (E-004) */}
+      <div className="flex flex-col gap-1">
+        <label htmlFor="signedOnPaperAt" className="text-sm font-medium text-gray-700">
+          Data da assinatura do termo (papel) <span className="text-gray-400">(opcional)</span>
+        </label>
+        <input
+          id="signedOnPaperAt"
+          type="date"
+          className={inputClass}
+          aria-invalid={!!errors.signedOnPaperAt}
+          {...register('signedOnPaperAt')}
+        />
+        {errors.signedOnPaperAt ? (
+          <p role="alert" className="text-xs text-red-600">
+            {errors.signedOnPaperAt.message}
+          </p>
+        ) : (
+          <p className="text-xs text-gray-500">
+            Termo de atendimento social assinado em papel, no atendimento. Em branco, usa a data de
+            hoje.
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-col gap-1">
         <label htmlFor="role" className="text-sm font-medium text-gray-700">
           Papel pretendido <span className="text-gray-400">(opcional)</span>

@@ -140,6 +140,33 @@ describe('registerByAssistantSchema', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe('data da assinatura do termo em papel (E-004)', () => {
+    it('aceita data passada válida', () => {
+      const result = registerByAssistantSchema.safeParse({
+        fullName: 'Com Data',
+        cpf: VALID_CPF,
+        signedOnPaperAt: '2026-05-30',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.signedOnPaperAt).toBe('2026-05-30');
+    });
+
+    it('aceita ausência (campo opcional) — a action assume a data do cadastro', () => {
+      const result = registerByAssistantSchema.safeParse({ fullName: 'Sem Data', cpf: VALID_CPF });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.signedOnPaperAt).toBeUndefined();
+    });
+
+    it('rejeita data no futuro', () => {
+      const result = registerByAssistantSchema.safeParse({
+        fullName: 'Data Futura',
+        cpf: VALID_CPF,
+        signedOnPaperAt: '2999-01-01',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe('canRegisterAssisted (autorização institucional — P-001/P-005)', () => {

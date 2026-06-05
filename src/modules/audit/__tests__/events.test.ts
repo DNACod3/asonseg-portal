@@ -55,4 +55,10 @@ describe('audit/events', () => {
       expect(known.has(event)).toBe(true);
     }
   });
+
+  it('inclui o evento de tentativa indevida de exceção (USP-002 / D-004)', () => {
+    expect(AuditEvent.PERSON_ASSISTED_EXCEPTION_DENIED).toBe('PERSON_ASSISTED_EXCEPTION_DENIED');
+    // Evento de tentativa/negação — não exige justificativa.
+    expect(requiresJustification(AuditEvent.PERSON_ASSISTED_EXCEPTION_DENIED)).toBe(false);
+  });
 });
