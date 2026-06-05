@@ -68,3 +68,4 @@ export {
   CPF_EXCEPTION_MIN_JUSTIFICATION,
 } from './domain/assisted-registration';
 export type { AssistedRegistrationRole } from './domain/assisted-registration';
+export { AssistedRegisterForm } from './components/assisted-register-form';
