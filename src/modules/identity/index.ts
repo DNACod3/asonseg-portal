@@ -51,3 +51,21 @@ export { AUTH_ATTEMPTS_REPO_TOKEN } from './ports/authAttemptsRepo';
 export type { AuthAttemptsRepo, AttemptKey } from './ports/authAttemptsRepo';
 export { requireActivePerson, getCurrentPerson } from './server/session';
 export type { CurrentPerson } from './server/session';
+
+// ── Cadastro assistido pela AS (USP-002) ──────────────────────────────────────
+export { registerPersonByAssistant } from './actions/register-person-by-assistant';
+export type { RegisterByAssistantResult } from './actions/register-person-by-assistant';
+export {
+  registerByAssistantSchema,
+} from './schemas/register-by-assistant.schema';
+export type {
+  RegisterByAssistantInput,
+  RegisterByAssistantData,
+} from './schemas/register-by-assistant.schema';
+export {
+  ASSISTED_REGISTRATION_ROLES,
+  canRegisterAssisted,
+  CPF_EXCEPTION_MIN_JUSTIFICATION,
+} from './domain/assisted-registration';
+export type { AssistedRegistrationRole } from './domain/assisted-registration';
+export { AssistedRegisterForm } from './components/assisted-register-form';

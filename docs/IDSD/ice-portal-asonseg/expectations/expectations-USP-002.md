@@ -12,7 +12,7 @@
 - **E-003:** WHEN o cadastro é concluído sem e-mail e sem senha, the system SHALL permitir que a Pessoa seja referenciada em encaminhamentos (USP-037), ficha social (USP-036) e relatórios, e SHALL impedir login dessa Pessoa por qualquer rota.
 
 - **E-004:** WHEN o atendimento ocorre com termo de consentimento assinado em papel, the system SHALL registrar **a evidência da assinatura física**: data, responsável (AS), referência ao termo e versão.
-  ✅ DECIDIDO (dono do intent): data + responsável (AS) no sistema, sem upload obrigatório no MVP. ❓ Redação jurídica a validar (D-002).
+  ✅ DECIDIDO (dono do intent): data + responsável (AS) no sistema, sem upload obrigatório no MVP. ✅ Redação jurídica validada pelo DPO/jurídico (2026-06-05 — D-002 liberado).
 
 - **E-005:** The system SHALL impedir que o fluxo público de USP-001 marque a flag "Pessoa sem documento — exceção" — apenas o fluxo autenticado da AS ou diretoria pode gravar essa marca.
 
@@ -44,6 +44,7 @@
 - **D-001:** A AS, em ensaio com voluntário simulando atendimento, cadastra uma Pessoa do início ao fim em ≤ 2 minutos. Validado em ≥ 3 ensaios, com pelo menos um deles em modo "Pessoa sem documento — exceção".
 
 - **D-002 (gate jurídico):** Antes desta USP ir para produção, **D-001 do PRD (DPO)** ou parecer jurídico equivalente confirmou por escrito que (a) o modelo de evidência de consentimento em papel para esta via cobre ADR-0013, e (b) o flag de exceção e a justificativa textual constituem evidência adequada para LGPD. Sem essa confirmação, esta USP **não vai para produção** mesmo que o código esteja pronto.
+  ✅ LIBERADO (DPO/jurídico, 2026-06-05): modelo de evidência de consentimento em papel aprovado e texto do atestado validado (`legal/consent-terms/social-assistance/evidence-statement-v1.0.md`). Cobre ADR-0013 e constitui evidência adequada para LGPD — gate liberado para go-live.
 
 - **D-003:** A AS abre a Pessoa recém-cadastrada na visão consolidada (USP-039) e confere que ela aparece, com os campos esperados, com a marca de exceção (quando aplicável) e a justificativa exibida.
 

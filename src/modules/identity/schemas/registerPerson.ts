@@ -5,7 +5,7 @@ import { z } from 'zod';
 // Rejeita sequências iguais (111.111.111-11) que passam no formato mas são
 // documentalmente inválidas.
 
-function isValidCpf(cpf: string): boolean {
+export function isValidCpf(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, '');
   if (digits.length !== 11) return false;
   if (/^(\d)\1{10}$/.test(digits)) return false;
