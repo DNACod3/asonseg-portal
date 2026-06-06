@@ -3,10 +3,10 @@ import type { PublicRole } from '../schemas/registerPerson';
 /**
  * Regras puras (sem IO) da ativação de papel adicional (USP-006).
  *
- * O ADR-0011 (papéis compostos) define que uma mesma Pessoa pode acumular papéis
- * sem entidades distintas. Ao ativar um papel novo, o sistema pede **apenas os
- * campos do perfil ainda não preenchidos** (E-001 / intent §2) — daqui sai a
- * lista de campos faltantes que a UI renderiza e a action exige.
+ * O ADR-0008 (pessoa unificada / papéis compostos) define que uma mesma Pessoa
+ * pode acumular papéis sem entidades distintas. Ao ativar um papel novo, o sistema
+ * pede **apenas os campos do perfil ainda não preenchidos** (E-001 / intent §2) —
+ * daqui sai a lista de campos faltantes que a UI renderiza e a action exige.
  */
 
 /**

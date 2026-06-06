@@ -4,10 +4,10 @@ import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { headers } from 'next/headers';
 import { AuditEvent, withAudit } from '@/modules/audit';
+import { loadTerm, TermLoaderError } from '@/modules/consents';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
-import { prisma } from '@/shared/lib/prisma';
 import { getCurrentPerson } from '../server/session';
 import { ROLE_PURPOSE_MAP, type PublicRole } from '../schemas/registerPerson';
 import {
@@ -35,12 +35,17 @@ export interface ActivateAdditionalRoleResult {
  *  1. valida entrada (Zod);
  *  2. resolve a Pessoa autenticada — **exclusivamente** a da sessão (P-002: nenhum
  *     `personId` vem do input, então não há vetor de sequestro lateral);
- *  3. pré-condição: papel ainda não ativo (idempotência); campos faltantes do
- *     perfil do papel todos preenchidos (E-001);
+ *  3. pré-condições: papel ainda não ativo (idempotência); campos faltantes do
+ *     perfil do papel todos preenchidos (E-001); o termo vigente da finalidade é
+ *     **carregado e validado server-side** (`loadTerm` recalcula o SHA-256 e o
+ *     confere contra o registro — P-004 / L-002), nunca confiando na versão/hash
+ *     vindos do cliente (que servem só como checagem otimista do que a Pessoa viu);
  *  4. executa tudo em `withAudit('ROLE_GRANT_ACTIVATED')` — numa **única
  *     transação** (ADR-0020 / P-001): completa o perfil, cria/reaproveita o grant
- *     em `AWAITING_CONSENT`, persiste o `Consent` da finalidade vinculada e só
- *     então promove o grant a `ACTIVE` (sem moderação do papel — E-003 / ADR-0015).
+ *     em `AWAITING_CONSENT`, persiste o `Consent` da finalidade vinculada (com a
+ *     versão/hash computados no servidor) e só então promove o grant a `ACTIVE`
+ *     (sem moderação do papel — E-003; a máquina de moderação da ADR-0011 não se
+ *     aplica a papéis públicos).
  *
  * Invariante (P-001): o grant nunca chega a `ACTIVE` sem o consentimento da
  * finalidade persistido na MESMA transação. Nunca lança: retorna `ActionResult`.
@@ -69,17 +74,10 @@ export async function activateAdditionalRole(
     return fail('CONFLICT', `Você já possui o papel ${ROLE_LABELS[role]} ativo.`);
   }
 
-  // Snapshot do perfil para decidir os campos faltantes (E-001).
-  const snapshot = await prisma.person.findUnique({
-    where: { id: person.id },
-    select: { phone: true, fullAddress: true },
-  });
-  if (!snapshot) {
-    return fail('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.');
-  }
-
-  // Só os campos realmente ausentes são exigidos; todos devem vir preenchidos.
-  const missing = missingProfileFields(snapshot, role);
+  // Campos faltantes decididos sobre o snapshot já carregado pela sessão (E-001) —
+  // `getCurrentPerson` já traz `phone`/`fullAddress`, então não há segunda leitura
+  // da Pessoa. Só os campos realmente ausentes são exigidos; todos devem vir.
+  const missing = missingProfileFields(person, role);
   const fieldErrors: Record<string, string[]> = {};
   const profileData: Partial<Record<ProfileField, string>> = {};
   for (const field of missing) {
@@ -92,6 +90,30 @@ export async function activateAdditionalRole(
   }
   if (Object.keys(fieldErrors).length > 0) {
     return fail('VALIDATION', 'Preencha os dados faltantes do papel.', fieldErrors);
+  }
+
+  // P-004 / L-002: o termo vigente é carregado e validado SERVER-SIDE — `loadTerm`
+  // recalcula o SHA-256 e o confere contra o registro. A versão/hash que vão para o
+  // `Consent` são SEMPRE os do servidor; os do cliente entram apenas como checagem
+  // otimista (o aceite tem de corresponder ao termo que a Pessoa de fato viu).
+  let term;
+  try {
+    term = await loadTerm(purpose);
+  } catch (err) {
+    if (err instanceof TermLoaderError) {
+      log.error({ purpose, code: err.code }, 'identity:additional_role_term_unavailable');
+      return fail(
+        'PRECONDITION_FAILED',
+        'Termo desta finalidade indisponível no momento. Tente novamente mais tarde.',
+      );
+    }
+    throw err;
+  }
+  if (input.termVersion !== term.version || input.termContentHash !== term.hash) {
+    return fail(
+      'CONFLICT',
+      'O termo desta finalidade foi atualizado. Recarregue a página e revise o novo termo antes de ativar.',
+    );
   }
 
   const hdrs = await headers();
@@ -119,7 +141,8 @@ export async function activateAdditionalRole(
         }
 
         // Reaproveita um grant pendente/inativo do papel ou cria um novo, sempre
-        // partindo de AWAITING_CONSENT (estado intermediário do fluxo — ADR-0013).
+        // partindo de AWAITING_CONSENT (estado intermediário do fluxo — ADR-0020:
+        // o grant só chega a ACTIVE com o consent persistido na MESMA transação).
         const existing = await tx.personRoleGrant.findFirst({
           where: { personId: person.id, role },
           orderBy: { activatedAt: 'desc' },
@@ -147,8 +170,8 @@ export async function activateAdditionalRole(
               id: newConsentId,
               personId: person.id,
               purpose,
-              termVersion: input.termVersion,
-              termContentHash: input.termContentHash,
+              termVersion: term.version,
+              termContentHash: term.hash,
               acceptedIp: ip,
               userAgent,
             },
@@ -163,13 +186,14 @@ export async function activateAdditionalRole(
               entityId: consentId,
               ip,
               userAgent,
-              after: { purpose, termVersion: input.termVersion, via: 'role_activation' },
+              after: { purpose, termVersion: term.version, via: 'role_activation' },
             },
             select: { id: true },
           });
         }
 
-        // Só agora o papel vira ACTIVE — sem moderação do papel (E-003 / ADR-0015).
+        // Só agora o papel vira ACTIVE — sem moderação do papel (E-003; a máquina
+        // de moderação da ADR-0011 não se aplica a papéis públicos).
         await tx.personRoleGrant.update({
           where: { id: grantId },
           data: {
@@ -188,7 +212,7 @@ export async function activateAdditionalRole(
           role,
           status: 'ACTIVE',
           purpose,
-          termVersion: input.termVersion,
+          termVersion: term.version,
           consentId,
           profileCompleted: Object.keys(profileData),
         };

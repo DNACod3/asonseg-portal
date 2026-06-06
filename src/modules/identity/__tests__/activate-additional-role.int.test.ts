@@ -10,7 +10,16 @@ import crypto from 'node:crypto';
  */
 
 const sessionState = vi.hoisted(() => ({
-  person: null as null | { id: string; supabaseUserId: string; fullName: string; status: 'ATIVO'; primeiroAcesso: boolean; roles: string[] },
+  person: null as null | {
+    id: string;
+    supabaseUserId: string;
+    fullName: string;
+    status: 'ATIVO';
+    primeiroAcesso: boolean;
+    roles: string[];
+    phone: string | null;
+    fullAddress: string | null;
+  },
 }));
 
 vi.mock('next/headers', () => ({
@@ -26,7 +35,10 @@ vi.mock('../server/session', () => ({
 const { prisma } = await import('@/shared/lib/prisma');
 const { activateAdditionalRole } = await import('../actions/activate-additional-role');
 
-// Termo vigente de SERVICE_OFFERING (apenas strings persistidas — a action não recarrega).
+// Termo vigente de SERVICE_OFFERING. A action recarrega e valida o termo
+// server-side (P-004); este aceite tem de bater com a versão/hash vigentes do
+// registro (`legal/consent-terms/<slug>/v1.0.md`) — senão a checagem otimista
+// rejeita com CONFLICT.
 const SERVICE_TERM = { version: 'v1.0', hash: '9abdc14dbe425e0422987d5b5fc6002f942b90ac053c5d6a9b423640907a88a7' };
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
@@ -53,7 +65,13 @@ skipIfNoDb('activateAdditionalRole — integração (Supabase local)', () => {
     return id;
   }
 
-  function asSession(id: string, roles: string[]) {
+  function asSession(
+    id: string,
+    roles: string[],
+    profile: { phone?: string | null; fullAddress?: string | null } = {},
+  ) {
+    // `getCurrentPerson` (mockado) já traz o perfil mínimo: a action decide os
+    // campos faltantes (E-001) a partir da sessão, sem reler a Pessoa do banco.
     sessionState.person = {
       id,
       supabaseUserId: crypto.randomUUID(),
@@ -61,6 +79,8 @@ skipIfNoDb('activateAdditionalRole — integração (Supabase local)', () => {
       status: 'ATIVO',
       primeiroAcesso: false,
       roles,
+      phone: profile.phone === undefined ? '11999990000' : profile.phone,
+      fullAddress: profile.fullAddress === undefined ? 'Rua X, 123' : profile.fullAddress,
     };
   }
 
@@ -133,7 +153,7 @@ skipIfNoDb('activateAdditionalRole — integração (Supabase local)', () => {
   it('campo faltante: exige e persiste o telefone ausente (E-001)', async () => {
     // Person sem telefone; tenta ativar PROVIDER (exige phone + fullAddress).
     const noPhoneId = await seedPerson({ phone: null });
-    asSession(noPhoneId, ['CANDIDATE']);
+    asSession(noPhoneId, ['CANDIDATE'], { phone: null });
 
     const missing = await activateAdditionalRole({
       role: 'PROVIDER',
@@ -161,5 +181,39 @@ skipIfNoDb('activateAdditionalRole — integração (Supabase local)', () => {
     await prisma.consent.deleteMany({ where: { personId: noPhoneId } });
     await prisma.personRoleGrant.deleteMany({ where: { personId: noPhoneId } });
     await prisma.person.deleteMany({ where: { id: noPhoneId } });
+  });
+
+  it('reaproveita consent SERVICE_OFFERING já ativo: não cria 2º consent e ativa o papel', async () => {
+    // Pré-condição rara (pós-cascata): já existe consent ativo da finalidade.
+    await prisma.consent.create({
+      data: {
+        id: crypto.randomUUID(),
+        personId,
+        purpose: 'SERVICE_OFFERING',
+        termVersion: SERVICE_TERM.version,
+        termContentHash: SERVICE_TERM.hash,
+      },
+    });
+
+    const result = await activateAdditionalRole({
+      role: 'PROVIDER',
+      termVersion: SERVICE_TERM.version,
+      termContentHash: SERVICE_TERM.hash,
+      acceptTerm: true,
+      profile: {},
+    });
+
+    expect(result.ok).toBe(true);
+
+    // O índice único parcial garante no máximo um consent ativo por finalidade —
+    // a action reaproveitou o existente em vez de criar um segundo.
+    const consents = await prisma.consent.findMany({
+      where: { personId, purpose: 'SERVICE_OFFERING', revokedAt: null },
+      take: 10,
+    });
+    expect(consents).toHaveLength(1);
+
+    const grant = await prisma.personRoleGrant.findFirst({ where: { personId, role: 'PROVIDER' } });
+    expect(grant?.status).toBe('ACTIVE');
   });
 });

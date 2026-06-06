@@ -117,3 +117,4 @@ export {
 export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
 export { ActivateRoleForm } from './components/activate-role-form';
 export type { ActivatableRoleOption } from './components/activate-role-form';
+export { buildActivatableOptions } from './server/build-activatable-options';

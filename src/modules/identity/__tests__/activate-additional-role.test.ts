@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Prisma } from '@prisma/client';
 
 /**
- * Unit de `activateAdditionalRole` (USP-006) com sessão/auditoria/prisma mockados.
+ * Unit de `activateAdditionalRole` (USP-006) com sessão/auditoria/termo mockados.
  * Cobre a sequência canônica e os ramos sem tocar o banco: a transação real é
- * coberta pelo `.int.test.ts`.
+ * coberta pelo `.int.test.ts`. O termo é carregado/validado server-side (P-004),
+ * então `@/modules/consents` é mockado aqui.
  */
 const idState = vi.hoisted(() => ({
-  person: null as null | { id: string; roles: string[] },
+  person: null as null | { id: string; roles: string[]; phone: string | null; fullAddress: string | null },
 }));
-const prismaState = vi.hoisted(() => ({ personFindUnique: vi.fn() }));
 const auditState = vi.hoisted(() => ({ events: [] as string[], recorder: null as Record<string, unknown> | null }));
 const txState = vi.hoisted(() => ({
   grantFindFirst: vi.fn(),
@@ -21,6 +22,20 @@ const txState = vi.hoisted(() => ({
   activeInTx: null as null | { id: string },
   existingGrant: null as null | { id: string },
 }));
+const termState = vi.hoisted(() => ({ loadTerm: vi.fn() }));
+
+// Classe de erro do loader compartilhada entre o mock e os testes (instanceof).
+const errState = vi.hoisted(() => {
+  class TermLoaderError extends Error {
+    code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.name = 'TermLoaderError';
+      this.code = code;
+    }
+  }
+  return { TermLoaderError };
+});
 
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ 'x-real-ip': '10.0.0.7', 'user-agent': 'vitest' }),
@@ -30,8 +45,9 @@ vi.mock('../server/session', () => ({
   getCurrentPerson: async () => idState.person,
 }));
 
-vi.mock('@/shared/lib/prisma', () => ({
-  prisma: { person: { findUnique: (...a: unknown[]) => prismaState.personFindUnique(...a) } },
+vi.mock('@/modules/consents', () => ({
+  loadTerm: (...a: unknown[]) => termState.loadTerm(...a),
+  TermLoaderError: errState.TermLoaderError,
 }));
 
 vi.mock('@/modules/audit', () => ({
@@ -63,20 +79,30 @@ vi.mock('@/modules/audit', () => ({
 
 const { activateAdditionalRole } = await import('../actions/activate-additional-role');
 
+// Versão/hash vigentes que o `loadTerm` mockado devolve (server-side). O `base`
+// abaixo reproduz exatamente esse aceite (checagem otimista deve passar).
+const CURRENT_TERM = { version: 'v1.0', hash: 'a'.repeat(64) };
+
 const base = {
-  termVersion: 'v1.0',
-  termContentHash: 'a'.repeat(64),
+  termVersion: CURRENT_TERM.version,
+  termContentHash: CURRENT_TERM.hash,
   acceptTerm: true as const,
 };
 
 beforeEach(() => {
-  idState.person = { id: 'person-1', roles: [] };
+  // Perfil já completo por padrão (sem campos faltantes); sessão sem papéis.
+  idState.person = { id: 'person-1', roles: [], phone: '11999990000', fullAddress: 'Rua X, 123' };
   auditState.events = [];
   auditState.recorder = null;
-  // Perfil já completo por padrão (sem campos faltantes).
-  prismaState.personFindUnique
-    .mockReset()
-    .mockResolvedValue({ phone: '11999990000', fullAddress: 'Rua X, 123' });
+  termState.loadTerm.mockReset().mockResolvedValue({
+    purpose: 'JOB_APPLICATION',
+    version: CURRENT_TERM.version,
+    content: 'TERMO da finalidade — corpo.',
+    hash: CURRENT_TERM.hash,
+    effectiveDate: null,
+    legalBasis: null,
+    status: null,
+  });
   txState.activeInTx = null;
   txState.existingGrant = null;
   txState.grantCreate.mockReset().mockResolvedValue({ id: 'grant-new' });
@@ -103,11 +129,13 @@ describe('identity/activateAdditionalRole', () => {
     expect(txState.grantUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'ACTIVE' }) }),
     );
-    // Consent da finalidade JOB_APPLICATION criado na mesma transação (P-001).
+    // Consent da finalidade JOB_APPLICATION criado na mesma transação (P-001), com
+    // a versão/hash do SERVIDOR (term.version/term.hash), não os do cliente (P-004).
     expect(txState.consentCreate.mock.calls[0]?.[0]?.data).toMatchObject({
       personId: 'person-1',
       purpose: 'JOB_APPLICATION',
-      termVersion: 'v1.0',
+      termVersion: CURRENT_TERM.version,
+      termContentHash: CURRENT_TERM.hash,
     });
     // Perfil completo ⇒ não atualiza Person.
     expect(txState.personUpdate).not.toHaveBeenCalled();
@@ -117,6 +145,37 @@ describe('identity/activateAdditionalRole', () => {
     const result = await activateAdditionalRole({ ...base, role: 'PROVIDER', profile: {} });
     expect(result.ok).toBe(true);
     expect(txState.consentCreate.mock.calls[0]?.[0]?.data?.purpose).toBe('SERVICE_OFFERING');
+  });
+
+  it('P-004: termo vigente é carregado server-side e usado no Consent (não o do cliente)', async () => {
+    // loadTerm devolve a versão/hash REAIS; o cliente manda os mesmos (aceite válido).
+    await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
+    expect(termState.loadTerm).toHaveBeenCalledWith('JOB_APPLICATION');
+  });
+
+  it('P-004: termo indisponível/adulterado (TermLoaderError) → PRECONDITION_FAILED, sem transação', async () => {
+    termState.loadTerm.mockRejectedValue(new errState.TermLoaderError('TERM_HASH_MISMATCH', 'integridade'));
+    const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('PRECONDITION_FAILED');
+    expect(auditState.events).toHaveLength(0);
+  });
+
+  it('checagem otimista: aceite de versão/hash divergentes do termo vigente → CONFLICT', async () => {
+    // O servidor está em v2.0; o cliente aceitou v1.0 (termo mudou entre página e submit).
+    termState.loadTerm.mockResolvedValue({
+      purpose: 'JOB_APPLICATION',
+      version: 'v2.0',
+      content: 'novo termo',
+      hash: 'b'.repeat(64),
+      effectiveDate: null,
+      legalBasis: null,
+      status: null,
+    });
+    const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('CONFLICT');
+    expect(auditState.events).toHaveLength(0);
   });
 
   it('Zod: sem aceite do termo (acceptTerm ausente) → VALIDATION', async () => {
@@ -141,7 +200,7 @@ describe('identity/activateAdditionalRole', () => {
   });
 
   it('papel já ativo (pré-checagem) → CONFLICT, sem transação', async () => {
-    idState.person = { id: 'person-1', roles: ['CANDIDATE'] };
+    idState.person = { id: 'person-1', roles: ['CANDIDATE'], phone: '11999990000', fullAddress: 'Rua X, 123' };
     const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('CONFLICT');
@@ -149,7 +208,7 @@ describe('identity/activateAdditionalRole', () => {
   });
 
   it('campo faltante não preenchido → VALIDATION com fieldErrors do campo', async () => {
-    prismaState.personFindUnique.mockResolvedValue({ phone: null, fullAddress: 'Rua X, 123' });
+    idState.person = { id: 'person-1', roles: [], phone: null, fullAddress: 'Rua X, 123' };
     const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -160,7 +219,7 @@ describe('identity/activateAdditionalRole', () => {
   });
 
   it('campo faltante preenchido → completa o perfil e ativa', async () => {
-    prismaState.personFindUnique.mockResolvedValue({ phone: null, fullAddress: 'Rua X, 123' });
+    idState.person = { id: 'person-1', roles: [], phone: null, fullAddress: 'Rua X, 123' };
     const result = await activateAdditionalRole({
       ...base,
       role: 'CANDIDATE',
@@ -172,10 +231,44 @@ describe('identity/activateAdditionalRole', () => {
     );
   });
 
+  it('consentimento já ativo (reaproveitamento) → não recria consent nem audita CONSENT_GRANTED', async () => {
+    txState.consentFindFirst.mockResolvedValue({ id: 'consent-existente' });
+    const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
+
+    expect(result.ok).toBe(true);
+    // Reaproveita o consent ativo: sem create e sem o log CONSENT_GRANTED interno.
+    expect(txState.consentCreate).not.toHaveBeenCalled();
+    expect(txState.auditCreate).not.toHaveBeenCalled();
+    // Mas o grant ainda é promovido a ACTIVE e o consentId reaproveitado é auditado.
+    expect(txState.grantUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'ACTIVE' }) }),
+    );
+    expect(auditState.recorder?.after).toMatchObject({ consentId: 'consent-existente' });
+  });
+
   it('corrida de duplo submit (papel virou ACTIVE na TX) → CONFLICT', async () => {
     txState.activeInTx = { id: 'grant-x' };
     const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('CONFLICT');
+  });
+
+  it('corrida no índice único parcial de consent (P2002) → CONFLICT', async () => {
+    txState.consentCreate.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('unique violation', {
+        code: 'P2002',
+        clientVersion: '5.0.0',
+      }),
+    );
+    const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('CONFLICT');
+  });
+
+  it('falha inesperada na transação → INTERNAL (catch-all)', async () => {
+    txState.grantCreate.mockRejectedValue(new Error('db indisponível'));
+    const result = await activateAdditionalRole({ ...base, role: 'CANDIDATE', profile: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('INTERNAL');
   });
 });
