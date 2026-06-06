@@ -98,3 +98,22 @@ export type { PendingCredentialClaimRow } from './queries/list-pending-credentia
 export { CredentialClaimForm } from './components/credential-claim-form';
 export { CredentialClaimReview } from './components/credential-claim-review';
 export type { CredentialClaimReviewItem } from './components/credential-claim-review';
+
+// ── Ativar papel adicional na Pessoa autenticada (USP-006) ────────────────────
+export { activateAdditionalRole } from './actions/activate-additional-role';
+export type { ActivateAdditionalRoleResult } from './actions/activate-additional-role';
+export {
+  activateAdditionalRoleSchema,
+} from './schemas/activate-role.schema';
+export type { ActivateAdditionalRoleInput } from './schemas/activate-role.schema';
+export {
+  PROFILE_FIELDS,
+  ROLE_PROFILE_FIELDS,
+  ROLE_LABELS,
+  PROFILE_FIELD_META,
+  ROLE_NEXT_STEP,
+  missingProfileFields,
+} from './domain/role-activation';
+export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
+export { ActivateRoleForm } from './components/activate-role-form';
+export type { ActivatableRoleOption } from './components/activate-role-form';
