@@ -36,13 +36,23 @@ export interface PasswordResetEmailData {
   expiraEmHoras: number;
 }
 
+/** Dados do template de boas-vindas pós-reivindicação de credencial (USP-003). */
+export interface CredentialClaimWelcomeEmailData {
+  nome: string;
+  /** URL absoluta da página de definição de senha, com o token embutido. */
+  setPasswordUrl: string;
+  /** Validade do link em horas (exibida no corpo do e-mail). */
+  expiraEmHoras: number;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
  */
 export type EmailMessage =
   | { to: string; template: 'welcome'; data: WelcomeEmailData }
-  | { to: string; template: 'password-reset'; data: PasswordResetEmailData };
+  | { to: string; template: 'password-reset'; data: PasswordResetEmailData }
+  | { to: string; template: 'credential-claim-welcome'; data: CredentialClaimWelcomeEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {

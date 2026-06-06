@@ -69,3 +69,32 @@ export {
 } from './domain/assisted-registration';
 export type { AssistedRegistrationRole } from './domain/assisted-registration';
 export { AssistedRegisterForm } from './components/assisted-register-form';
+
+// ── Reivindicação de credencial de Pessoa pré-cadastrada (USP-003) ────────────
+export { requestCredentialClaim } from './actions/request-credential-claim';
+export type { RequestCredentialClaimResult } from './actions/request-credential-claim';
+export { verifyCredentialClaim } from './actions/verify-credential-claim';
+export type { VerifyCredentialClaimResult } from './actions/verify-credential-claim';
+export {
+  requestCredentialClaimSchema,
+  verifyCredentialClaimSchema,
+  CREDENTIAL_VERIFICATION_METHODS,
+  VERIFICATION_METHOD_LABELS,
+  GENERIC_CLAIM_REQUEST_MESSAGE,
+} from './schemas/credential-claim.schema';
+export type {
+  RequestCredentialClaimInput,
+  RequestCredentialClaimData,
+  VerifyCredentialClaimInput,
+  CredentialVerificationMethod,
+} from './schemas/credential-claim.schema';
+export {
+  CREDENTIAL_CLAIM_APPROVER_ROLES,
+  canApproveCredentialClaim,
+} from './domain/credential-claim';
+export type { CredentialClaimApproverRole } from './domain/credential-claim';
+export { listPendingCredentialClaims } from './queries/list-pending-credential-claims';
+export type { PendingCredentialClaimRow } from './queries/list-pending-credential-claims';
+export { CredentialClaimForm } from './components/credential-claim-form';
+export { CredentialClaimReview } from './components/credential-claim-review';
+export type { CredentialClaimReviewItem } from './components/credential-claim-review';

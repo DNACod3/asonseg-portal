@@ -119,6 +119,26 @@ enum ConsentPurpose {
   @@map("consent_purpose")
 }
 
+/// Meio de verificação de identidade de uma reivindicação de credencial (USP-003).
+/// D-011 resolveu o processo como confirmação manual pela AS via canal seguro; os
+/// demais valores ficam disponíveis para quando o processo escrito incluir carta/presencial.
+enum CredentialVerificationMethod {
+  IN_PERSON
+  AS_CONFIRMATION
+  CODE_BY_MAIL
+
+  @@map("credential_verification_method")
+}
+
+/// Ciclo de vida de uma reivindicação de credencial (USP-003 / IDN-07, IDN-08).
+enum CredentialClaimStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+
+  @@map("credential_claim_status")
+}
+
 /// Pessoa = entidade fundamental do domínio (ADR-0011).
 /// CPF e e-mail únicos por Pessoa; CPF nullable apenas quando a AS cria
 /// exceção documental via USP-002 (P-007 das expectations).
@@ -144,9 +164,10 @@ model Person {
   createdAt                 DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  credential  Credential?
-  roleGrants  PersonRoleGrant[]
-  consents    Consent[]
+  credential       Credential?
+  roleGrants       PersonRoleGrant[]
+  consents         Consent[]
+  credentialClaims CredentialClaim[]
 
   @@map("persons")
 }
@@ -163,6 +184,34 @@ model Credential {
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("credentials")
+}
+
+/// Reivindicação de credencial de uma Pessoa pré-cadastrada (USP-003 / IDN-07, IDN-08).
+/// A solicitação NÃO cria nova Pessoa: vincula-se à Pessoa que já existe (P-002 / F2).
+/// A credencial só é ativada após verificação de identidade confirmada por
+/// AS/diretoria (D-011), registrada com o meio utilizado (P-001 / P-005). Convenção
+/// append-only: as transições PENDING → VERIFIED/REJECTED atualizam `status`, não deletam.
+model CredentialClaim {
+  id                 String                       @id @default(uuid()) @db.Uuid
+  personId           String                       @map("person_id") @db.Uuid
+  /// E-mail desejado para a credencial (lowercase + trim). Unicidade validada na action (E-003).
+  requestedEmail     String                       @map("requested_email")
+  /// Meio de verificação solicitado e, ao confirmar, efetivamente utilizado (D-011).
+  verificationMethod CredentialVerificationMethod @map("verification_method")
+  status             CredentialClaimStatus        @default(PENDING)
+  /// Pessoa (AS/diretoria) que confirmou a verificação (P-005). Nulo enquanto PENDING.
+  verifiedByPersonId String?                      @map("verified_by_person_id") @db.Uuid
+  verifiedAt         DateTime?                    @map("verified_at") @db.Timestamptz(6)
+  /// Motivo da rejeição (preenchido apenas quando status = REJECTED).
+  rejectedReason     String?                      @map("rejected_reason")
+  requestedAt        DateTime                     @default(now()) @map("requested_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  // Fila de verificação: claims PENDING ordenados por chegada (L-004 / SLA ≤ 7 dias).
+  @@index([status, requestedAt])
+  @@index([personId])
+  @@map("credential_claims")
 }
 
 /// Grant de papel de uma Pessoa. O papel só chega a ACTIVE quando o consentimento

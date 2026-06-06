@@ -3,6 +3,7 @@ import { env } from '@/shared/env';
 import { ResendEmailSender, type ResendClient } from '../resend-email-sender';
 import { renderWelcomeEmail } from '../templates/welcome';
 import { renderPasswordResetEmail } from '../templates/password-reset';
+import { renderCredentialClaimWelcomeEmail } from '../templates/credential-claim-welcome';
 
 /**
  * Testes da infra de e-mail (USP-005 / #69): adapter Resend com client mockado
@@ -51,6 +52,26 @@ describe('ResendEmailSender', () => {
     expect(payload.text).toContain('https://portal.test/redefinir-senha?token_hash=abc');
   });
 
+  it('envia boas-vindas de reivindicação com o link de definição de senha e a validade', async () => {
+    const sender = new ResendEmailSender(fakeClient);
+
+    await sender.send({
+      to: 'maria@example.com',
+      template: 'credential-claim-welcome',
+      data: {
+        nome: 'Maria',
+        setPasswordUrl: 'https://portal.test/redefinir-senha?token_hash=abc&type=recovery',
+        expiraEmHoras: 24,
+      },
+    });
+
+    const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
+    expect(payload.subject).toContain('credencial');
+    expect(payload.html).toContain('https://portal.test/redefinir-senha?token_hash=abc&amp;type=recovery');
+    expect(payload.html).toContain('24 horas');
+    expect(payload.text).toContain('https://portal.test/redefinir-senha?token_hash=abc&type=recovery');
+  });
+
   it('erro do provedor → { ok: false } (não lança)', async () => {
     sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
     const sender = new ResendEmailSender(fakeClient);
@@ -91,5 +112,22 @@ describe('templates de e-mail', () => {
     // Nome malicioso não aparece como tag executável — foi escapado.
     expect(email.html).not.toContain('<script>alert(1)</script>');
     expect(email.html).toContain('&lt;script&gt;');
+  });
+
+  it('boas-vindas de reivindicação: assunto, link de senha, validade e escape do nome (anti-injeção)', () => {
+    const email = renderCredentialClaimWelcomeEmail({
+      nome: '<script>alert(1)</script>',
+      setPasswordUrl: 'https://portal.test/redefinir-senha?token_hash=abc&type=recovery',
+      expiraEmHoras: 24,
+    });
+    expect(email.subject).toContain('credencial');
+    // Link presente no HTML (com `&` escapado) e no texto plano (cru).
+    expect(email.html).toContain('token_hash=abc&amp;type=recovery');
+    expect(email.text).toContain('https://portal.test/redefinir-senha?token_hash=abc&type=recovery');
+    expect(email.html).toContain('24 horas');
+    // Nome malicioso escapado no HTML; cru no texto plano (sem parser de markup).
+    expect(email.html).not.toContain('<script>alert(1)</script>');
+    expect(email.html).toContain('&lt;script&gt;');
+    expect(email.text).toContain('<script>alert(1)</script>');
   });
 });
