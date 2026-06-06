@@ -84,6 +84,10 @@ export async function verifyCredentialClaim(
   const ip = rawIp === 'unknown' ? null : rawIp;
   const userAgent = hdrs.get('user-agent');
 
+  // 3. Consentimento — não se aplica: os consentimentos das finalidades dos
+  //    papéis são colhidos no 1º acesso da Pessoa (grants AWAITING_CONSENT →
+  //    acceptRoleConsent, ADR-0020), não aqui.
+
   // 4. Pré-condições.
   const claim = await prisma.credentialClaim.findUnique({
     where: { id: input.claimId },
@@ -136,23 +140,34 @@ export async function verifyCredentialClaim(
   const supabaseUserId = authUser.user.id;
 
   // 5. Vincula credencial + marca claim VERIFICADA, em auditoria atômica.
+  //    Sentinela para abortar a transação quando a claim deixou de estar PENDING
+  //    entre a pré-condição (lida fora da tx) e a escrita — dois aprovadores em
+  //    corrida sobre a mesma solicitação (P-005).
+  const ALREADY_PROCESSED = 'CLAIM_ALREADY_PROCESSED';
   try {
     await withAudit(
       AuditEvent.CREDENTIAL_CLAIM_VERIFIED,
       async (tx, audit) => {
-        await tx.person.update({
-          where: { id: person.id },
-          data: { supabaseUserId, emailLogin: claim.requestedEmail },
-        });
-
-        await tx.credentialClaim.update({
-          where: { id: claim.id },
+        // Transição condicional (guard de concorrência): só efetiva se ainda
+        // PENDING. `updateMany` devolve count 0 numa corrida (a outra request já
+        // verificou) — aborta a transação (e o vínculo de credencial abaixo)
+        // lançando a sentinela, sem depender só do unique de e-mail do provedor.
+        const transition = await tx.credentialClaim.updateMany({
+          where: { id: claim.id, status: 'PENDING' },
           data: {
             status: 'VERIFIED',
             verifiedByPersonId: operator.id,
             verifiedAt: new Date(),
             verificationMethod: input.verificationMethod,
           },
+        });
+        if (transition.count === 0) {
+          throw new Error(ALREADY_PROCESSED);
+        }
+
+        await tx.person.update({
+          where: { id: person.id },
+          data: { supabaseUserId, emailLogin: claim.requestedEmail },
         });
 
         audit.entityType = 'credential_claim';
@@ -173,12 +188,15 @@ export async function verifyCredentialClaim(
       },
     );
   } catch (err) {
-    // Conflito de e-mail (unique constraint — ADR-0021) ou falha inesperada:
-    // desfaz a credencial órfã no provedor (não há Pessoa logando com ela).
+    // Corrida de aprovação, conflito de e-mail (unique — ADR-0021) ou falha
+    // inesperada: desfaz a credencial órfã no provedor (nenhuma Pessoa loga com ela).
     await supabase.auth.admin
       .deleteUser(supabaseUserId)
       .catch((rollbackErr) => log.error({ err: rollbackErr }, 'claim:verify_rollback_failed'));
 
+    if (err instanceof Error && err.message === ALREADY_PROCESSED) {
+      return fail('PRECONDITION_FAILED', 'Esta solicitação já foi processada.');
+    }
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       return fail('CONFLICT', 'O e-mail desta solicitação já está em uso por outra Pessoa.');
     }

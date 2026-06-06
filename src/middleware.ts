@@ -93,9 +93,10 @@ function resolveCategory(request: NextRequest): RateLimitCategory {
   if (path.startsWith('/cadastro') || path.startsWith('/cadastrar')) {
     return 'registration';
   }
-  // Recuperação de senha (USP-005): endpoint público que dispara e-mail real —
-  // teto por IP mais baixo, em adição ao CAPTCHA da Server Action (ADR-0014).
-  if (path.startsWith('/recuperar-senha')) {
+  // Recuperação de senha (USP-005) e reivindicação de credencial (USP-003):
+  // endpoints públicos de identidade que disparam fluxo sensível/e-mail — teto
+  // por IP mais baixo, em adição ao CAPTCHA da Server Action (ADR-0014).
+  if (path.startsWith('/recuperar-senha') || path.startsWith('/reivindicar-credencial')) {
     return 'passwordReset';
   }
   return isAuthenticated(request) ? 'authenticated' : 'anonymous';

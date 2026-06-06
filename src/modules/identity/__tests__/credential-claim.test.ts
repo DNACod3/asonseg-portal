@@ -18,6 +18,7 @@ describe('requestCredentialClaimSchema', () => {
       cpf: VALID_CPF,
       requestedEmail: '  Maria@Example.COM ',
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -33,6 +34,7 @@ describe('requestCredentialClaimSchema', () => {
       alternativeIdentifier: 'Protocolo 2026-0042',
       requestedEmail: 'joao@example.com',
       verificationMethod: 'IN_PERSON',
+      captchaToken: 'captcha-ok',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -45,6 +47,7 @@ describe('requestCredentialClaimSchema', () => {
     const result = requestCredentialClaimSchema.safeParse({
       requestedEmail: 'sem-id@example.com',
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -57,6 +60,7 @@ describe('requestCredentialClaimSchema', () => {
       cpf: '111.111.111-11',
       requestedEmail: 'x@example.com',
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
     expect(result.success).toBe(false);
   });
@@ -66,6 +70,7 @@ describe('requestCredentialClaimSchema', () => {
       cpf: VALID_CPF,
       requestedEmail: 'nao-eh-email',
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
     expect(result.success).toBe(false);
   });
@@ -75,8 +80,22 @@ describe('requestCredentialClaimSchema', () => {
       cpf: VALID_CPF,
       requestedEmail: 'x@example.com',
       verificationMethod: 'EMAIL_OTP',
+      captchaToken: 'captcha-ok',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('rejeita sem CAPTCHA (ADR-0014 — endpoint público)', () => {
+    const result = requestCredentialClaimSchema.safeParse({
+      cpf: VALID_CPF,
+      requestedEmail: 'x@example.com',
+      verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: '',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.captchaToken).toBeDefined();
+    }
   });
 });
 

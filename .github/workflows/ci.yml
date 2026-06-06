@@ -103,6 +103,12 @@ jobs:
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
 
+      # Suíte de integração (`*.int.test.ts`): exige Postgres real, já provisionado
+      # acima. Roda aqui — não no job `test` (sem banco), onde fica só o unitário.
+      # O env vem do bloco `env:` deste job (DATABASE_URL etc.), sem `.env.local`.
+      - name: Integration tests (Postgres real)
+        run: npm run test:integration:ci
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 

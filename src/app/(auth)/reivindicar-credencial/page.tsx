@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { env } from '@/shared/env';
 import { CredentialClaimForm } from '@/modules/identity';
 
 // Rota (auth): fluxo público de identidade — sem cache.
@@ -23,7 +24,7 @@ export default function ReivindicarCredencialPage() {
         </p>
       </header>
 
-      <CredentialClaimForm />
+      <CredentialClaimForm siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
 
       <p className="text-sm text-gray-600">
         Já tem acesso?{' '}

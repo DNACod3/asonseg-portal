@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Turnstile } from '@marsidev/react-turnstile';
 import type { ActionResult } from '@/shared/errors';
 import { requestCredentialClaim } from '../actions/request-credential-claim';
 import type { RequestCredentialClaimResult } from '../actions/request-credential-claim';
@@ -18,23 +19,35 @@ const inputClass =
 
 /**
  * Formulário público de solicitação de reivindicação de credencial (USP-003 /
- * IDN-07). A resposta é sempre genérica — não revela se a Pessoa existe (P-006).
+ * IDN-07). Exige CAPTCHA (Turnstile — ADR-0014) antes de enviar. A resposta é
+ * sempre genérica — não revela se a Pessoa existe (P-006).
  */
-export function CredentialClaimForm() {
+export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
   const [isPending, startTransition] = useTransition();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RequestCredentialClaimInput>({
     resolver: zodResolver(requestCredentialClaimSchema),
     defaultValues: { verificationMethod: 'AS_CONFIRMATION' },
   });
 
+  function handleCaptchaSuccess(token: string) {
+    setCaptchaToken(token);
+    setValue('captchaToken', token);
+  }
+
   function onSubmit(data: RequestCredentialClaimInput) {
+    if (!captchaToken) {
+      setServerError('Complete o desafio CAPTCHA antes de continuar.');
+      return;
+    }
     setServerError(null);
     startTransition(async () => {
       const result: ActionResult<RequestCredentialClaimResult> =
@@ -145,6 +158,17 @@ export function CredentialClaimForm() {
           ))}
         </select>
       </div>
+
+      {/* CAPTCHA Turnstile (ADR-0014) */}
+      <input type="hidden" {...register('captchaToken')} />
+      <div className="flex justify-center">
+        <Turnstile siteKey={siteKey} onSuccess={handleCaptchaSuccess} options={{ language: 'pt-BR' }} />
+      </div>
+      {errors.captchaToken && (
+        <p role="alert" className="text-center text-xs text-red-600">
+          {errors.captchaToken.message}
+        </p>
+      )}
 
       {serverError && (
         <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">

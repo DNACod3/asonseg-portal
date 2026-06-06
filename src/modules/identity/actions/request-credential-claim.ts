@@ -4,8 +4,10 @@ import { headers } from 'next/headers';
 import { prisma } from '@/shared/lib/prisma';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
+import { container } from '@/shared/container';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
+import { CAPTCHA_VERIFIER_TOKEN } from '../ports/captchaVerifier';
 import {
   requestCredentialClaimSchema,
   GENERIC_CLAIM_REQUEST_MESSAGE,
@@ -25,7 +27,14 @@ export interface RequestCredentialClaimResult {
  * verificação manual pela AS/diretoria (`verifyCredentialClaim`).
  *
  * **Exceção à sequência canônica:** o solicitante não está autenticado, então
- * não há `requirePermission`/`requireActiveConsent`.
+ * não há `requirePermission`/`requireActiveConsent`. No lugar, um CAPTCHA
+ * fail-closed (ADR-0014) precede qualquer efeito ou consulta ao banco.
+ *
+ * **Anti-abuso (ADR-0014):** CAPTCHA obrigatório antes de qualquer I/O. A recusa
+ * é independente dos dados informados (não vaza existência de Pessoa/e-mail) e
+ * eleva o custo do mail-bombing e da enumeração por volume — sem ele, tanto o
+ * caminho determinístico de e-mail em uso (E-003) quanto a diferença de timing
+ * entre o happy path e o no-op seriam exploráveis em escala.
  *
  * **Anti-enumeração (P-006):** devolve sempre a MESMA mensagem genérica, exista
  * ou não a Pessoa — o solicitante não consegue inferir quem está cadastrado via
@@ -50,16 +59,24 @@ export async function requestCredentialClaim(
   }
   const input = parsed.data;
 
-  // 2. Contexto da request (IP, user-agent) para auditoria.
+  // 2. Contexto da request (IP, user-agent) para CAPTCHA e auditoria.
   const hdrs = await headers();
   const rawIp = clientIp(hdrs);
   const ip = rawIp === 'unknown' ? null : rawIp;
   const userAgent = hdrs.get('user-agent');
 
+  // 3. CAPTCHA (fail-closed — ADR-0014). Antes de qualquer consulta/efeito; a
+  //    recusa é independente dos dados, então não vaza existência de Pessoa.
+  const captcha = container.resolve(CAPTCHA_VERIFIER_TOKEN);
+  const captchaResult = await captcha.verify(input.captchaToken, ip ?? undefined);
+  if (!captchaResult.ok) {
+    return fail('PRECONDITION_FAILED', 'CAPTCHA inválido ou expirado. Tente novamente.');
+  }
+
   // Resposta genérica única — retornada em TODOS os caminhos de sucesso/no-op (P-006).
   const generic = ok({ message: GENERIC_CLAIM_REQUEST_MESSAGE });
 
-  // 3. E-mail já em uso por outra Pessoa (E-003). Bloqueio determinístico — é o
+  // 4. E-mail já em uso por outra Pessoa (E-003). Bloqueio determinístico — é o
   //    único caminho que difere da resposta genérica. `email_login` é único (ADR-0021).
   const emailOwner = await prisma.person.findUnique({
     where: { emailLogin: input.requestedEmail },
@@ -69,7 +86,7 @@ export async function requestCredentialClaim(
     return fail('CONFLICT', 'Este e-mail já está em uso. Faça login ou informe outro e-mail.');
   }
 
-  // 4. Casamento por CPF com Pessoa elegível: existe, ATIVA e SEM credencial
+  // 5. Casamento por CPF com Pessoa elegível: existe, ATIVA e SEM credencial
   //    (pré-cadastrada por USP-002, ainda não ativou acesso). Sem CPF não há
   //    casamento automático seguro → resposta genérica (P-002 / P-006).
   if (!input.cpf) {
@@ -87,7 +104,7 @@ export async function requestCredentialClaim(
     return generic;
   }
 
-  // 5. Idempotência leve: já há solicitação PENDENTE para esta Pessoa? Não
+  // 6. Idempotência leve: já há solicitação PENDENTE para esta Pessoa? Não
   //    duplica a fila — devolve a mesma resposta genérica.
   const existingPending = await prisma.credentialClaim.findFirst({
     where: { personId: person.id, status: 'PENDING' },
@@ -98,7 +115,7 @@ export async function requestCredentialClaim(
     return generic;
   }
 
-  // 6. Cria a solicitação PENDENTE vinculada à Pessoa existente, em auditoria.
+  // 7. Cria a solicitação PENDENTE vinculada à Pessoa existente, em auditoria.
   //    O `after` não carrega o e-mail (PII): a minimização do audit o redigiria;
   //    registramos apenas IDs e o meio pretendido.
   try {

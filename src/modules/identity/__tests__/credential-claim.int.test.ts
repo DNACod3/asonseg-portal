@@ -42,6 +42,9 @@ const createdAuthEmails: string[] = [];
 const deletedAuthUserIds: string[] = [];
 let nextAuthUserId = 'c3c3c3c3-1111-2222-3333-666666666666';
 let createUserShouldFail: 'already' | 'other' | null = null;
+// Best-effort do e-mail de boas-vindas: quando true, generateLink falha (sem
+// token) — a ativação NÃO deve reverter, apenas não envia o e-mail.
+let generateLinkShouldFail = false;
 
 vi.mock('@/shared/lib/supabase/server', () => ({
   createSupabaseAdminClient: () => ({
@@ -57,10 +60,15 @@ vi.mock('@/shared/lib/supabase/server', () => ({
           createdAuthEmails.push(email);
           return { data: { user: { id: nextAuthUserId } }, error: null };
         }),
-        generateLink: vi.fn(async () => ({
-          data: { properties: { hashed_token: 'fake-hashed-token' } },
-          error: null,
-        })),
+        generateLink: vi.fn(async () => {
+          if (generateLinkShouldFail) {
+            return { data: { properties: null }, error: { message: 'link boom' } };
+          }
+          return {
+            data: { properties: { hashed_token: 'fake-hashed-token' } },
+            error: null,
+          };
+        }),
         deleteUser: vi.fn(async (id: string) => {
           deletedAuthUserIds.push(id);
           return { data: {}, error: null };
@@ -73,8 +81,17 @@ vi.mock('@/shared/lib/supabase/server', () => ({
 const { prisma } = await import('@/shared/lib/prisma');
 const { container } = await import('@/shared/container');
 const { EMAIL_SENDER_TOKEN } = await import('@/shared/lib/email/email-sender.port');
+const { CAPTCHA_VERIFIER_TOKEN } = await import('../ports/captchaVerifier');
 const { requestCredentialClaim } = await import('../actions/request-credential-claim');
 const { verifyCredentialClaim } = await import('../actions/verify-credential-claim');
+
+// CAPTCHA do fluxo público (ADR-0014): stub controlável por teste.
+let captchaOk = true;
+function registerCaptchaStub() {
+  container.register(CAPTCHA_VERIFIER_TOKEN, () => ({
+    verify: async () => ({ ok: captchaOk }),
+  }));
+}
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
@@ -103,6 +120,7 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
         return { ok: true, id: 'fake' };
       },
     }));
+    registerCaptchaStub();
     // Limpa resíduos do e-mail/CPF fixos (únicos pontos de colisão entre runs).
     await prisma.person.deleteMany({ where: { emailLogin: REQUESTED_EMAIL } });
     const stale = await prisma.person.findMany({
@@ -121,6 +139,8 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
     deletedAuthUserIds.length = 0;
     sentEmails.length = 0;
     createUserShouldFail = null;
+    generateLinkShouldFail = false;
+    captchaOk = true;
     nextAuthUserId = crypto.randomUUID();
     mockOperator = null;
   });
@@ -134,6 +154,7 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
       cpf: VALID_CPF,
       requestedEmail: REQUESTED_EMAIL,
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
 
     expect(result.ok).toBe(true);
@@ -160,9 +181,28 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
       cpf: VALID_CPF, // nenhuma Pessoa com esse CPF
       requestedEmail: REQUESTED_EMAIL,
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
     expect(result.ok).toBe(true);
     expect(await prisma.credentialClaim.count()).toBe(0);
+  });
+
+  it('request com CAPTCHA inválido é bloqueado e NÃO cria claim (ADR-0014)', async () => {
+    const personId = await preRegisteredPerson();
+    captchaOk = false;
+
+    const result = await requestCredentialClaim({
+      cpf: VALID_CPF,
+      requestedEmail: REQUESTED_EMAIL,
+      verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ruim',
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('PRECONDITION_FAILED');
+    // Fail-closed antes de qualquer efeito: nenhuma claim para a Pessoa.
+    expect(await prisma.credentialClaim.count({ where: { personId } })).toBe(0);
   });
 
   it('request com e-mail já em uso é bloqueado (E-003)', async () => {
@@ -183,6 +223,7 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
       cpf: VALID_CPF,
       requestedEmail: REQUESTED_EMAIL,
       verificationMethod: 'AS_CONFIRMATION',
+      captchaToken: 'captcha-ok',
     });
 
     expect(result.ok).toBe(false);
@@ -295,5 +336,62 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('PRECONDITION_FAILED');
+  });
+
+  it('verify concorrente da MESMA claim: só uma ativa (guard atômico), a outra PRECONDITION_FAILED', async () => {
+    const personId = await preRegisteredPerson();
+    const claim = await prisma.credentialClaim.create({
+      data: { personId, requestedEmail: REQUESTED_EMAIL, verificationMethod: 'AS_CONFIRMATION' },
+      select: { id: true },
+    });
+    asApprover();
+
+    // Dois aprovadores confirmam ao mesmo tempo (corrida — P-005).
+    const [a, b] = await Promise.all([
+      verifyCredentialClaim({ claimId: claim.id, verificationMethod: 'AS_CONFIRMATION' }),
+      verifyCredentialClaim({ claimId: claim.id, verificationMethod: 'IN_PERSON' }),
+    ]);
+
+    const oks = [a, b].filter((r) => r.ok);
+    const fails = [a, b].filter((r) => !r.ok);
+    expect(oks).toHaveLength(1);
+    expect(fails).toHaveLength(1);
+    const loser = fails[0];
+    if (loser && !loser.ok) {
+      expect(loser.error.code).toBe('PRECONDITION_FAILED');
+    }
+
+    // Exatamente uma transição: claim VERIFIED, Pessoa com credencial.
+    const verified = await prisma.credentialClaim.findUnique({ where: { id: claim.id } });
+    expect(verified?.status).toBe('VERIFIED');
+    const person = await prisma.person.findUnique({ where: { id: personId } });
+    expect(person?.supabaseUserId).toBe(nextAuthUserId);
+
+    // O perdedor desfez sua credencial órfã no provedor (rollback compensatório).
+    expect(deletedAuthUserIds).toHaveLength(1);
+  });
+
+  it('verify com falha ao gerar o link de boas-vindas: ativa mesmo assim, sem e-mail (best-effort)', async () => {
+    const personId = await preRegisteredPerson();
+    const claim = await prisma.credentialClaim.create({
+      data: { personId, requestedEmail: REQUESTED_EMAIL, verificationMethod: 'AS_CONFIRMATION' },
+      select: { id: true },
+    });
+    asApprover();
+    generateLinkShouldFail = true;
+
+    const result = await verifyCredentialClaim({
+      claimId: claim.id,
+      verificationMethod: 'AS_CONFIRMATION',
+    });
+
+    // Falha do e-mail (fora da transação) NÃO reverte a ativação.
+    expect(result.ok).toBe(true);
+    const verified = await prisma.credentialClaim.findUnique({ where: { id: claim.id } });
+    expect(verified?.status).toBe('VERIFIED');
+    const person = await prisma.person.findUnique({ where: { id: personId } });
+    expect(person?.supabaseUserId).toBe(nextAuthUserId);
+    // Sem token de link → nenhum e-mail enviado.
+    expect(sentEmails).toHaveLength(0);
   });
 });

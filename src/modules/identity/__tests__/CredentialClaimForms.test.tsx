@@ -19,10 +19,26 @@ vi.mock('../actions/verify-credential-claim', () => ({
   verifyCredentialClaim: (...a: unknown[]) => actionState.verifyCredentialClaim(...a),
 }));
 
+// Mock do widget Turnstile (ADR-0014): um botão que entrega o token via onSuccess
+// ao clicar — sem rede nem o SDK do Cloudflare.
+vi.mock('@marsidev/react-turnstile', () => ({
+  Turnstile: ({ onSuccess }: { onSuccess: (token: string) => void }) => (
+    <button type="button" onClick={() => onSuccess('captcha-tok')}>
+      resolver-captcha
+    </button>
+  ),
+}));
+
 const { CredentialClaimForm } = await import('../components/credential-claim-form');
 const { CredentialClaimReview } = await import('../components/credential-claim-review');
 
 const VALID_CPF = '529.982.247-25';
+const SITE_KEY = '1x00000000000000000000AA';
+
+/** Simula a resolução do CAPTCHA clicando no widget mockado. */
+function resolveCaptcha() {
+  fireEvent.click(screen.getByRole('button', { name: 'resolver-captcha' }));
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -30,37 +46,55 @@ beforeEach(() => {
 
 describe('CredentialClaimForm (solicitação pública)', () => {
   it('renderiza CPF, identificador alternativo, e-mail e meio de verificação', () => {
-    render(<CredentialClaimForm />);
+    render(<CredentialClaimForm siteKey={SITE_KEY} />);
     expect(screen.getByLabelText(/^CPF/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Identificador alternativo/)).toBeInTheDocument();
     expect(screen.getByLabelText(/E-mail desejado/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Meio de verificação preferido/)).toBeInTheDocument();
   });
 
-  it('submissão válida → chama a action com CPF normalizado e mostra a resposta genérica', async () => {
+  it('submissão válida + CAPTCHA → chama a action com CPF normalizado e mostra a resposta genérica', async () => {
     actionState.requestCredentialClaim.mockResolvedValue({
       ok: true,
       data: { message: 'Recebemos sua solicitação.' },
     });
-    render(<CredentialClaimForm />);
+    render(<CredentialClaimForm siteKey={SITE_KEY} />);
+    fireEvent.change(screen.getByLabelText(/^CPF/), { target: { value: VALID_CPF } });
+    fireEvent.change(screen.getByLabelText(/E-mail desejado/), {
+      target: { value: 'maria@example.com' },
+    });
+    resolveCaptcha();
+    fireEvent.click(screen.getByRole('button', { name: 'Solicitar reivindicação' }));
+
+    await waitFor(() => expect(actionState.requestCredentialClaim).toHaveBeenCalledTimes(1));
+    expect(actionState.requestCredentialClaim).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cpf: '52998224725',
+        requestedEmail: 'maria@example.com',
+        captchaToken: 'captcha-tok',
+      }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Recebemos sua solicitação.');
+  });
+
+  it('sem CAPTCHA resolvido → não chama a action', async () => {
+    render(<CredentialClaimForm siteKey={SITE_KEY} />);
     fireEvent.change(screen.getByLabelText(/^CPF/), { target: { value: VALID_CPF } });
     fireEvent.change(screen.getByLabelText(/E-mail desejado/), {
       target: { value: 'maria@example.com' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar reivindicação' }));
 
-    await waitFor(() => expect(actionState.requestCredentialClaim).toHaveBeenCalledTimes(1));
-    expect(actionState.requestCredentialClaim).toHaveBeenCalledWith(
-      expect.objectContaining({ cpf: '52998224725', requestedEmail: 'maria@example.com' }),
-    );
-    expect(await screen.findByRole('status')).toHaveTextContent('Recebemos sua solicitação.');
+    expect(await screen.findByText(/CAPTCHA/)).toBeInTheDocument();
+    expect(actionState.requestCredentialClaim).not.toHaveBeenCalled();
   });
 
   it('sem CPF nem identificador → erro de validação, não chama a action', async () => {
-    render(<CredentialClaimForm />);
+    render(<CredentialClaimForm siteKey={SITE_KEY} />);
     fireEvent.change(screen.getByLabelText(/E-mail desejado/), {
       target: { value: 'x@example.com' },
     });
+    resolveCaptcha();
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar reivindicação' }));
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
@@ -72,11 +106,12 @@ describe('CredentialClaimForm (solicitação pública)', () => {
       ok: false,
       error: { code: 'CONFLICT', message: 'Este e-mail já está em uso. Faça login ou informe outro e-mail.' },
     });
-    render(<CredentialClaimForm />);
+    render(<CredentialClaimForm siteKey={SITE_KEY} />);
     fireEvent.change(screen.getByLabelText(/^CPF/), { target: { value: VALID_CPF } });
     fireEvent.change(screen.getByLabelText(/E-mail desejado/), {
       target: { value: 'maria@example.com' },
     });
+    resolveCaptcha();
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar reivindicação' }));
 
     expect(await screen.findByText(/já está em uso/)).toBeInTheDocument();

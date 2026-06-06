@@ -78,6 +78,16 @@ describe('middleware — categorização e rate limit', () => {
     const sixth = middleware(req('/recuperar-senha', ip));
     expect(sixth.status).toBe(429);
   });
+
+  it('usa o limite de identidade pública (5/15min) na rota /reivindicar-credencial (USP-003)', () => {
+    const ip = { 'x-real-ip': '3.3.3.4' };
+    expect(middleware(req('/reivindicar-credencial', ip)).headers.get('X-RateLimit-Limit')).toBe('5');
+    for (let i = 0; i < 4; i++) {
+      expect(middleware(req('/reivindicar-credencial', ip)).status).not.toBe(429);
+    }
+    const sixth = middleware(req('/reivindicar-credencial', ip));
+    expect(sixth.status).toBe(429);
+  });
 });
 
 describe('middleware — extração de IP confiável (anti-spoof)', () => {

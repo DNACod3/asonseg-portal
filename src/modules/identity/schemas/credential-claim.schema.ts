@@ -77,6 +77,11 @@ export const requestCredentialClaimSchema = z
     requestedEmail: emailField,
 
     verificationMethod: verificationMethodField,
+
+    // CAPTCHA obrigatório (ADR-0014): endpoint público de identidade — contém
+    // mail-bombing e enumeração por volume, mesma exigência do auto-cadastro e
+    // da recuperação de senha. Verificado fail-closed na Server Action.
+    captchaToken: z.string().min(1, 'CAPTCHA obrigatório'),
   })
   .superRefine((data, ctx) => {
     if (!data.cpf && !data.alternativeIdentifier) {
