@@ -1,0 +1,1390 @@
+{
+  "exit_reason": "max_iterations (5)",
+  "original_description": "Gera os \"facts\" de teste (BDD + TDD) a partir dos crit\u00e9rios de aceita\u00e7\u00e3o EARS de uma User Story do Portal ASONSEG, usando PRD, ADRs de neg\u00f3cio, ADRs t\u00e9cnicas, architecture-document, technical-design e project-guideline como fonte da verdade. Materializa a Se\u00e7\u00e3o 23 (EARS \u2192 Fact) e o princ\u00edpio P1 do guia: todo crit\u00e9rio em prosa vira artefato m\u00e1quina-verific\u00e1vel (cen\u00e1rio Gherkin .feature, teste red Vitest, esqueleto E2E Playwright) + matriz de rastreabilidade AC\u2192fact. Use SEMPRE que precisar transformar crit\u00e9rios de aceite em testes-fonte: quando a bravi-spec-driven estiver na fase Tasks e precisar popular os campos Tests/Gate de cada task; quando algu\u00e9m pedir \"gerar os facts/testes BDD da USP-NNN\", \"criar os testes a partir dos crit\u00e9rios EARS\", \"EARS \u2192 fact\", \"testes fonte da verdade\", \"preparar a US para o Kickoff Gate\", ou \"escrever os cen\u00e1rios de teste antes de implementar (TDD)\". Aciona mesmo sem a palavra \"skill-tdad\" ser dita, desde que o pedido envolva derivar testes/facts de crit\u00e9rios de aceita\u00e7\u00e3o ou User Stories deste projeto. N\u00c3O use para implementar a feature em si, nem para rodar/depurar testes existentes \u2014 s\u00f3 para ger\u00e1-los como fonte da verdade.",
+  "best_description": "Gera os \"facts\" de teste (BDD + TDD) a partir dos crit\u00e9rios de aceita\u00e7\u00e3o EARS de uma User Story do Portal ASONSEG, usando PRD, ADRs de neg\u00f3cio, ADRs t\u00e9cnicas, architecture-document, technical-design e project-guideline como fonte da verdade. Materializa a Se\u00e7\u00e3o 23 (EARS \u2192 Fact) e o princ\u00edpio P1 do guia: todo crit\u00e9rio em prosa vira artefato m\u00e1quina-verific\u00e1vel (cen\u00e1rio Gherkin .feature, teste red Vitest, esqueleto E2E Playwright) + matriz de rastreabilidade AC\u2192fact. Use SEMPRE que precisar transformar crit\u00e9rios de aceite em testes-fonte: quando a bravi-spec-driven estiver na fase Tasks e precisar popular os campos Tests/Gate de cada task; quando algu\u00e9m pedir \"gerar os facts/testes BDD da USP-NNN\", \"criar os testes a partir dos crit\u00e9rios EARS\", \"EARS \u2192 fact\", \"testes fonte da verdade\", \"preparar a US para o Kickoff Gate\", ou \"escrever os cen\u00e1rios de teste antes de implementar (TDD)\". Aciona mesmo sem a palavra \"skill-tdad\" ser dita, desde que o pedido envolva derivar testes/facts de crit\u00e9rios de aceita\u00e7\u00e3o ou User Stories deste projeto. N\u00c3O use para implementar a feature em si, nem para rodar/depurar testes existentes \u2014 s\u00f3 para ger\u00e1-los como fonte da verdade.",
+  "best_score": "4/8",
+  "best_train_score": "6/12",
+  "best_test_score": "4/8",
+  "final_description": "Use this skill to generate tests BEFORE implementing a feature, derived from a User Story's acceptance criteria. Triggers on any request to create, write, derive, or generate: BDD Gherkin .feature scenarios, failing Vitest specs (red tests), Playwright E2E skeletons, \"facts\", or an AC\u2192test traceability matrix \u2014 starting from a User Story, USP-NNN, hist\u00f3ria, crit\u00e9rios de aceita\u00e7\u00e3o, ACs, crit\u00e9rios de aceite, or EARS clauses (WHEN/IF/WHERE/WHILE/SHALL). Also triggers on Portuguese phrasings like \"gera os facts da USP-...\", \"EARS \u2192 fact\", \"cen\u00e1rios BDD da hist\u00f3ria\", \"testes red antes de codar\", \"transformar crit\u00e9rios em testes\", \"preparar US pro Kickoff Gate\", \"matriz de rastreabilidade\", \".feature em pt-br com tag por AC\", \"testes-fonte\", \"fact m\u00e1quina-verific\u00e1vel\". Trigger even on short/informal requests and without the skill name being mentioned. Do NOT use to: implement the feature itself, run/debug existing tests, debug CI, check coverage, or teach testing concepts.",
+  "iterations_run": 5,
+  "holdout": 0.4,
+  "train_size": 12,
+  "test_size": 8,
+  "history": [
+    {
+      "iteration": 1,
+      "description": "Gera os \"facts\" de teste (BDD + TDD) a partir dos crit\u00e9rios de aceita\u00e7\u00e3o EARS de uma User Story do Portal ASONSEG, usando PRD, ADRs de neg\u00f3cio, ADRs t\u00e9cnicas, architecture-document, technical-design e project-guideline como fonte da verdade. Materializa a Se\u00e7\u00e3o 23 (EARS \u2192 Fact) e o princ\u00edpio P1 do guia: todo crit\u00e9rio em prosa vira artefato m\u00e1quina-verific\u00e1vel (cen\u00e1rio Gherkin .feature, teste red Vitest, esqueleto E2E Playwright) + matriz de rastreabilidade AC\u2192fact. Use SEMPRE que precisar transformar crit\u00e9rios de aceite em testes-fonte: quando a bravi-spec-driven estiver na fase Tasks e precisar popular os campos Tests/Gate de cada task; quando algu\u00e9m pedir \"gerar os facts/testes BDD da USP-NNN\", \"criar os testes a partir dos crit\u00e9rios EARS\", \"EARS \u2192 fact\", \"testes fonte da verdade\", \"preparar a US para o Kickoff Gate\", ou \"escrever os cen\u00e1rios de teste antes de implementar (TDD)\". Aciona mesmo sem a palavra \"skill-tdad\" ser dita, desde que o pedido envolva derivar testes/facts de crit\u00e9rios de aceita\u00e7\u00e3o ou User Stories deste projeto. N\u00c3O use para implementar a feature em si, nem para rodar/depurar testes existentes \u2014 s\u00f3 para ger\u00e1-los como fonte da verdade.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "t\u00f4 na fase tasks da spec-driven na feature de encaminhamento, j\u00e1 tenho os ACs prontos, gera os testes-fonte pra eu popular os campos Tests/Gate de cada task",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "antes do dev come\u00e7ar a usp-016 quero garantir que todo crit\u00e9rio de aceite tem teste correspondente; gera essa cobertura de facts pra mim",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bora gerar os testes da usp-012 antes de implementar, seguindo aquele esquema de EARS pra fact",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "monta os testes BDD/TDD da extra\u00e7\u00e3o de CV (usp-040). lembra que \u00e9 LLM e depende de consentimento, ent\u00e3o quero as m\u00e9tricas de eval suite e n\u00e3o s\u00f3 assert determin\u00edstico",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a tela de login j\u00e1 t\u00e1 no ar em staging, escreve uns testes e2e playwright clicando no fluxo real pra validar que t\u00e1 funcionando",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "especifica a feature de notifica\u00e7\u00f5es por e-mail: quero os requisitos, as user stories e os crit\u00e9rios de aceite em EARS escritos",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "escreve uma ADR documentando a decis\u00e3o de usar m\u00e1quina de estados centralizada pra modera\u00e7\u00e3o de conte\u00fado",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "revisa o PR #231 da feature de empresa, olha cobertura de testes e ader\u00eancia ao project-guideline",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "description": "Use esta skill para gerar testes-fonte (facts BDD + TDD) a partir dos crit\u00e9rios de aceita\u00e7\u00e3o de uma User Story do Portal ASONSEG, ANTES de implementar a feature. Acione sempre que o pedido envolver: derivar/criar/gerar testes, cen\u00e1rios Gherkin (.feature), specs Vitest red ou esqueletos Playwright a partir de crit\u00e9rios de aceite, ACs, EARS ou User Stories (USP-NNN); transformar crit\u00e9rios em prosa em artefatos m\u00e1quina-verific\u00e1veis; preparar uma US para o Kickoff Gate; popular campos Tests/Gate de tasks na fase spec-driven; escrever cen\u00e1rios BDD/TDD antes de codar; produzir matriz de rastreabilidade AC\u2192teste. Gatilhos t\u00edpicos incluem \"EARS \u2192 fact\", \"facts da USP-...\", \"testes a partir dos crit\u00e9rios\", \"cen\u00e1rios BDD da hist\u00f3ria\", \"testes red antes de implementar\", \"fonte da verdade dos testes\". Acione mesmo sem citar \"skill-tdad\". N\u00c3O use para implementar a feature, rodar/depurar testes existentes, debugar CI ou ensinar conceitos de teste \u2014 apenas para gerar os testes como fonte da verdade derivados dos ACs.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "antes do dev come\u00e7ar a usp-016 quero garantir que todo crit\u00e9rio de aceite tem teste correspondente; gera essa cobertura de facts pra mim",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bora gerar os testes da usp-012 antes de implementar, seguindo aquele esquema de EARS pra fact",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "t\u00f4 na fase tasks da spec-driven na feature de encaminhamento, j\u00e1 tenho os ACs prontos, gera os testes-fonte pra eu popular os campos Tests/Gate de cada task",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "monta os testes BDD/TDD da extra\u00e7\u00e3o de CV (usp-040). lembra que \u00e9 LLM e depende de consentimento, ent\u00e3o quero as m\u00e9tricas de eval suite e n\u00e3o s\u00f3 assert determin\u00edstico",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "especifica a feature de notifica\u00e7\u00f5es por e-mail: quero os requisitos, as user stories e os crit\u00e9rios de aceite em EARS escritos",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "a tela de login j\u00e1 t\u00e1 no ar em staging, escreve uns testes e2e playwright clicando no fluxo real pra validar que t\u00e1 funcionando",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "escreve uma ADR documentando a decis\u00e3o de usar m\u00e1quina de estados centralizada pra modera\u00e7\u00e3o de conte\u00fado",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "revisa o PR #231 da feature de empresa, olha cobertura de testes e ader\u00eancia ao project-guideline",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "description": "Use esta skill para gerar testes-fonte (cen\u00e1rios Gherkin .feature, specs Vitest red, esqueletos Playwright E2E, matriz AC\u2192teste) a partir dos crit\u00e9rios de aceita\u00e7\u00e3o de uma User Story ANTES de implementar a feature. Acione sempre que o pedido envolver derivar/criar/gerar/escrever testes, facts, cen\u00e1rios BDD ou specs a partir de ACs, crit\u00e9rios de aceite, cl\u00e1usulas EARS (WHEN/IF/WHERE/WHILE/SHALL) ou User Stories (USP-NNN, hist\u00f3rias de usu\u00e1rio) \u2014 incluindo \"EARS \u2192 fact\", \"facts da USP\", \"cen\u00e1rios BDD da hist\u00f3ria\", \"testes red antes de codar\", \"transformar crit\u00e9rios em testes\", \"preparar US pro Kickoff Gate\", \"matriz de rastreabilidade\", \"gerar .feature em pt-br\", ou qualquer pedido para transformar crit\u00e9rios em prosa em artefatos m\u00e1quina-verific\u00e1veis. Vale para User Stories do Portal ASONSEG e para a fase Tasks do spec-driven (popular campos Tests/Gate). Acione mesmo sem citar \"skill-tdad\". N\u00c3O use para implementar a feature, rodar/depurar testes existentes, debugar CI, checar cobertura, ou ensinar conceitos de teste.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "antes do dev come\u00e7ar a usp-016 quero garantir que todo crit\u00e9rio de aceite tem teste correspondente; gera essa cobertura de facts pra mim",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bora gerar os testes da usp-012 antes de implementar, seguindo aquele esquema de EARS pra fact",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "t\u00f4 na fase tasks da spec-driven na feature de encaminhamento, j\u00e1 tenho os ACs prontos, gera os testes-fonte pra eu popular os campos Tests/Gate de cada task",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "monta os testes BDD/TDD da extra\u00e7\u00e3o de CV (usp-040). lembra que \u00e9 LLM e depende de consentimento, ent\u00e3o quero as m\u00e9tricas de eval suite e n\u00e3o s\u00f3 assert determin\u00edstico",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "especifica a feature de notifica\u00e7\u00f5es por e-mail: quero os requisitos, as user stories e os crit\u00e9rios de aceite em EARS escritos",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "a tela de login j\u00e1 t\u00e1 no ar em staging, escreve uns testes e2e playwright clicando no fluxo real pra validar que t\u00e1 funcionando",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "escreve uma ADR documentando a decis\u00e3o de usar m\u00e1quina de estados centralizada pra modera\u00e7\u00e3o de conte\u00fado",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "revisa o PR #231 da feature de empresa, olha cobertura de testes e ader\u00eancia ao project-guideline",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 4,
+      "description": "Use esta skill quando o usu\u00e1rio pedir para criar, gerar, escrever ou derivar TESTES (cen\u00e1rios BDD/Gherkin .feature, specs Vitest red, esqueletos Playwright E2E, \"facts\", matriz de rastreabilidade) a PARTIR de uma User Story, USP-NNN, hist\u00f3ria, crit\u00e9rios de aceita\u00e7\u00e3o, ACs, crit\u00e9rios de aceite, ou cl\u00e1usulas EARS (WHEN/IF/WHERE/WHILE/SHALL) \u2014 ANTES da feature ser implementada. Exemplos que devem acionar: \"gera os facts da USP-009\", \"EARS \u2192 fact da US de inativar pessoa\", \"cen\u00e1rios BDD + testes red dos crit\u00e9rios de aceite\", \"preparar USP pro Kickoff Gate\", \"testes-fonte derivados dos EARS\", \"transformar crit\u00e9rios em testes red antes de codar\", \"escrever .feature em pt-br com tag por AC\", \"fact m\u00e1quina-verific\u00e1vel de cada AC\". Acione mesmo sem mencionar \"skill-tdad\" e mesmo em pedidos curtos/informais. N\u00c3O use para: implementar feature, rodar/debugar testes existentes, debugar CI, checar cobertura, ensinar conceitos, ou criar testes que n\u00e3o derivam de ACs/User Story.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "t\u00f4 na fase tasks da spec-driven na feature de encaminhamento, j\u00e1 tenho os ACs prontos, gera os testes-fonte pra eu popular os campos Tests/Gate de cada task",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "antes do dev come\u00e7ar a usp-016 quero garantir que todo crit\u00e9rio de aceite tem teste correspondente; gera essa cobertura de facts pra mim",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bora gerar os testes da usp-012 antes de implementar, seguindo aquele esquema de EARS pra fact",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "monta os testes BDD/TDD da extra\u00e7\u00e3o de CV (usp-040). lembra que \u00e9 LLM e depende de consentimento, ent\u00e3o quero as m\u00e9tricas de eval suite e n\u00e3o s\u00f3 assert determin\u00edstico",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "especifica a feature de notifica\u00e7\u00f5es por e-mail: quero os requisitos, as user stories e os crit\u00e9rios de aceite em EARS escritos",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "escreve uma ADR documentando a decis\u00e3o de usar m\u00e1quina de estados centralizada pra modera\u00e7\u00e3o de conte\u00fado",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "a tela de login j\u00e1 t\u00e1 no ar em staging, escreve uns testes e2e playwright clicando no fluxo real pra validar que t\u00e1 funcionando",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "revisa o PR #231 da feature de empresa, olha cobertura de testes e ader\u00eancia ao project-guideline",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 5,
+      "description": "Use this skill to generate tests BEFORE implementing a feature, derived from a User Story's acceptance criteria. Triggers on any request to create, write, derive, or generate: BDD Gherkin .feature scenarios, failing Vitest specs (red tests), Playwright E2E skeletons, \"facts\", or an AC\u2192test traceability matrix \u2014 starting from a User Story, USP-NNN, hist\u00f3ria, crit\u00e9rios de aceita\u00e7\u00e3o, ACs, crit\u00e9rios de aceite, or EARS clauses (WHEN/IF/WHERE/WHILE/SHALL). Also triggers on Portuguese phrasings like \"gera os facts da USP-...\", \"EARS \u2192 fact\", \"cen\u00e1rios BDD da hist\u00f3ria\", \"testes red antes de codar\", \"transformar crit\u00e9rios em testes\", \"preparar US pro Kickoff Gate\", \"matriz de rastreabilidade\", \".feature em pt-br com tag por AC\", \"testes-fonte\", \"fact m\u00e1quina-verific\u00e1vel\". Trigger even on short/informal requests and without the skill name being mentioned. Do NOT use to: implement the feature itself, run/debug existing tests, debug CI, check coverage, or teach testing concepts.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "antes do dev come\u00e7ar a usp-016 quero garantir que todo crit\u00e9rio de aceite tem teste correspondente; gera essa cobertura de facts pra mim",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "t\u00f4 na fase tasks da spec-driven na feature de encaminhamento, j\u00e1 tenho os ACs prontos, gera os testes-fonte pra eu popular os campos Tests/Gate de cada task",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bora gerar os testes da usp-012 antes de implementar, seguindo aquele esquema de EARS pra fact",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "monta os testes BDD/TDD da extra\u00e7\u00e3o de CV (usp-040). lembra que \u00e9 LLM e depende de consentimento, ent\u00e3o quero as m\u00e9tricas de eval suite e n\u00e3o s\u00f3 assert determin\u00edstico",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "especifica a feature de notifica\u00e7\u00f5es por e-mail: quero os requisitos, as user stories e os crit\u00e9rios de aceite em EARS escritos",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "escreve uma ADR documentando a decis\u00e3o de usar m\u00e1quina de estados centralizada pra modera\u00e7\u00e3o de conte\u00fado",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "a tela de login j\u00e1 t\u00e1 no ar em staging, escreve uns testes e2e playwright clicando no fluxo real pra validar que t\u00e1 funcionando",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "revisa o PR #231 da feature de empresa, olha cobertura de testes e ader\u00eancia ao project-guideline",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "EARS para fact da US de inativar pessoa por favor",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "a usp-004 ainda n\u00e3o foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos crit\u00e9rios EARS dela pra levar pro kickoff gate",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "escreve os cen\u00e1rios gherkin e os esqueletos de teste falhando da hist\u00f3ria de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cada AC dessa user story precisa de um fact m\u00e1quina-verific\u00e1vel. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos crit\u00e9rios de aceite EARS dela",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "os testes de modera\u00e7\u00e3o t\u00e3o quebrando no CI, d\u00e1 uma olhada no que t\u00e1 falhando em transitionContent e arruma",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "transforma os crit\u00e9rios de aceite da US de publica\u00e7\u00e3o de vaga em cen\u00e1rios BDD + testes red, quero que sejam a fonte da verdade antes de eu codar",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "desenha a arquitetura do m\u00f3dulo de referrals: ports, adapters e os view models por papel",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "qual a diferen\u00e7a entre teste unit\u00e1rio e de integra\u00e7\u00e3o no vitest e quando usar cada um nesse projeto?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padr\u00e3o can\u00f4nico: valida\u00e7\u00e3o zod, requirePermission, withAudit e retorno ActionResult",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "monta o dataset.jsonl com 30 CVs sint\u00e9ticos anonimizados pra eval suite de cv-extraction",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "roda o npm run test:coverage e me diz se a cobertura t\u00e1 acima dos 65% do gate de CI",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

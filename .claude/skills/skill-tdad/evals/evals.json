@@ -1,0 +1,26 @@
+{
+  "skill_name": "skill-tdad",
+  "evals": [
+    {
+      "id": 0,
+      "name": "usp-004-login-standalone",
+      "prompt": "Preciso preparar a USP-004 (Autenticar no portal com e-mail e senha) pra entrar em sprint. Gera os facts de teste a partir dos critérios de aceitação EARS dela, pra eu levar pro Kickoff Gate. A US está no docs/prd/prd-asonseg-portal-mvp.md.",
+      "expected_output": "Artefatos em .specs/features/<feature>/tests/: .feature Gherkin PT-BR com tags @ac-004-N cobrindo happy path (WHEN login válido), borda (IF credenciais inválidas, IF 5 tentativas em 15min -> bloqueio), e o WHILE (sessão encerra após 12h inatividade); spec Vitest red rodável; matriz de rastreabilidade AC->fact com bloco ## Facts e seção de lacunas. Tudo PT-BR, sem implementar a feature.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "usp-016-moderacao-spec-driven",
+      "prompt": "Estou na fase Tasks da bravi-spec-driven trabalhando na feature de moderação de rascunho (USP-016: Moderar rascunho de vaga, CV ou serviço). Já tenho os critérios de aceite. Gera os testes-fonte (BDD + TDD) seguindo a metodologia EARS->Fact do projeto pra eu popular os campos Tests/Gate de cada task antes de implementar.",
+      "expected_output": "Facts que respeitam os padrões do projeto: transição de estado via transitionContent (máquina de estados, não prisma.update direto), requirePermission, withAudit, justificativa quando configurada. Gherkin PT-BR + Vitest red cobrindo aprovar/rejeitar/transição inválida + casos obrigatórios de Server Action (permissão recusada, etc). Matriz de rastreabilidade. Referencia ADR de moderação. Não implementa.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "usp-040-cv-extraction-llm",
+      "prompt": "gera os testes fonte da verdade da USP-040 (extração automática de CV via IA generativa). lembra que isso depende de LLM e de consentimento, então quero que os facts reflitam isso direito.",
+      "expected_output": "Reconhece que AC dependentes de LLM viram métrica de eval suite (baseline.json: precision/recall/hallucination_rate/latency_p95), não teste determinístico; consentimento CV_AI_EXTRACTION ausente -> erro CONSENT_REQUIRED; happy path de extração; timeout/falha do provedor. Gherkin PT-BR + Vitest red + matriz com bloco ## Facts apontando paths em modules/cv-extraction. Cita Seção 21/ADR LLM. Não implementa.",
+      "files": []
+    }
+  ]
+}

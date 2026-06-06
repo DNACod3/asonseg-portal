@@ -1,0 +1,15 @@
+{
+  "eval_id": 1,
+  "eval_name": "usp-016-moderacao-spec-driven",
+  "prompt": "Fase Tasks da bravi-spec-driven, feature de moderação de rascunho (USP-016). Gera os testes-fonte (BDD + TDD) seguindo EARS→Fact pra popular Tests/Gate.",
+  "assertions": [
+    {"id": "gherkin_ptbr", "text": "Gerou arquivo .feature Gherkin em PT-BR"},
+    {"id": "tags_ac", "text": "Cenários têm tags @ac-016-N"},
+    {"id": "vitest_red", "text": "Gerou spec Vitest red (falha por falta de implementação)"},
+    {"id": "matriz_facts", "text": "Gerou matriz de rastreabilidade com bloco '## Facts'"},
+    {"id": "estrutura_padrao", "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability"},
+    {"id": "maquina_estados", "text": "Ancorou em transitionContent/máquina de estados (não prisma.update direto)"},
+    {"id": "casos_obrigatorios", "text": "Incluiu casos obrigatórios de Server Action: requirePermission recusada, transição inválida, justificativa"},
+    {"id": "respeitou_output", "text": "Não criou nada em src/ nem .specs/ do projeto"}
+  ]
+}

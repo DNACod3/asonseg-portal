@@ -42,3 +42,7 @@ yarn-error.log*
 
 # prisma
 /prisma/*.db
+
+# python (caches de scripts de skills)
+__pycache__/
+*.pyc

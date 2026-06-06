@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "Gerou arquivo .feature Gherkin em PT-BR",
+      "passed": true,
+      "evidence": "1 .feature; keywords PT-BR presentes"
+    },
+    {
+      "text": "Cenários têm tags @ac-016-N",
+      "passed": true,
+      "evidence": "5 tags @ac-016-N"
+    },
+    {
+      "text": "Gerou spec Vitest red (falha por falta de implementação)",
+      "passed": true,
+      "evidence": "2 spec(s); marca de red presente"
+    },
+    {
+      "text": "Gerou matriz de rastreabilidade com bloco '## Facts'",
+      "passed": true,
+      "evidence": "matriz=True, bloco '## Facts'=True"
+    },
+    {
+      "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+      "passed": true,
+      "evidence": "bdd=True unit=True e2e=True traceability=True"
+    },
+    {
+      "text": "Ancorou em transitionContent/máquina de estados (não prisma.update direto)",
+      "passed": true,
+      "evidence": "referência a máquina de estados presente; transitionContent=sim"
+    },
+    {
+      "text": "Incluiu casos obrigatórios de Server Action: requirePermission recusada, transição inválida, justificativa",
+      "passed": true,
+      "evidence": "permissão=True, transição_inválida=True, justificativa=True"
+    },
+    {
+      "text": "Não criou nada em src/ nem .specs/ do projeto",
+      "passed": true,
+      "evidence": "nenhum arquivo em src/"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_duration_seconds": 243.1
+  },
+  "execution_metrics": {
+    "total_tokens": 69112
+  }
+}

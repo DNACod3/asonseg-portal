@@ -1,0 +1,413 @@
+{
+  "metadata": {
+    "skill_name": "skill-tdad",
+    "skill_path": "/Users/cfassula/projetos/asonseg/portal/.claude/skills/skill-tdad",
+    "executor_model": "claude-opus-4-7[1m]",
+    "timestamp": "2026-05-26T19:39:04Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "USP-004 Autenticar (login)",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "total": 8,
+        "time_seconds": 207.4,
+        "tokens": 63585,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gerou arquivo .feature Gherkin em PT-BR (Funcionalidade/Cenário/Dado/Quando/Então)",
+          "passed": true,
+          "evidence": "1 .feature; keywords PT-BR presentes"
+        },
+        {
+          "text": "Cenários têm tags @ac-004-N amarrando ao critério de aceite",
+          "passed": true,
+          "evidence": "4 tags @ac-004-N"
+        },
+        {
+          "text": "Gerou spec Vitest red (falha por falta de implementação, não por sintaxe/import)",
+          "passed": true,
+          "evidence": "1 spec(s); marca de red presente"
+        },
+        {
+          "text": "Gerou matriz de rastreabilidade AC→fact com bloco '## Facts' para o issue",
+          "passed": true,
+          "evidence": "matriz=True, bloco '## Facts'=True"
+        },
+        {
+          "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+          "passed": true,
+          "evidence": "bdd=True unit=True e2e=True traceability=True"
+        },
+        {
+          "text": "Cobriu todos os ACs (cobertura X/X declarada, sem AC órfão)",
+          "passed": true,
+          "evidence": "menção explícita de cobertura X/Y"
+        },
+        {
+          "text": "Não criou nada em src/ nem .specs/ do projeto",
+          "passed": true,
+          "evidence": "nenhum arquivo em src/"
+        },
+        {
+          "text": "Cobriu o WHILE (sessão 12h inatividade) e o IF (5 tentativas→bloqueio) corretamente",
+          "passed": true,
+          "evidence": "sessão12h=True, lockout5=True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "eval_name": "USP-004 Autenticar (login)",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 6,
+        "total": 8,
+        "time_seconds": 200.9,
+        "tokens": 46643,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gerou arquivo .feature Gherkin em PT-BR (Funcionalidade/Cenário/Dado/Quando/Então)",
+          "passed": true,
+          "evidence": "1 .feature; keywords PT-BR presentes"
+        },
+        {
+          "text": "Cenários têm tags @ac-004-N amarrando ao critério de aceite",
+          "passed": false,
+          "evidence": "0 tags @ac-004-N"
+        },
+        {
+          "text": "Gerou spec Vitest red (falha por falta de implementação, não por sintaxe/import)",
+          "passed": true,
+          "evidence": "1 spec(s); marca de red presente"
+        },
+        {
+          "text": "Gerou matriz de rastreabilidade AC→fact com bloco '## Facts' para o issue",
+          "passed": true,
+          "evidence": "matriz=True, bloco '## Facts'=True"
+        },
+        {
+          "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+          "passed": false,
+          "evidence": "bdd=False unit=False e2e=False traceability=False"
+        },
+        {
+          "text": "Cobriu todos os ACs (cobertura X/X declarada, sem AC órfão)",
+          "passed": true,
+          "evidence": "menção explícita de cobertura X/Y"
+        },
+        {
+          "text": "Não criou nada em src/ nem .specs/ do projeto",
+          "passed": true,
+          "evidence": "nenhum arquivo em src/"
+        },
+        {
+          "text": "Cobriu o WHILE (sessão 12h inatividade) e o IF (5 tentativas→bloqueio) corretamente",
+          "passed": true,
+          "evidence": "sessão12h=True, lockout5=True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "USP-016 Moderar rascunho",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "total": 8,
+        "time_seconds": 243.1,
+        "tokens": 69112,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gerou arquivo .feature Gherkin em PT-BR",
+          "passed": true,
+          "evidence": "1 .feature; keywords PT-BR presentes"
+        },
+        {
+          "text": "Cenários têm tags @ac-016-N",
+          "passed": true,
+          "evidence": "5 tags @ac-016-N"
+        },
+        {
+          "text": "Gerou spec Vitest red (falha por falta de implementação)",
+          "passed": true,
+          "evidence": "2 spec(s); marca de red presente"
+        },
+        {
+          "text": "Gerou matriz de rastreabilidade com bloco '## Facts'",
+          "passed": true,
+          "evidence": "matriz=True, bloco '## Facts'=True"
+        },
+        {
+          "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+          "passed": true,
+          "evidence": "bdd=True unit=True e2e=True traceability=True"
+        },
+        {
+          "text": "Ancorou em transitionContent/máquina de estados (não prisma.update direto)",
+          "passed": true,
+          "evidence": "referência a máquina de estados presente; transitionContent=sim"
+        },
+        {
+          "text": "Incluiu casos obrigatórios de Server Action: requirePermission recusada, transição inválida, justificativa",
+          "passed": true,
+          "evidence": "permissão=True, transição_inválida=True, justificativa=True"
+        },
+        {
+          "text": "Não criou nada em src/ nem .specs/ do projeto",
+          "passed": true,
+          "evidence": "nenhum arquivo em src/"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "USP-016 Moderar rascunho",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "total": 8,
+        "time_seconds": 228.7,
+        "tokens": 61147,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gerou arquivo .feature Gherkin em PT-BR",
+          "passed": true,
+          "evidence": "1 .feature; keywords PT-BR presentes"
+        },
+        {
+          "text": "Cenários têm tags @ac-016-N",
+          "passed": true,
+          "evidence": "5 tags @ac-016-N"
+        },
+        {
+          "text": "Gerou spec Vitest red (falha por falta de implementação)",
+          "passed": true,
+          "evidence": "1 spec(s); marca de red presente"
+        },
+        {
+          "text": "Gerou matriz de rastreabilidade com bloco '## Facts'",
+          "passed": true,
+          "evidence": "matriz=True, bloco '## Facts'=True"
+        },
+        {
+          "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+          "passed": true,
+          "evidence": "bdd=True unit=True e2e=True traceability=True"
+        },
+        {
+          "text": "Ancorou em transitionContent/máquina de estados (não prisma.update direto)",
+          "passed": true,
+          "evidence": "referência a máquina de estados presente; transitionContent=sim"
+        },
+        {
+          "text": "Incluiu casos obrigatórios de Server Action: requirePermission recusada, transição inválida, justificativa",
+          "passed": true,
+          "evidence": "permissão=True, transição_inválida=True, justificativa=True"
+        },
+        {
+          "text": "Não criou nada em src/ nem .specs/ do projeto",
+          "passed": true,
+          "evidence": "nenhum arquivo em src/"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "USP-040 Extração de CV por IA",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "total": 8,
+        "time_seconds": 277.1,
+        "tokens": 76558,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gerou arquivo .feature Gherkin em PT-BR",
+          "passed": true,
+          "evidence": "1 .feature; keywords PT-BR presentes"
+        },
+        {
+          "text": "Cenários têm tags @ac-040-N",
+          "passed": true,
+          "evidence": "5 tags @ac-040-N"
+        },
+        {
+          "text": "Gerou spec Vitest red (falha por falta de implementação)",
+          "passed": true,
+          "evidence": "1 spec(s); marca de red presente"
+        },
+        {
+          "text": "Gerou matriz de rastreabilidade com bloco '## Facts'",
+          "passed": true,
+          "evidence": "matriz=True, bloco '## Facts'=True"
+        },
+        {
+          "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+          "passed": true,
+          "evidence": "bdd=True unit=True e2e=True traceability=True"
+        },
+        {
+          "text": "Tratou ACs dependentes de LLM como métrica de eval suite (baseline.json: precision/recall/hallucination/latency), não assertion determinística",
+          "passed": true,
+          "evidence": "baseline.json=True, métricas eval=True"
+        },
+        {
+          "text": "Fact de consentimento CV_AI_EXTRACTION ausente→CONSENT_REQUIRED e CV não enviado ao LLM",
+          "passed": true,
+          "evidence": "CONSENT_REQUIRED=sim, finalidade CV_AI_EXTRACTION=sim"
+        },
+        {
+          "text": "Mocka a port CVExtractor, nunca o SDK Anthropic direto",
+          "passed": true,
+          "evidence": "usa port=True, sem import real do SDK=True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "USP-040 Extração de CV por IA",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 6,
+        "total": 8,
+        "time_seconds": 386.4,
+        "tokens": 76664,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gerou arquivo .feature Gherkin em PT-BR",
+          "passed": true,
+          "evidence": "1 .feature; keywords PT-BR presentes"
+        },
+        {
+          "text": "Cenários têm tags @ac-040-N",
+          "passed": true,
+          "evidence": "5 tags @ac-040-N"
+        },
+        {
+          "text": "Gerou spec Vitest red (falha por falta de implementação)",
+          "passed": true,
+          "evidence": "2 spec(s); marca de red presente"
+        },
+        {
+          "text": "Gerou matriz de rastreabilidade com bloco '## Facts'",
+          "passed": false,
+          "evidence": "matriz=True, bloco '## Facts'=False"
+        },
+        {
+          "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+          "passed": false,
+          "evidence": "bdd=False unit=False e2e=True traceability=False"
+        },
+        {
+          "text": "Tratou ACs dependentes de LLM como métrica de eval suite (baseline.json: precision/recall/hallucination/latency), não assertion determinística",
+          "passed": true,
+          "evidence": "baseline.json=True, métricas eval=True"
+        },
+        {
+          "text": "Fact de consentimento CV_AI_EXTRACTION ausente→CONSENT_REQUIRED e CV não enviado ao LLM",
+          "passed": true,
+          "evidence": "CONSENT_REQUIRED=sim, finalidade CV_AI_EXTRACTION=sim"
+        },
+        {
+          "text": "Mocka a port CVExtractor, nunca o SDK Anthropic direto",
+          "passed": true,
+          "evidence": "usa port=True, sem import real do SDK=True"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 242.5333,
+        "stddev": 28.4577,
+        "min": 207.4,
+        "max": 277.1
+      },
+      "tokens": {
+        "mean": 69751.6667,
+        "stddev": 5315.4844,
+        "min": 63585,
+        "max": 76558
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.8333,
+        "stddev": 0.1179,
+        "min": 0.75,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 272.0,
+        "stddev": 81.6853,
+        "min": 200.9,
+        "max": 386.4
+      },
+      "tokens": {
+        "mean": 61484.6667,
+        "stddev": 12258.3475,
+        "min": 46643,
+        "max": 76664
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.1667",
+      "time_seconds": "-29.5",
+      "tokens": "+8267"
+    }
+  },
+  "notes": [
+    "Com skill: 24/24 (100%); sem skill: 20/24 (83%). Delta de pass_rate +0.167.",
+    "Baselines fortes: o project-guideline (§20-23) JÁ codifica a metodologia EARS→Fact, então um agente que lê os docs do projeto produz facts decentes mesmo sem a skill. O valor da skill é consistência, não 'ensinar' o método.",
+    "Onde a skill ganha de forma consistente: estrutura padronizada tests/{bdd,unit,e2e}/+traceability (baselines variam o layout), presença do bloco '## Facts' e tags @ac-NNN. Foram exatamente as assertions que os baselines falharam (eval-0 e eval-2).",
+    "eval-1 (moderação): baseline empatou 8/8 — porém leu os arquivos de referência da skill, o que contamina a comparação. Tratar com cautela.",
+    "Tempo: com skill foi em média MAIS RÁPIDO (242s vs 272s) apesar de ler os references — o baseline gastou tempo inventando estrutura. Tokens ~+13% com skill (leitura dos references).",
+    "Assertions não-discriminantes nesta rodada: gherkin_ptbr, vitest_red, respeitou_output e cobertura passaram em ambas as configs — bom para sanidade, fracas para medir valor."
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "Gerou arquivo .feature Gherkin em PT-BR (Funcionalidade/Cenário/Dado/Quando/Então)",
+      "passed": true,
+      "evidence": "1 .feature; keywords PT-BR presentes"
+    },
+    {
+      "text": "Cenários têm tags @ac-004-N amarrando ao critério de aceite",
+      "passed": true,
+      "evidence": "4 tags @ac-004-N"
+    },
+    {
+      "text": "Gerou spec Vitest red (falha por falta de implementação, não por sintaxe/import)",
+      "passed": true,
+      "evidence": "1 spec(s); marca de red presente"
+    },
+    {
+      "text": "Gerou matriz de rastreabilidade AC→fact com bloco '## Facts' para o issue",
+      "passed": true,
+      "evidence": "matriz=True, bloco '## Facts'=True"
+    },
+    {
+      "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability",
+      "passed": true,
+      "evidence": "bdd=True unit=True e2e=True traceability=True"
+    },
+    {
+      "text": "Cobriu todos os ACs (cobertura X/X declarada, sem AC órfão)",
+      "passed": true,
+      "evidence": "menção explícita de cobertura X/Y"
+    },
+    {
+      "text": "Não criou nada em src/ nem .specs/ do projeto",
+      "passed": true,
+      "evidence": "nenhum arquivo em src/"
+    },
+    {
+      "text": "Cobriu o WHILE (sessão 12h inatividade) e o IF (5 tentativas→bloqueio) corretamente",
+      "passed": true,
+      "evidence": "sessão12h=True, lockout5=True"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_duration_seconds": 207.4
+  },
+  "execution_metrics": {
+    "total_tokens": 63585
+  }
+}

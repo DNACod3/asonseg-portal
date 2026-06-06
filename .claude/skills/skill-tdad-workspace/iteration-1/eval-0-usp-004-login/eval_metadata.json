@@ -1,0 +1,15 @@
+{
+  "eval_id": 0,
+  "eval_name": "usp-004-login-standalone",
+  "prompt": "Preciso preparar a USP-004 (Autenticar no portal com e-mail e senha) pra entrar em sprint. Gera os facts de teste a partir dos critérios de aceitação EARS dela, pra eu levar pro Kickoff Gate.",
+  "assertions": [
+    {"id": "gherkin_ptbr", "text": "Gerou arquivo .feature Gherkin em PT-BR (Funcionalidade/Cenário/Dado/Quando/Então)"},
+    {"id": "tags_ac", "text": "Cenários têm tags @ac-004-N amarrando ao critério de aceite"},
+    {"id": "vitest_red", "text": "Gerou spec Vitest red (falha por falta de implementação, não por sintaxe/import)"},
+    {"id": "matriz_facts", "text": "Gerou matriz de rastreabilidade AC→fact com bloco '## Facts' para o issue"},
+    {"id": "estrutura_padrao", "text": "Usou a estrutura padrão tests/{bdd,unit,e2e}/ + traceability"},
+    {"id": "cobertura_total", "text": "Cobriu todos os ACs (cobertura X/X declarada, sem AC órfão)"},
+    {"id": "respeitou_output", "text": "Não criou nada em src/ nem .specs/ do projeto"},
+    {"id": "while_e_if", "text": "Cobriu o WHILE (sessão 12h inatividade) e o IF (5 tentativas→bloqueio) corretamente"}
+  ]
+}

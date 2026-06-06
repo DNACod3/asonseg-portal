@@ -1,0 +1,23 @@
+[
+  {"query": "preciso preparar a USP-009 (cadastro de candidato) pro kickoff gate, gera os facts a partir dos critérios de aceite EARS dela", "should_trigger": true},
+  {"query": "transforma os critérios de aceite da US de publicação de vaga em cenários BDD + testes red, quero que sejam a fonte da verdade antes de eu codar", "should_trigger": true},
+  {"query": "bora gerar os testes da usp-012 antes de implementar, seguindo aquele esquema de EARS pra fact", "should_trigger": true},
+  {"query": "tô na fase tasks da spec-driven na feature de encaminhamento, já tenho os ACs prontos, gera os testes-fonte pra eu popular os campos Tests/Gate de cada task", "should_trigger": true},
+  {"query": "cada AC dessa user story precisa de um fact máquina-verificável. me gera os .feature em pt-br com tag por AC e os specs vitest red pra USP-043 consentimentos lgpd", "should_trigger": true},
+  {"query": "escreve os cenários gherkin e os esqueletos de teste falhando da história de recuperar senha (usp-005), com a matriz de rastreabilidade pro issue", "should_trigger": true},
+  {"query": "EARS para fact da US de inativar pessoa por favor", "should_trigger": true},
+  {"query": "antes do dev começar a usp-016 quero garantir que todo critério de aceite tem teste correspondente; gera essa cobertura de facts pra mim", "should_trigger": true},
+  {"query": "monta os testes BDD/TDD da extração de CV (usp-040). lembra que é LLM e depende de consentimento, então quero as métricas de eval suite e não só assert determinístico", "should_trigger": true},
+  {"query": "a usp-004 ainda não foi implementada. preciso dos testes-fonte (bdd + unit red + e2e red) derivados dos critérios EARS dela pra levar pro kickoff gate", "should_trigger": true},
+
+  {"query": "implementa a Server Action de auto-cadastro da USP-001 seguindo o padrão canônico: validação zod, requirePermission, withAudit e retorno ActionResult", "should_trigger": false},
+  {"query": "os testes de moderação tão quebrando no CI, dá uma olhada no que tá falhando em transitionContent e arruma", "should_trigger": false},
+  {"query": "escreve uma ADR documentando a decisão de usar máquina de estados centralizada pra moderação de conteúdo", "should_trigger": false},
+  {"query": "especifica a feature de notificações por e-mail: quero os requisitos, as user stories e os critérios de aceite em EARS escritos", "should_trigger": false},
+  {"query": "revisa o PR #231 da feature de empresa, olha cobertura de testes e aderência ao project-guideline", "should_trigger": false},
+  {"query": "a tela de login já tá no ar em staging, escreve uns testes e2e playwright clicando no fluxo real pra validar que tá funcionando", "should_trigger": false},
+  {"query": "monta o dataset.jsonl com 30 CVs sintéticos anonimizados pra eval suite de cv-extraction", "should_trigger": false},
+  {"query": "qual a diferença entre teste unitário e de integração no vitest e quando usar cada um nesse projeto?", "should_trigger": false},
+  {"query": "desenha a arquitetura do módulo de referrals: ports, adapters e os view models por papel", "should_trigger": false},
+  {"query": "roda o npm run test:coverage e me diz se a cobertura tá acima dos 65% do gate de CI", "should_trigger": false}
+]
