@@ -30,6 +30,8 @@ function asApprover() {
     status: 'ATIVO',
     primeiroAcesso: false,
     roles: ['SOCIAL_ASSISTANT'],
+    phone: null,
+    fullAddress: null,
   };
 }
 
@@ -246,6 +248,8 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
       status: 'ATIVO',
       primeiroAcesso: false,
       roles: ['VOLUNTEER'],
+      phone: null,
+      fullAddress: null,
     };
 
     const result = await verifyCredentialClaim({

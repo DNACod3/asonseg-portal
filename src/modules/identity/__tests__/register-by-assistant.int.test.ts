@@ -27,6 +27,8 @@ let mockOperator: CurrentPerson | null = {
   status: 'ATIVO',
   primeiroAcesso: false,
   roles: ['SOCIAL_ASSISTANT'],
+  phone: null,
+  fullAddress: null,
 };
 
 vi.mock('../server/session', () => ({
@@ -53,6 +55,8 @@ skipIfNoDb('registerPersonByAssistant — integração', () => {
       status: 'ATIVO',
       primeiroAcesso: false,
       roles: ['SOCIAL_ASSISTANT'],
+      phone: null,
+      fullAddress: null,
     };
   }
 
@@ -190,6 +194,8 @@ skipIfNoDb('registerPersonByAssistant — integração', () => {
       status: 'ATIVO',
       primeiroAcesso: false,
       roles: ['CANDIDATE'],
+      phone: null,
+      fullAddress: null,
     };
 
     const result = await registerPersonByAssistant({ fullName: 'Tentativa Indevida', cpf: VALID_CPF });

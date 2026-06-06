@@ -27,6 +27,10 @@ export interface CurrentPerson {
   status: 'ATIVO' | 'INATIVO';
   primeiroAcesso: boolean;
   roles: string[];
+  /** Campos de perfil no nível da Pessoa (mínimo LGPD) — usados, p.ex., para
+   *  decidir os campos faltantes ao ativar um papel adicional (USP-006 / E-001). */
+  phone: string | null;
+  fullAddress: string | null;
 }
 
 /**
@@ -48,6 +52,8 @@ export async function getCurrentPerson(): Promise<CurrentPerson | null> {
       fullName: true,
       status: true,
       supabaseUserId: true,
+      phone: true,
+      fullAddress: true,
       credential: { select: { primeiroAcesso: true } },
       // Paginação defensiva (convenção Prisma `take`): este helper roda no
       // layout `(app)` a cada request autenticada; nenhuma Pessoa terá dezenas
@@ -66,6 +72,8 @@ export async function getCurrentPerson(): Promise<CurrentPerson | null> {
     status: person.status,
     primeiroAcesso: person.credential?.primeiroAcesso ?? false,
     roles: person.roleGrants.map((g) => g.role),
+    phone: person.phone,
+    fullAddress: person.fullAddress,
   };
 }
 
