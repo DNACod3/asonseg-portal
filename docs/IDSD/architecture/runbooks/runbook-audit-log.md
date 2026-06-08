@@ -1,7 +1,7 @@
 # Runbook — Log imutável de auditoria (`withAudit`)
 
 **Tipo:** padrão de implementação reutilizável
-**Usado por:** USP-001–008, 012, 014, 015, 016, 017, 018, 019, 025, 026, 033, 034, 036, 037, 038, 039, 042, 043, 044 (quase toda escrita sensível)
+**Usado por:** USP-001–008, 012, 014, 015, 016, 017, 018, 019, 025, 026, 033, 034, 036, 037, 038, 039, 042, 043, 044, 045 (quase toda escrita sensível)
 **ADRs relacionados:** ADR-0023 (append-only), ADR-0010 (negócio — log absoluto)
 **Referência no TD:** §4.5 (audit_log), §4.6 (catálogo de eventos)
 

@@ -1,6 +1,12 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
-import { hasInactivationPrivilege, viewPersonForStaff, InactivatePersonDialog } from '@/modules/persons';
+import {
+  hasInactivationPrivilege,
+  hasReactivationPrivilege,
+  viewPersonForStaff,
+  InactivatePersonDialog,
+  ReactivatePersonDialog,
+} from '@/modules/persons';
 import { formatSaoPaulo } from '@/shared/lib/time';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
@@ -19,13 +25,13 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 /**
- * Tela de gestão de uma Pessoa para coordenador/diretoria (USP-007 / #86).
+ * Tela de gestão de uma Pessoa para coordenador/diretoria (USP-007 / USP-045).
  *
  * Restrita por papel: a sessão é revalidada pelo layout `(app)` (ADR-0030) e aqui
- * filtramos por privilégio de inativação (coordenador/diretoria). Quem não tem
- * permissão recebe 404 — a rota não revela sua existência. A decisão fina
- * (coordenador só inativa voluntário; ninguém inativa a si mesmo) e o bloqueio de
- * único responsável de Empresa ficam na Server Action (defesa em profundidade).
+ * filtramos por privilégio de inativação/reativação (coordenador/diretoria). Quem
+ * não tem permissão recebe 404 — a rota não revela sua existência. A decisão fina
+ * (hierarquia de rank vs. inativador, zeragem de grants) fica na Server Action
+ * (defesa em profundidade).
  */
 export default async function PessoaPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await requireActivePerson();
@@ -80,7 +86,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
           )}
         </section>
       ) : (
-        <section className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
+        <section className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="text-base font-semibold text-gray-900">Pessoa inativa</h2>
           {person.inactivatedAt && (
             <p className="text-sm text-gray-600">
@@ -93,6 +99,16 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
           <p className="text-xs text-gray-500">
             O histórico operacional permanece preservado e visível para quem tem permissão.
           </p>
+          {hasReactivationPrivilege(viewer.roles) && (
+            <>
+              <p className="text-sm text-gray-600">
+                Para reverter a inativação, use o botão abaixo. Os papéis e permissões anteriores
+                não serão restaurados automaticamente — precisarão ser reconcedidos após a
+                reativação (USP-008).
+              </p>
+              <ReactivatePersonDialog personId={person.id} personName={person.fullName} />
+            </>
+          )}
         </section>
       )}
     </main>
