@@ -2,8 +2,19 @@ name: CI
 
 on:
   pull_request:
+    # Não dispara CI para mudanças puramente de documentação.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'legal/**'
+      - '.github/ISSUE_TEMPLATE/**'
   push:
     branches: [master]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'legal/**'
+      - '.github/ISSUE_TEMPLATE/**'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -41,6 +52,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Cache do compilador do Next entre runs — evita build cold toda vez.
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -56,6 +76,18 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
+    # Só roda depois que `verify` (lint/type/test/build) passa — não queima
+    # minutos de Supabase+Playwright num PR que já falhou no básico.
+    needs: verify
+    # Job mais caro (Supabase + migrations + integração + Playwright). Para
+    # economizar minutos de CI, só roda quando:
+    #   - é push p/ master (merge), ou
+    #   - é um PR NÃO-draft com a label `e2e`.
+    # PRs comuns / drafts rodam apenas o job `verify`.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.draft == false &&
+       contains(github.event.pull_request.labels.*.name, 'e2e'))
     env:
       # Backend real: stack local do Supabase CLI (ADR-0016). Postgres em :55322,
       # API/Auth em :55321. As chaves anon/service_role abaixo são as chaves
@@ -112,8 +144,22 @@ jobs:
       - name: Integration tests (Postgres real)
         run: npm run test:integration:ci
 
+      # Cache do browser do Playwright — a versão é fixada pelo package-lock.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        # Em cache hit, só instala as deps de sistema (rápido); senão, baixa o browser.
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Run E2E smokes
         run: npm run test:e2e
