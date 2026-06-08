@@ -169,6 +169,7 @@ model Person {
   consents              Consent[]
   credentialClaims      CredentialClaim[]
   delegatedPermissions  DelegatedPermission[]
+  companyGrants         PersonCompanyGrant[]
 
   @@map("persons")
 }
@@ -296,6 +297,68 @@ model Consent {
   // WHERE revoked_at IS NULL` garante no máximo um consentimento ATIVO por
   // finalidade (USP-043 #37). Criado via SQL em migration (não expressável aqui).
   @@map("consents")
+}
+
+// ── Empresas (USP-012 — ADR-0015) ────────────────────────────────────────────
+// Empresa cadastrada pela Pessoa-responsável. CNPJ único e normalizado (somente
+// dígitos). isVerified=false até aprovação da primeira vaga (USP-017).
+// PersonCompanyGrant vincula Pessoa↔Empresa com tipo RESPONSIBLE; append-only
+// (revogação via revokedAt, nunca delete).
+
+/// Tipo jurídico da Empresa (CNPJ regular = LTDA/SA/etc.; MEI = Microempreendedor).
+enum CompanyType {
+  CNPJ_REGULAR
+  MEI
+
+  @@map("company_type")
+}
+
+/// Tipo do vínculo Pessoa↔Empresa.
+enum CompanyGrantType {
+  RESPONSIBLE
+
+  @@map("company_grant_type")
+}
+
+/// Empresa cadastrada no portal (ADR-0015).
+/// CNPJ armazenado apenas com dígitos (normalizado antes de persistir).
+model Company {
+  id           String      @id @default(uuid()) @db.Uuid
+  cnpj         String      @unique
+  type         CompanyType @default(CNPJ_REGULAR)
+  razaoSocial  String      @map("razao_social")
+  nomeFantasia String      @map("nome_fantasia")
+  setor        String
+  descricao    String?
+  endereco     String?
+  isVerified   Boolean     @default(false) @map("is_verified")
+  createdBy    String      @map("created_by") @db.Uuid
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  grants PersonCompanyGrant[]
+
+  @@index([cnpj])
+  @@map("companies")
+}
+
+/// Vínculo Pessoa↔Empresa (append-only). Revogação via revokedAt.
+model PersonCompanyGrant {
+  id        String           @id @default(uuid()) @db.Uuid
+  personId  String           @map("person_id") @db.Uuid
+  companyId String           @map("company_id") @db.Uuid
+  grantType CompanyGrantType @default(RESPONSIBLE) @map("grant_type")
+  grantedBy String           @map("granted_by") @db.Uuid
+  grantedAt DateTime         @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt DateTime?        @map("revoked_at") @db.Timestamptz(6)
+  revokedBy String?          @map("revoked_by") @db.Uuid
+
+  person  Person  @relation(fields: [personId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([personId, revokedAt])
+  @@index([companyId, grantType, revokedAt])
+  @@map("person_company_grants")
 }
 
 /// Resultado de uma tentativa de autenticação.
