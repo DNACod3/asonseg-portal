@@ -127,3 +127,7 @@ export type { RevokeDelegatedPermissionInput, RevokeDelegatedPermissionResult } 
 export { requirePermission } from './server/require-permission';
 export { DELEGABLE_PERMISSIONS, checkPermission, isCoordinator } from './domain/permissions';
 export type { PermissionId, PermissionCheckResult, DelegatedGrant } from './domain/permissions';
+export { listDelegatedPermissions, listEligibleVolunteers } from './queries/list-delegated-permissions';
+export type { VolunteerWithPermissions } from './queries/list-delegated-permissions';
+export { DelegatedPermissionsManager } from './components/delegated-permissions-manager';
+export type { DelegatedPermissionsManagerProps } from './components/delegated-permissions-manager';
