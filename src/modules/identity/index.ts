@@ -118,3 +118,16 @@ export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
 export { ActivateRoleForm } from './components/activate-role-form';
 export type { ActivatableRoleOption } from './components/activate-role-form';
 export { buildActivatableOptions } from './server/build-activatable-options';
+
+// ── Permissões delegadas a voluntários (USP-008) ──────────────────────────────
+export { grantDelegatedPermission } from './actions/grant-delegated-permission';
+export type { GrantDelegatedPermissionInput, GrantDelegatedPermissionResult } from './actions/grant-delegated-permission';
+export { revokeDelegatedPermission } from './actions/revoke-delegated-permission';
+export type { RevokeDelegatedPermissionInput, RevokeDelegatedPermissionResult } from './actions/revoke-delegated-permission';
+export { requirePermission, requireCoordinator } from './server/require-permission';
+export { DELEGABLE_PERMISSIONS, checkPermission, isCoordinator } from './domain/permissions';
+export type { PermissionId, PermissionCheckResult, DelegatedGrant } from './domain/permissions';
+export { listDelegatedPermissions, listEligibleVolunteers } from './queries/list-delegated-permissions';
+export type { VolunteerWithPermissions } from './queries/list-delegated-permissions';
+export { DelegatedPermissionsManager } from './components/delegated-permissions-manager';
+export type { DelegatedPermissionsManagerProps } from './components/delegated-permissions-manager';

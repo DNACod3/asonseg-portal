@@ -41,7 +41,8 @@ const ALREADY_ACTIVE = 'ALREADY_ACTIVE';
  *  2. resolve o operador da sessão (`getCurrentPerson` revalida status — ADR-0030);
  *  3. `requirePermission` (inline): `canReactivatePerson` decide a partir do rank
  *     do ator vs. rank do inativador original (USP-045/R1 — hierarquia de permissão;
- *     não abre por baixo o que foi fechado por cima);
+ *     não abre por baixo o que foi fechado por cima) — antes da pré-condição para
+ *     que atores sem privilégio recebam FORBIDDEN antes de ver CONFLICT;
  *  4. pré-condições: Pessoa já ativa ⇒ idempotência (CONFLICT);
  *  5. executa em `withAudit('PERSON_REACTIVATED')` — numa única transação:
  *     (a) flipa `status=ATIVO`, limpa metadados de inativação;
@@ -87,14 +88,11 @@ export async function reactivatePerson(
     return fail('NOT_FOUND', 'Pessoa não encontrada.');
   }
 
-  // 4. Pré-condição de idempotência: Pessoa já ativa.
-  if (target.status === 'ATIVO') {
-    return fail('CONFLICT', 'Esta Pessoa já está ativa.');
-  }
-
   // 3. requirePermission (inline — USP-045/R1):
   //    Busca os papéis ATIVOS atuais do inativador para calcular o rank.
   //    Inativador desconhecido (null) ou sem papéis → rank 0 (não bloqueia).
+  //    Precisa ficar antes da pré-condição de idempotência para que um ator
+  //    sem privilégio receba FORBIDDEN antes de saber que a Pessoa já está ativa.
   let inactivatorRoles: string[] = [];
   if (target.inactivatedByPersonId) {
     const inactivator = await prisma.person.findUnique({
@@ -118,6 +116,11 @@ export async function reactivatePerson(
       'persons:reactivate_forbidden',
     );
     return fail('FORBIDDEN', DENIAL_MESSAGES[authz.reason]);
+  }
+
+  // 4. Pré-condição de idempotência: Pessoa já ativa.
+  if (target.status === 'ATIVO') {
+    return fail('CONFLICT', 'Esta Pessoa já está ativa.');
   }
 
   // Contexto da request para a auditoria (IP/UA — sem PII no log).
@@ -195,7 +198,10 @@ export async function reactivatePerson(
     if (err instanceof Error && (err as NodeJS.ErrnoException).code === ALREADY_ACTIVE) {
       return fail('CONFLICT', 'Esta Pessoa já está ativa.');
     }
-    log.error({ err, targetId: target.id }, 'persons:reactivate_failed');
+    log.error(
+      { errMessage: err instanceof Error ? err.message : String(err), targetId: target.id },
+      'persons:reactivate_failed',
+    );
     return fail('INTERNAL', 'Não foi possível reativar a Pessoa. Tente novamente mais tarde.');
   }
 }
