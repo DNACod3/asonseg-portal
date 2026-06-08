@@ -215,6 +215,35 @@ skipIfNoDb('inactivatePerson — integração', () => {
     expect(second.error.code).toBe('CONFLICT');
   });
 
+  it('concorrência (duplo submit simultâneo): só uma inativação vence, a outra CONFLICT', async () => {
+    const targetId = await makePerson(['CANDIDATE']);
+
+    // Duas requests inativam ao mesmo tempo: ambas passam a pré-condição (leem
+    // ATIVO) e entram na TX. O guard atômico (`updateMany WHERE status=ATIVO`)
+    // garante que só uma transiciona — a perdedora casa 0 linhas → CONFLICT.
+    const [a, b] = await Promise.all([
+      inactivatePerson({ personId: targetId, reason: 'Inativação concorrente A.' }),
+      inactivatePerson({ personId: targetId, reason: 'Inativação concorrente B.' }),
+    ]);
+
+    const oks = [a, b].filter((r) => r.ok);
+    const fails = [a, b].filter((r) => !r.ok);
+    expect(oks).toHaveLength(1);
+    expect(fails).toHaveLength(1);
+    const loser = fails[0];
+    if (loser && !loser.ok) {
+      expect(loser.error.code).toBe('CONFLICT');
+    }
+
+    // Exatamente uma transição e exatamente um registro de auditoria (L-004).
+    const person = await prisma.person.findUnique({ where: { id: targetId } });
+    expect(person?.status).toBe('INATIVO');
+    const audits = await prisma.auditLog.count({
+      where: { action: 'PERSON_INACTIVATED', entityId: targetId },
+    });
+    expect(audits).toBe(1);
+  });
+
   it('Pessoa inexistente recebe NOT_FOUND', async () => {
     const result = await inactivatePerson({
       personId: '99999999-9999-4999-8999-999999999999',

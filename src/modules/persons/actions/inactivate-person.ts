@@ -145,25 +145,25 @@ export async function inactivatePerson(
     await withAudit(
       AuditEvent.PERSON_INACTIVATED,
       async (tx, audit) => {
-        // Releitura defensiva na TX: fecha a corrida de duplo submit.
-        const fresh = await tx.person.findUnique({
-          where: { id: target.id },
-          select: { status: true },
-        });
-        if (!fresh || fresh.status === 'INATIVO') {
-          throw Object.assign(new Error(ALREADY_INACTIVE), { code: ALREADY_INACTIVE });
-        }
-
-        await tx.person.update({
-          where: { id: target.id },
+        // Guard atômico de concorrência (duplo submit): a transição só vale para
+        // quem ainda está ATIVO. Sob READ COMMITTED (default do $transaction), um
+        // `findUnique` seguido de `update` por `id` NÃO fecha a corrida — o
+        // perdedor reavalia o WHERE só por `id` e sobrescreveria. O `updateMany`
+        // condicional ao `status` é reavaliado quando o lock de linha do vencedor
+        // é liberado: o perdedor casa 0 linhas e vira CONFLICT (mesmo padrão de
+        // `verifyCredentialClaim`).
+        const transition = await tx.person.updateMany({
+          where: { id: target.id, status: 'ATIVO' },
           data: {
             status: 'INATIVO',
             inactivatedAt: new Date(),
             inactivatedByPersonId: operator.id,
             inactivationReason: reason,
           },
-          select: { id: true },
         });
+        if (transition.count === 0) {
+          throw Object.assign(new Error(ALREADY_INACTIVE), { code: ALREADY_INACTIVE });
+        }
 
         // Histórico preservado (ADR-0008 / P-003 / P-005): nenhum delete, nenhum
         // grant/consent revogado aqui — a inatividade já os torna inertes e a
