@@ -93,6 +93,18 @@ describe('checkPermission', () => {
     );
     expect(r.granted).toBe(true);
   });
+
+  it('fail-closed: grant escopado NÃO concede quando a action omite scopeArea', () => {
+    const person = makePerson(['VOLUNTEER']);
+    const r = checkPermission(
+      person,
+      'MODERATE_JOB',
+      [activeGrant('MODERATE_JOB', 'empregabilidade')],
+      // sem opts.scopeArea — um grant escopado não pode virar irrestrito
+    );
+    expect(r.granted).toBe(false);
+    if (!r.granted) expect(r.reason).toBe('FORBIDDEN');
+  });
 });
 
 describe('isCoordinator', () => {

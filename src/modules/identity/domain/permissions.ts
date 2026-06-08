@@ -71,12 +71,16 @@ export function checkPermission(
     }
   }
 
-  // Permissão delegada explicitamente (não revogada)
+  // Permissão delegada explicitamente (não revogada).
+  // Escopo fail-closed: um grant restrito a uma área (`scopeArea != null`) só
+  // concede quando a action informa exatamente a mesma área. Grant sem escopo
+  // (`scopeArea == null`) é irrestrito e cobre qualquer chamada. Nunca tratamos
+  // um grant escopado como irrestrito só porque a action omitiu `opts.scopeArea`.
   const active = grants.find(
     (g) =>
       g.permission === permission &&
       g.revokedAt === null &&
-      (opts.scopeArea == null || g.scopeArea == null || g.scopeArea === opts.scopeArea),
+      (g.scopeArea == null || g.scopeArea === opts.scopeArea),
   );
   if (active) return { granted: true };
 

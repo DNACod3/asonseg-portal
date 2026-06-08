@@ -124,7 +124,7 @@ export { grantDelegatedPermission } from './actions/grant-delegated-permission';
 export type { GrantDelegatedPermissionInput, GrantDelegatedPermissionResult } from './actions/grant-delegated-permission';
 export { revokeDelegatedPermission } from './actions/revoke-delegated-permission';
 export type { RevokeDelegatedPermissionInput, RevokeDelegatedPermissionResult } from './actions/revoke-delegated-permission';
-export { requirePermission } from './server/require-permission';
+export { requirePermission, requireCoordinator } from './server/require-permission';
 export { DELEGABLE_PERMISSIONS, checkPermission, isCoordinator } from './domain/permissions';
 export type { PermissionId, PermissionCheckResult, DelegatedGrant } from './domain/permissions';
 export { listDelegatedPermissions, listEligibleVolunteers } from './queries/list-delegated-permissions';

@@ -61,7 +61,7 @@ skipIfNoDb('reactivatePerson — integração', () => {
   function asCoordinator(id = COORD_ID) {
     mockOperator = {
       id,
-      supabaseUserId: id.replace('cccccccc', 'cccccccc').replace('-000001', '-000002'),
+      supabaseUserId: id.replace('-000001', '-000002'),
       fullName: 'Coordenador Teste',
       status: 'ATIVO',
       primeiroAcesso: false,
@@ -134,6 +134,9 @@ skipIfNoDb('reactivatePerson — integração', () => {
       await prisma.consent.deleteMany({ where: { personId: id } });
       await prisma.personRoleGrant.deleteMany({ where: { personId: id } });
       await prisma.person.deleteMany({ where: { id } });
+      // auditLog não é limpo: a tabela é append-only por design (ADR-0023 /
+      // REVOKE DELETE no DB). Não causa flakiness porque cada targetId é um
+      // UUID novo gerado por crypto.randomUUID() em cada teste.
     }
     createdIds.length = 0;
     asBoard();

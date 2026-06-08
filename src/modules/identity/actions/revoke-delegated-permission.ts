@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { childLogger } from '@/shared/lib/logger';
-import { getCurrentPerson } from '../server/session';
-import { isCoordinator } from '../domain/permissions';
+import { requireCoordinator } from '../server/require-permission';
 
 const revokeSchema = z.object({
   permissionGrantId: z.string().uuid('ID de concessão inválido'),
@@ -35,9 +34,9 @@ export async function revokeDelegatedPermission(
   }
   const { permissionGrantId, justification } = parsed.data;
 
-  const actor = await getCurrentPerson();
-  if (!actor) return fail('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.');
-  if (!isCoordinator(actor)) return fail('FORBIDDEN', 'Apenas coordenadores podem revogar permissões.');
+  const authz = await requireCoordinator();
+  if (!authz.ok) return authz;
+  const actor = authz.data.person;
 
   try {
     await withAudit(
@@ -45,21 +44,25 @@ export async function revokeDelegatedPermission(
       async (tx, audit) => {
         const grant = await tx.delegatedPermission.findUnique({
           where: { id: permissionGrantId },
-          select: { id: true, personId: true, permission: true, revokedAt: true },
+          select: { id: true },
         });
         if (!grant) {
           throw Object.assign(new Error('NOT_FOUND'), { code: 'NOT_FOUND' });
         }
-        if (grant.revokedAt !== null) {
+
+        // Guard atômico de concorrência (duplo submit): mesmo padrão de
+        // `reactivatePerson` — `updateMany` condicional ao estado atual
+        // (`revokedAt: null`). Sob duas revogações simultâneas, só uma casa
+        // a linha; o perdedor casa 0 linhas e vira CONFLICT. Evita o
+        // check-then-update que, sob READ COMMITTED, deixaria ambas passar.
+        const now = new Date();
+        const transition = await tx.delegatedPermission.updateMany({
+          where: { id: permissionGrantId, revokedAt: null },
+          data: { revokedAt: now, revokedBy: actor.id },
+        });
+        if (transition.count === 0) {
           throw Object.assign(new Error('CONFLICT'), { code: 'CONFLICT' });
         }
-
-        const now = new Date();
-        await tx.delegatedPermission.update({
-          where: { id: permissionGrantId },
-          data: { revokedAt: now, revokedBy: actor.id },
-          select: { id: true },
-        });
 
         audit.entityType = 'delegated_permission';
         audit.entityId = permissionGrantId;

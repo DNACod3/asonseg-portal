@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { childLogger } from '@/shared/lib/logger';
-import { getCurrentPerson } from '../server/session';
-import { isCoordinator, DELEGABLE_PERMISSIONS } from '../domain/permissions';
+import { requireCoordinator } from '../server/require-permission';
+import { DELEGABLE_PERMISSIONS } from '../domain/permissions';
 
 const grantSchema = z.object({
   targetPersonId: z.string().uuid('ID de pessoa inválido'),
@@ -42,9 +42,9 @@ export async function grantDelegatedPermission(
   }
   const { targetPersonId, permission, scopeArea } = parsed.data;
 
-  const actor = await getCurrentPerson();
-  if (!actor) return fail('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.');
-  if (!isCoordinator(actor)) return fail('FORBIDDEN', 'Apenas coordenadores podem conceder permissões.');
+  const authz = await requireCoordinator();
+  if (!authz.ok) return authz;
+  const actor = authz.data.person;
 
   try {
     let permissionId!: string;

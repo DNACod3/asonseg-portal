@@ -126,6 +126,39 @@ skipIfNoDb('grantDelegatedPermission — integração', () => {
     if (result.ok) return;
     expect(result.error.code).toBe('NOT_FOUND');
   });
+
+  it('rejeita alvo inativo com PRECONDITION_FAILED', async () => {
+    asSession(coordinatorId, ['COORDINATOR']);
+    await prisma.person.update({
+      where: { id: volunteerId },
+      data: { status: 'INATIVO' },
+    });
+
+    const result = await grantDelegatedPermission({
+      targetPersonId: volunteerId,
+      permission: 'MODERATE_JOB',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('PRECONDITION_FAILED');
+
+    // Não deve ter criado nenhum grant para o alvo inativo.
+    const grants = await prisma.delegatedPermission.findMany({
+      where: { personId: volunteerId },
+    });
+    expect(grants).toHaveLength(0);
+  });
+
+  it('rejeita entrada inválida com VALIDATION (Zod)', async () => {
+    asSession(coordinatorId, ['COORDINATOR']);
+    const result = await grantDelegatedPermission({
+      targetPersonId: 'não-é-uuid',
+      permission: 'PERMISSAO_INEXISTENTE' as 'MODERATE_JOB',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION');
+  });
 });
 
 skipIfNoDb('revokeDelegatedPermission — integração', () => {
@@ -213,5 +246,50 @@ skipIfNoDb('revokeDelegatedPermission — integração', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('UNAUTHENTICATED');
+  });
+
+  it('rejeita justificativa curta com VALIDATION (Zod)', async () => {
+    asSession(coordinatorId, ['COORDINATOR']);
+    const result = await revokeDelegatedPermission({
+      permissionGrantId: crypto.randomUUID(),
+      justification: 'curta', // < 10 caracteres
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION');
+  });
+
+  it('duplo submit simultâneo: apenas um vence, o outro vira CONFLICT', async () => {
+    asSession(coordinatorId, ['COORDINATOR']);
+    const granted = await grantDelegatedPermission({
+      targetPersonId: volunteerId,
+      permission: 'MODERATE_JOB',
+    });
+    expect(granted.ok).toBe(true);
+    if (!granted.ok) return;
+
+    // Dispara duas revogações concorrentes sobre o mesmo grant.
+    const [a, b] = await Promise.all([
+      revokeDelegatedPermission({
+        permissionGrantId: granted.data.permissionId,
+        justification: 'Revogação concorrente A',
+      }),
+      revokeDelegatedPermission({
+        permissionGrantId: granted.data.permissionId,
+        justification: 'Revogação concorrente B',
+      }),
+    ]);
+
+    const oks = [a, b].filter((r) => r.ok);
+    const conflicts = [a, b].filter((r) => !r.ok && r.error.code === 'CONFLICT');
+    expect(oks).toHaveLength(1);
+    expect(conflicts).toHaveLength(1);
+
+    // Apenas uma revogação efetiva — revokedBy preenchido uma única vez.
+    const grant = await prisma.delegatedPermission.findUnique({
+      where: { id: granted.data.permissionId },
+    });
+    expect(grant?.revokedAt).not.toBeNull();
+    expect(grant?.revokedBy).toBe(coordinatorId);
   });
 });
