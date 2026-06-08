@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers';
 import { getCurrentPerson } from '@/modules/identity';
-import { requireActiveConsent } from '@/modules/consents';
+import { requireActiveConsent, loadTerm } from '@/modules/consents';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
@@ -56,6 +56,14 @@ export async function createCompany(
     return fail('CONSENT_REQUIRED', 'Consentimento de acesso ao portal é necessário.');
   }
 
+  // 3b. Valida integridade do termo COMPANY_REPRESENTATION enviado pelo cliente.
+  // O hash deve bater com o arquivo versionado no servidor — impede fabricação
+  // de registros de consentimento com hashes arbitrários.
+  const term = await loadTerm('COMPANY_REPRESENTATION', data.companyRepresentationTermVersion);
+  if (term.hash !== data.companyRepresentationTermHash) {
+    return fail('VALIDATION', 'Hash do termo de representação inválido. Recarregue a página.');
+  }
+
   // 4. CNPJ único (AC-012-3).
   const existing = await prisma.company.findUnique({
     where: { cnpj: data.cnpj },
@@ -92,30 +100,31 @@ export async function createCompany(
             isVerified: false, // AC-012-4: aguarda aprovação da 1ª vaga (USP-017)
             createdBy: person.id,
           },
+          select: { id: true, cnpj: true, razaoSocial: true },
         });
 
-        // Grant RESPONSIBLE automático (AC-012-1).
-        await tx.personCompanyGrant.create({
-          data: {
-            personId: person.id,
-            companyId: created.id,
-            grantType: 'RESPONSIBLE',
-            grantedBy: person.id,
-          },
-        });
-
-        // Consent COMPANY_REPRESENTATION na mesma transação (AC-012-5 / ADR-0020).
-        await tx.consent.create({
-          data: {
-            personId: person.id,
-            purpose: 'COMPANY_REPRESENTATION',
-            termVersion: data.companyRepresentationTermVersion,
-            termContentHash: data.companyRepresentationTermHash,
-            acceptedIp: ip,
-            userAgent,
-            context: { route: '/empresa/cadastrar', companyId: created.id },
-          },
-        });
+        // Grant RESPONSIBLE + Consent COMPANY_REPRESENTATION em paralelo (sem dependência).
+        await Promise.all([
+          tx.personCompanyGrant.create({
+            data: {
+              personId: person.id,
+              companyId: created.id,
+              grantType: 'RESPONSIBLE',
+              grantedBy: person.id,
+            },
+          }),
+          tx.consent.create({
+            data: {
+              personId: person.id,
+              purpose: 'COMPANY_REPRESENTATION',
+              termVersion: data.companyRepresentationTermVersion,
+              termContentHash: term.hash,
+              acceptedIp: ip,
+              userAgent,
+              context: { route: '/empresa/cadastrar', companyId: created.id },
+            },
+          }),
+        ]);
 
         audit.entityType = 'company';
         audit.entityId = created.id;
@@ -151,7 +160,8 @@ export async function createCompany(
         'Este CNPJ já está cadastrado no portal. Para solicitar sua inclusão como responsável, entre em contato com os responsáveis atuais da Empresa.',
       );
     }
-    log.error({ err }, 'companies:create_failed');
+    const errCode = err instanceof Error ? (err as NodeJS.ErrnoException).code ?? err.message : String(err);
+    log.error({ errCode }, 'companies:create_failed');
     return fail('INTERNAL', 'Não foi possível cadastrar a Empresa. Tente novamente mais tarde.');
   }
 }

@@ -16,6 +16,7 @@ export class PrismaCompanyResponsibilityAdapter implements CompanyResponsibility
     const grants = await prisma.personCompanyGrant.findMany({
       where: { personId, grantType: 'RESPONSIBLE', revokedAt: null },
       select: { companyId: true },
+      take: 200,
     });
 
     if (grants.length === 0) return [];
@@ -43,6 +44,7 @@ export class PrismaCompanyResponsibilityAdapter implements CompanyResponsibility
     const companies = await prisma.company.findMany({
       where: { id: { in: orphanedIds } },
       select: { id: true, razaoSocial: true },
+      take: orphanedIds.length,
     });
 
     return companies.map((c) => ({ id: c.id, name: c.razaoSocial }));
