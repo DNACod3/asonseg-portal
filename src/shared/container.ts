@@ -81,3 +81,13 @@ container.register(AUTH_ATTEMPTS_REPO_TOKEN, () => new PrismaAuthAttemptsRepo())
 import { EMAIL_SENDER_TOKEN } from '@/shared/lib/email/email-sender.port';
 import { ResendEmailSender } from '@/shared/lib/email/resend-email-sender';
 container.register(EMAIL_SENDER_TOKEN, () => new ResendEmailSender());
+
+// Único responsável de Empresa na inativação de Pessoa (USP-007 / AC-007-3 /
+// P-002). Enquanto o módulo `companies` não existe, o adapter nulo responde
+// "nenhuma Empresa órfã"; quando `companies` chegar (USP-010..014), basta trocar
+// este binding pelo adapter real — a Server Action de inativação não muda.
+// eslint-disable-next-line no-restricted-imports
+import { COMPANY_RESPONSIBILITY_TOKEN } from '@/modules/persons/ports/companyResponsibility';
+// eslint-disable-next-line no-restricted-imports
+import { NullCompanyResponsibilityAdapter } from '@/modules/persons/adapters/null-company-responsibility';
+container.register(COMPANY_RESPONSIBILITY_TOKEN, () => new NullCompanyResponsibilityAdapter());
