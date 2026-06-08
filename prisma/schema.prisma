@@ -164,10 +164,11 @@ model Person {
   createdAt                 DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  credential       Credential?
-  roleGrants       PersonRoleGrant[]
-  consents         Consent[]
-  credentialClaims CredentialClaim[]
+  credential            Credential?
+  roleGrants            PersonRoleGrant[]
+  consents              Consent[]
+  credentialClaims      CredentialClaim[]
+  delegatedPermissions  DelegatedPermission[]
 
   @@map("persons")
 }
@@ -233,6 +234,42 @@ model PersonRoleGrant {
   @@index([personId, status])
   @@index([role, status])
   @@map("person_role_grants")
+}
+
+/// Catálogo fechado de permissões delegáveis a voluntários (USP-008 / ADR-0001).
+/// Namespace `portal:` — nunca misturar com permissões de papel (Role).
+enum PermissionId {
+  MODERATE_JOB
+  MODERATE_CV
+  MODERATE_SERVICE
+  VALIDATE_COMPANY_FIRST_JOB
+  INACTIVATE_PUBLISHED_CONTENT
+  REFER_PERSON_TO_JOB
+  APPROVE_CATEGORY_SUGGESTION
+  REGISTER_REFERRAL_RESULT
+  APPROVE_CREDENTIAL_CLAIM
+
+  @@map("permission_id")
+}
+
+/// Permissão administrativa delegada pelo coordenador a um voluntário (USP-008).
+/// Concessão aplica imediatamente; revogação via revokedAt (efeito no próximo carregamento — ADR-0030).
+model DelegatedPermission {
+  id          String       @id @default(uuid()) @db.Uuid
+  personId    String       @map("person_id") @db.Uuid
+  permission  PermissionId
+  /// Área de escopo (opcional — ex.: "empregabilidade"). Null = sem restrição de área.
+  scopeArea   String?      @map("scope_area")
+  grantedBy   String       @map("granted_by") @db.Uuid
+  grantedAt   DateTime     @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt   DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  revokedBy   String?      @map("revoked_by") @db.Uuid
+
+  person Person @relation(fields: [personId], references: [id])
+
+  @@index([personId, revokedAt])
+  @@index([personId, permission, revokedAt])
+  @@map("delegated_permissions")
 }
 
 /// Registro de consentimento LGPD por finalidade (ADR-0013).
