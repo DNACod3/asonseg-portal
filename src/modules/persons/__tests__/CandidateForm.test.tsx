@@ -18,7 +18,9 @@ const actions = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: routerState.push, refresh: routerState.refresh }),
 }));
-vi.mock('@/modules/identity', () => ({
+// O form importa a action direto do módulo `'use server'` (não do barrel), para
+// não arrastar código server-only para o bundle do cliente — o mock segue o path.
+vi.mock('@/modules/identity/actions/activate-additional-role', () => ({
   activateAdditionalRole: (...a: unknown[]) => actions.activateAdditionalRole(...a),
 }));
 vi.mock('../actions/activate-candidate-role', () => ({
