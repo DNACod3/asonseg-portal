@@ -81,5 +81,12 @@ describe('USP-016 #121 — máquina de estados (TRANSITIONS + regras puras)', ()
       expect(TRANSITIONS[CV].some((r) => r.to === S.EXPIRED)).toBe(false);
       expect(TRANSITIONS[SERVICE].some((r) => r.to === S.EXPIRED)).toBe(false);
     });
+
+    it('tipo de conteúdo sem tabela: findTransition é null e isValidTransition false (sem lançar)', () => {
+      const bogus = 'UNKNOWN' as ContentKind;
+      expect(findTransition(bogus, S.IN_MODERATION, S.ACTIVE, 'MODERATOR_ACTION')).toBeNull();
+      expect(isValidTransition(bogus, S.IN_MODERATION, S.ACTIVE, 'MODERATOR_ACTION')).toBe(false);
+      expect(requiresJustification(bogus, S.IN_MODERATION, S.ACTIVE, 'MODERATOR_ACTION')).toBe(false);
+    });
   });
 });

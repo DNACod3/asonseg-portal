@@ -82,4 +82,22 @@ describe('USP-016 #123 — returnForAdjustments (E-003) e rejectContent (E-004)'
       expect(transitionContent).not.toHaveBeenCalled();
     },
   );
+
+  it('P-007: devolver/rejeitar sem permissão retorna FORBIDDEN sem transitar', async () => {
+    requirePermission.mockResolvedValue(fail('FORBIDDEN', 'sem permissão'));
+
+    const ret = await returnForAdjustments({ ...ref, justification: MOTIVO });
+    expect(ret).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+
+    const rej = await rejectContent({ ...ref, justification: MOTIVO });
+    expect(rej).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+
+    expect(transitionContent).not.toHaveBeenCalled();
+  });
+
+  it('Zod: rejeitar com contentId inválido retorna VALIDATION sem checar permissão', async () => {
+    const res = await rejectContent({ contentKind: ContentKind.JOB, contentId: 'nope', justification: MOTIVO });
+    expect(res).toMatchObject({ ok: false, error: { code: 'VALIDATION' } });
+    expect(requirePermission).not.toHaveBeenCalled();
+  });
 });
