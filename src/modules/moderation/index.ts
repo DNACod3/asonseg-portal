@@ -44,6 +44,7 @@ export type {
   ContentActivation,
 } from './ports/company-verify-hook.port';
 export { PrismaModerationContentRepository } from './adapters/prisma-moderation-content-repository';
+export { DispatchingContentStatusRepository } from './adapters/dispatching-content-status-repository';
 export { StubModerationNotification } from './adapters/stub-moderation-notification';
 export { NextCacheInvalidation } from './adapters/next-cache-invalidation';
 export { StubCompanyVerifyHook } from './adapters/stub-company-verify-hook';

@@ -29,6 +29,8 @@ export enum ContentKind {
   JOB = 'JOB',
   CV = 'CV',
   SERVICE = 'SERVICE',
+  /** Perfil de candidato (USP-009). 1º conteúdo real a aterrissar fora da `_moderation_fixture`. */
+  CANDIDATE_PROFILE = 'CANDIDATE_PROFILE',
 }
 
 /** Quem dispara a transição — determina a permissão exigida (#122). */
@@ -80,4 +82,6 @@ export const TRANSITIONS: Readonly<Record<ContentKind, readonly TransitionRule[]
   ],
   [ContentKind.CV]: SHARED_TRANSITIONS,
   [ContentKind.SERVICE]: SHARED_TRANSITIONS,
+  // Perfil de candidato (USP-009) segue o fluxo comum (sem expiração automática).
+  [ContentKind.CANDIDATE_PROFILE]: SHARED_TRANSITIONS,
 };

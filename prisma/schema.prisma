@@ -36,6 +36,8 @@ model JobArea {
   suggestedBy  String?   @map("suggested_by") @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  candidateProfiles CandidateProfile[]
+
   @@map("job_areas")
 }
 
@@ -170,6 +172,7 @@ model Person {
   credentialClaims     CredentialClaim[]
   delegatedPermissions DelegatedPermission[]
   companyGrants        PersonCompanyGrant[]
+  candidateProfile     CandidateProfile?
 
   @@map("persons")
 }
@@ -380,6 +383,36 @@ enum ContentStatus {
   INACTIVATED
 
   @@map("content_status")
+}
+
+// ── Persons / Candidato (USP-009) ────────────────────────────────────────────
+/// Perfil do papel candidato (1:1 com Person). Conteúdo moderável: nasce em DRAFT
+/// e transiciona via `transitionContent()` (módulo moderation, ContentKind.CANDIDATE_PROFILE).
+/// Campos `cv*` guardam apenas a estrutura do anexo; o parsing/extração por IA é da USP-040.
+model CandidateProfile {
+  personId                String        @id @map("person_id") @db.Uuid
+  headline                String?
+  primaryAreaOfInterestId String?       @map("primary_area_of_interest_id") @db.Uuid
+  educationLevel          String?       @map("education_level")
+  educationArea           String?       @map("education_area")
+  experienceText          String?       @map("experience_text") @db.Text
+  skillsText              String?       @map("skills_text") @db.Text
+  coursesText             String?       @map("courses_text") @db.Text
+  availability            String?
+  cvStoragePath           String?       @map("cv_storage_path")
+  cvSha256                String?       @map("cv_sha256")
+  cvUploadedAt            DateTime?     @map("cv_uploaded_at") @db.Timestamptz(6)
+  cvLastConfirmedAt       DateTime?     @map("cv_last_confirmed_at") @db.Timestamptz(6)
+  publicationStatus       ContentStatus @default(DRAFT) @map("publication_status")
+  lastStatusChangeAt      DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
+  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person                Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  primaryAreaOfInterest JobArea? @relation(fields: [primaryAreaOfInterestId], references: [id])
+
+  @@index([publicationStatus])
+  @@map("candidate_profiles")
 }
 
 /// Store transitório de conteúdo moderável para a máquina de estados (GAP-8).

@@ -25,6 +25,10 @@ const PERMISSION_BY_KIND: Record<ContentKind, PermissionId> = {
   [ContentKind.JOB]: 'MODERATE_JOB',
   [ContentKind.CV]: 'MODERATE_CV',
   [ContentKind.SERVICE]: 'MODERATE_SERVICE',
+  // Perfil de candidato (USP-009) reusa a permissão de moderação de CV — o perfil
+  // contém o CV e é a mesma capacidade do coordenador; evita novo PermissionId
+  // (enum Prisma) + seeding RBAC. Reavaliar se a moderação divergir (AC-04 / USP-016).
+  [ContentKind.CANDIDATE_PROFILE]: 'MODERATE_CV',
 };
 
 const INVALID_INPUT = 'Não foi possível processar a decisão: dados inválidos.';

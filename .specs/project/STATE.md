@@ -55,12 +55,11 @@
 **Workaround:** Desenvolver normalmente; designação deve ocorrer antes da Fase 6 / cutover.
 **Resolution:** Sponsor/diretoria designa DPO formalmente.
 
-### B-002: `moderation.transitionContent()` inexistente bloqueia USP-009 #44
+### B-002: `moderation.transitionContent()` inexistente bloqueava USP-009 #44 — ✅ RESOLVIDO (2026-06-10)
 
 **Discovered:** 2026-06-10 (GAP-1 do design da USP-009)
-**Impact:** O módulo `moderation` e `transitionContent()` são da Fase 2 (USP-016) e ainda não existem. O AC-03 da USP-009 (enviar perfil para moderação → IN_MODERATION) depende deles. Bloqueia a task #44 (server actions) e, por cascata, #46 (UI).
-**Workaround:** #36 (model) e #41 (domain+schemas) seguem normalmente. Para #44: ou priorizar USP-016 antes, ou entregar `activateCandidateRole` (DRAFT) com a transição atrás de stub/feature-flag — decisão de sequenciamento pendente. NUNCA usar `prisma.update` de status como atalho.
-**Resolution:** Implementar USP-016 (`transitionContent`) ou aprovar stub temporário.
+**Resolved:** 2026-06-10 — USP-016 mergeada entregou `@/modules/moderation` (`transitionContent`, `ContentKind`, `ContentStatus`, `ContentStatusRepository`). O trio da USP-009 foi atualizado (spec/design/tasks/tests).
+**Trabalho herdado pela #44 (não é mais bloqueio, é integração — ver AD-005):** adicionar `ContentKind.CANDIDATE_PROFILE` + transições; adapter `PrismaCandidateProfileStatusRepository`; despacho por `ContentKind` no `container.ts`. Resta GAP-2 (evento `CANDIDATE_ROLE_ACTIVATED`) — a submissão já é auditada por `transitionContent` (`CONTENT_SUBMITTED_TO_MODERATION`).
 
 ---
 
