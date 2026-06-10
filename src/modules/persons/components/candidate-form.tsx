@@ -4,7 +4,14 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { activateAdditionalRole } from '@/modules/identity';
+// Import direto do módulo `'use server'` (não do barrel `@/modules/identity`):
+// este é um Client Component e o barrel reexporta código server-only
+// (`container.ts` via captchaVerifier, `supabase/server.ts` via session), que o
+// Next se recusa a empacotar no bundle do cliente. O arquivo da action é
+// `'use server'`, então o import vira um stub RPC client-safe. Exceção justificada
+// à regra de barrel (mesma situação do composition root em `shared/container.ts`).
+// eslint-disable-next-line no-restricted-imports
+import { activateAdditionalRole } from '@/modules/identity/actions/activate-additional-role';
 import { candidateProfileSchema, type CandidateProfileInput } from '../schemas/candidate';
 import { EDUCATION_LEVELS, EDUCATION_LEVEL_LABELS } from '../domain/candidate';
 import { activateCandidateRole } from '../actions/activate-candidate-role';
