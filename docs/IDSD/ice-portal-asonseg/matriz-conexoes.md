@@ -207,15 +207,15 @@
 
 - **Upstream:** USP-001 ou USP-006, USP-043 (consentimento "oferta de serviço")
 - **Downstream:** USP-029
-- **ADRs:** ADR-0011, ADR-0013
+- **ADRs:** ADR-0011, ADR-0013, ADR-0014 (Empresa — destino do CNPJ MEI)
 - **Métricas:** MP3
 - **Riscos:** RP-003
 - **Deps/Q-abertas:** D-002
-- **[técnico] Schemas:** role_grants, consents; CNPJ MEI do prestador PF como atributo da Pessoa/papel (NÃO em companies — USP-010/F1) (TD §4.5)
-- **[técnico] Endpoints:** `persons.ativarPapel(prestador)` (TD §4.4)
+- **[técnico] Schemas:** role_grants, consents, provider_profiles (foto/descrição/região, **sem CNPJ**). CNPJ MEI do prestador PF reside em `companies` via fluxo USP-012 (**ADR-0031**, revisto 2026-06-10); regime tributário em `CompanyType` (TD §4.5)
+- **[técnico] Endpoints:** `persons.ativarPapel(prestador)` (TD §4.4); declarar MEI → redireciona ao fluxo `companies.cadastrarEmpresa` (USP-012)
 - **[técnico] Eventos:** ROLE_ACTIVATED, CONSENT_GIVEN (audit) (TD §4.6)
 - **[técnico] Runbooks:** runbook-server-action, runbook-consent-gate, runbook-audit-log
-- **[técnico] ADRs técnicos:** ADR-0020, ADR-0023
+- **[técnico] ADRs técnicos:** ADR-0020, ADR-0023, **ADR-0031** (CNPJ MEI em companies)
 - **[técnico] Fase:** Fase 2 (TD §5)
 
 ### USP-011 — Cadastro de cliente de serviço (papel)
@@ -778,6 +778,7 @@
 | **ADR-0028** | **Sanitização de PII (texto livre + upload)** | USP-009, USP-020, USP-021, USP-022, USP-027, USP-028, USP-029, USP-031, USP-036, USP-040, USP-044 |
 | **ADR-0029** | **Anti-abuso (rate limit + CAPTCHA + lockout)** | USP-001, USP-003, USP-004, USP-005, USP-013, USP-025, USP-028, USP-033, USP-037, USP-040, USP-044 |
 | **ADR-0030** | **Revalidação de status/permissão por requisição** | USP-002, USP-004, USP-005, USP-007, USP-008, USP-014, USP-045 |
+| **ADR-0031** | **CNPJ MEI do prestador PF em `companies` (via USP-012) + regime tributário em `CompanyType`** | USP-010, USP-012, USP-027, USP-030 |
 
 ### 3.2 Risco → USPs
 
@@ -861,7 +862,7 @@
 | Atomicidade (USP-001/006/011/012/013/025/029/033/037) | arq-estrutural | **Resolvido** → ADR-0020 |
 | Unicidade sob concorrência (USP-001/F1) | arq-estrutural | **Resolvido** → ADR-0021 |
 | Invalidação de sessão na inativação (USP-007/F1) | arq-estrutural | **Resolvido** → ADR-0030 |
-| CNPJ MEI do prestador PF (USP-010/F1) | arq-estrutural | **Resolvido** → atributo da Pessoa/papel (TD §4.5, card USP-010) |
+| CNPJ MEI do prestador PF (USP-010/F1) | arq-estrutural | **Revisto (2026-06-10)** → CNPJ MEI em `companies` via fluxo USP-012 + regime tributário em `CompanyType` (**ADR-0031**). Supersede "atributo da Pessoa/papel"; reverte P-001/P-002 da USP-010 |
 | Detecção de vaga duplicada (USP-020/F3) | arq-estrutural | **Resolvido** → ADR-0021 (dedup + 409) |
 | Sanitização na serialização (USP-022/F2, USP-028/F2, USP-031/F1) | arq-estrutural | **Resolvido** → ADR-0022 + ADR-0028 |
 | Expiração on-read (USP-024/F1) | arq-estrutural | **Resolvido** → ADR-0026 |

@@ -16,10 +16,11 @@ Uma Pessoa autenticada ativa o papel prestador de serviço PF. Outcome: papel at
 
 ## 3. Cenários de fracasso (de resultado)
 
-**F1. Prestador PF informa CNPJ MEI e o sistema confunde com Empresa.**
-AC-010-2 diz "sem que isso afete o tipo de cadastro", mas se há fluxo que persiste o CNPJ MEI numa tabela compartilhada com Empresa, ou se a busca de candidatos/prestadores se confunde entre "PF com MEI declarado" e "Pessoa-responsável de Empresa MEI", quebra ADR-0011 + ADR-0014.
+**F1. ~~Prestador PF informa CNPJ MEI e o sistema confunde com Empresa.~~ (REVISTO 2026-06-10 — ADR-0031)**
 
-✅ RESOLVIDO (TD §4.5): o CNPJ MEI declarado pelo prestador PF é atributo da Pessoa/papel (não entra na tabela `companies`). A entidade `companies` é exclusiva de Empresa-responsável (ADR-0014); prestador PF e Empresa MEI ficam em entidades distintas, sem confusão na busca.
+> **Decisão do dono do intent (2026-06-10):** a premissa original de F1 foi **revertida**. O CNPJ MEI **passa a residir em `companies`** (não mais como atributo da Pessoa/papel). Quem tem MEI é Empresa MEI, cadastrada via **fluxo USP-012**; a USP-010 ativa só o papel prestador PF + perfil (foto/descrição/região, **sem** CNPJ). Declarar MEI **redireciona** ao fluxo da USP-012 (cria `Company type=MEI` + responsável). O regime tributário vira enum em `companies` (`CompanyType`: MEI/Simples/Lucro Presumido/Lucro Real/S/A). Consequência consciente: deixa de existir "prestador PF com MEI declarado" como conceito distinto de Empresa MEI; a antiga preocupação de confusão na busca (F1/P-002) torna-se sem objeto. Blast radius: USP-010/012/027/030. Ver **ADR-0031**.
+
+> _Texto original (superseded):_ "AC-010-2 diz 'sem que isso afete o tipo de cadastro'… o CNPJ MEI declarado pelo prestador PF é atributo da Pessoa/papel (não entra na tabela `companies`)." — **não vale mais**.
 
 **F2. Papel ativado sem consentimento da finalidade 3 persistido.**
 Mesmo padrão de USP-006/F1 — transação atomicidade.

@@ -8,15 +8,17 @@
 
   *Ajuste do AC-010-1:* explicita aceite da finalidade 3 + atomicidade.
 
-- **E-002:** The system SHALL permitir que o prestador informe dados fiscais opcionais (CNPJ MEI próprio) **sem que isso altere o tipo do cadastro** (continua sendo prestador PF, não vira Empresa).
+- **E-002 (REESCRITO 2026-06-10 — ADR-0031):** WHEN o prestador quer registrar dados fiscais (CNPJ MEI próprio), the system SHALL **redirecioná-lo ao fluxo de cadastro de Empresa (USP-012)**, que cria uma `Company type=MEI` com o prestador como responsável. A USP-010 em si **não coleta nem persiste CNPJ** — o `ProviderProfile` não tem campo de CNPJ.
+
+  *Texto original (superseded):* "permitir que o prestador informe dados fiscais opcionais (CNPJ MEI próprio) sem que isso altere o tipo do cadastro (continua prestador PF, não vira Empresa)." — revertido: quem tem MEI **é** Empresa MEI (via USP-012).
 
 - **E-003:** WHEN o papel prestador é ativado, the system SHALL redirecionar o usuário para a tela de próximo passo "publicar primeiro serviço" (USP-029) ou para o painel do prestador.
 
 ## 2. Proibições (must-not)
 
-- **P-001 (toca F1 — confusão MEI vs Empresa):** O sistema NÃO PODE persistir o CNPJ MEI declarado pelo prestador PF na tabela/entidade Empresa. CNPJ MEI do prestador PF é atributo da Pessoa/Papel, não cria registro de Empresa. Para publicar em nome de Empresa MEI, é obrigatório o fluxo USP-012.
+- **~~P-001~~ (REVOGADO 2026-06-10 — ADR-0031):** _O sistema NÃO PODE persistir o CNPJ MEI declarado pelo prestador PF na tabela/entidade Empresa…_ — **revogado**. Decisão do dono do intent: o CNPJ MEI **passa a residir em `companies`** via fluxo USP-012. O `ProviderProfile` não tem campo de CNPJ. (Permanece verdadeiro apenas que cadastrar MEI usa o fluxo USP-012.)
 
-- **P-002 (toca F1 — busca confundida):** O sistema NÃO PODE permitir que uma busca por prestador (USP-030) confunda prestador PF que declarou CNPJ MEI com Empresa MEI cadastrada via USP-012. Os dois precisam ser distinguíveis no resultado.
+- **~~P-002~~ (REVOGADO 2026-06-10 — ADR-0031):** _O sistema NÃO PODE permitir que uma busca por prestador confunda prestador PF com MEI declarado e Empresa MEI…_ — **revogado / sem objeto**. Não existe mais "prestador PF com MEI declarado"; quem tem MEI é Empresa MEI (USP-012). A distinção que P-002 exigia deixou de fazer sentido.
 
 - **P-003 (toca F2 — papel sem consentimento):** O sistema NÃO PODE ativar o papel prestador sem que o consentimento da finalidade 3 esteja persistido na mesma transação. Mesmo padrão do USP-006/P-001.
 
@@ -35,6 +37,6 @@
 
 - **D-002 (gate jurídico):** Antes desta USP ir para produção, o termo da **finalidade 3 (oferta de serviço)** está aprovado pelo jurídico via D-002 do PRD. Sem isso, a USP **não vai para produção**.
 
-- **D-003:** Em teste com CNPJ MEI declarado: prestador informa MEI; sistema persiste como atributo da Pessoa; busca de Empresas (USP-027/USP-030) **não retorna** esse prestador como Empresa MEI.
+- **D-003 (REESCRITO 2026-06-10 — ADR-0031):** Em teste com MEI: ao optar por registrar o MEI, o prestador é **redirecionado ao fluxo USP-012** e o sistema cria uma `Company type=MEI` com ele como responsável; o `ProviderProfile` permanece **sem** campo de CNPJ. _(Original superseded: "sistema persiste como atributo da Pessoa; busca de Empresas não retorna como Empresa MEI" — não vale mais.)_
 
 - **D-004:** Inspeção visual da tela de ativação: o sponsor confirma que o texto distingue claramente "oferecer" de "contratar" serviço.
