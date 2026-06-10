@@ -90,3 +90,23 @@ import { COMPANY_RESPONSIBILITY_TOKEN } from '@/modules/persons/ports/companyRes
 // eslint-disable-next-line no-restricted-imports
 import { PrismaCompanyResponsibilityAdapter } from '@/modules/companies/adapters/prisma-company-responsibility';
 container.register(COMPANY_RESPONSIBILITY_TOKEN, () => new PrismaCompanyResponsibilityAdapter());
+
+// Moderação (USP-016 / ADR-0011): ports da máquina de estados `transitionContent`.
+// ContentStatusRepository → adapter sobre `_moderation_fixture` (1º tipo a aterrissar,
+// GAP-8). Notification/CompanyVerify são stubs no-op (GAP-3 → USP-044, GAP-4 → USP-017);
+// cache é o adapter real do Next (ADR-T-0013). Imports profundos para não carregar
+// `transition-content` (que importa este container) durante a inicialização — evita ciclo.
+/* eslint-disable no-restricted-imports */
+import { CONTENT_STATUS_REPOSITORY_TOKEN } from '@/modules/moderation/ports/content-status.port';
+import { MODERATION_NOTIFICATION_TOKEN } from '@/modules/moderation/ports/moderation-notification.port';
+import { CACHE_INVALIDATION_TOKEN } from '@/modules/moderation/ports/cache-invalidation.port';
+import { COMPANY_VERIFY_HOOK_TOKEN } from '@/modules/moderation/ports/company-verify-hook.port';
+import { PrismaModerationContentRepository } from '@/modules/moderation/adapters/prisma-moderation-content-repository';
+import { StubModerationNotification } from '@/modules/moderation/adapters/stub-moderation-notification';
+import { NextCacheInvalidation } from '@/modules/moderation/adapters/next-cache-invalidation';
+import { StubCompanyVerifyHook } from '@/modules/moderation/adapters/stub-company-verify-hook';
+/* eslint-enable no-restricted-imports */
+container.register(CONTENT_STATUS_REPOSITORY_TOKEN, () => new PrismaModerationContentRepository());
+container.register(MODERATION_NOTIFICATION_TOKEN, () => new StubModerationNotification());
+container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
+container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new StubCompanyVerifyHook());

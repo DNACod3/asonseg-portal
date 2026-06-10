@@ -24,6 +24,9 @@ export type ActionErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'PRECONDITION_FAILED'
+  // Máquina de estados de moderação (ADR-0011 / USP-016):
+  | 'INVALID_TRANSITION'
+  | 'JUSTIFICATION_REQUIRED'
   | 'MAINTENANCE'
   | 'INTERNAL';
 

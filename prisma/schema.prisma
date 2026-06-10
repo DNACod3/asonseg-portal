@@ -382,6 +382,24 @@ enum ContentStatus {
   @@map("content_status")
 }
 
+/// Store transitório de conteúdo moderável para a máquina de estados (GAP-8).
+/// Nenhum model real (`jobs`/`services`/`candidate_profiles`) existe ainda — só
+/// `Company` (USP-012). Esta tabela dá um backing store mínimo para
+/// `transitionContent` e a fila de moderação (1º tipo a aterrissar — ADR-0011),
+/// e lastreia os testes de integração. Segue a convenção `_`-prefix de infra sem
+/// domínio (cf. `_health_check`); cada conteúdo real assume seu próprio adapter.
+model ModerationFixtureContent {
+  id             String        @id @default(uuid()) @db.Uuid
+  kind           String
+  status         ContentStatus @default(IN_MODERATION)
+  title          String
+  authorPersonId String        @map("author_person_id") @db.Uuid
+  submittedAt    DateTime      @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@index([status, submittedAt])
+  @@map("_moderation_fixture")
+}
+
 /// Resultado de uma tentativa de autenticação.
 enum AuthOutcome {
   SUCCESS

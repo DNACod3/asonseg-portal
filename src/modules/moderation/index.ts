@@ -13,3 +13,37 @@ export {
   isValidTransition,
   requiresJustification,
 } from './domain/transition-rules';
+export {
+  MIN_JUSTIFICATION_LENGTH,
+  JUSTIFICATION_TOO_SHORT_MESSAGE,
+  JUSTIFICATION_NOT_MEANINGFUL_MESSAGE,
+  isMeaningfulJustification,
+} from './domain/justification';
+
+// ── transitionContent + ports (#122) ─────────────────────────────────────────
+export { transitionContent } from './actions/transition-content';
+export type {
+  TransitionContentInput,
+  TransitionContentData,
+} from './actions/transition-content';
+export { CONTENT_STATUS_REPOSITORY_TOKEN } from './ports/content-status.port';
+export type { ContentStatusRepository } from './ports/content-status.port';
+export { MODERATION_NOTIFICATION_TOKEN } from './ports/moderation-notification.port';
+export type {
+  ModerationNotificationPort,
+  ModerationDecisionNotice,
+} from './ports/moderation-notification.port';
+export { CACHE_INVALIDATION_TOKEN } from './ports/cache-invalidation.port';
+export type {
+  CacheInvalidationPort,
+  CacheInvalidationTarget,
+} from './ports/cache-invalidation.port';
+export { COMPANY_VERIFY_HOOK_TOKEN } from './ports/company-verify-hook.port';
+export type {
+  CompanyVerifyHookPort,
+  ContentActivation,
+} from './ports/company-verify-hook.port';
+export { PrismaModerationContentRepository } from './adapters/prisma-moderation-content-repository';
+export { StubModerationNotification } from './adapters/stub-moderation-notification';
+export { NextCacheInvalidation } from './adapters/next-cache-invalidation';
+export { StubCompanyVerifyHook } from './adapters/stub-company-verify-hook';
