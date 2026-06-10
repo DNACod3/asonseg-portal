@@ -46,15 +46,18 @@ export async function activateCandidateRole(
   }
 
   // CAD-05: consentimentos da finalidade devem estar ativos (registrados na
-  // ativação do papel — USP-006). Verificação, não regravação.
-  for (const purpose of ['PORTAL_ACCESS', 'JOB_APPLICATION'] as const) {
-    const consent = await requireActiveConsent(person.id, purpose);
-    if (!consent.active) {
-      return fail(
-        'CONSENT_REQUIRED',
-        'É necessário aceitar os termos de consentimento para ativar o papel de candidato.',
-      );
-    }
+  // ativação do papel — USP-006). Verificação, não regravação. As duas leituras
+  // são independentes — paralelizadas para evitar round-trips sequenciais.
+  const consents = await Promise.all(
+    (['PORTAL_ACCESS', 'JOB_APPLICATION'] as const).map((purpose) =>
+      requireActiveConsent(person.id, purpose),
+    ),
+  );
+  if (consents.some((consent) => !consent.active)) {
+    return fail(
+      'CONSENT_REQUIRED',
+      'É necessário aceitar os termos de consentimento para ativar o papel de candidato.',
+    );
   }
 
   const hdrs = await headers();

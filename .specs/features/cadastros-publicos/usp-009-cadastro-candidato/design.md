@@ -71,7 +71,11 @@ Retorno sempre `ActionResult<T>` (`{ ok:true, data } | { ok:false, error }`), **
 
 ```
 1. safeParse(candidateSchema, input)            → erro VALIDATION (fieldErrors PT-BR)
-2. requirePermission('candidate:self-activate') → erro UNAUTHENTICATED/FORBIDDEN (Pessoa própria)
+2. getCurrentPerson() (Pessoa autenticada da sessão) → erro UNAUTHENTICATED se nula
+   Ação **self-scoped (P-002)**: opera só sobre a Pessoa da sessão, sem `personId`
+   no input → sem alvo controlável pelo atacante (sem IDOR). Não há `requirePermission`
+   dedicado: `candidate:self-activate` não existe no enum `PermissionId` e o
+   project-guideline §4 admite a omissão justificada do passo 2 para ações P-002.
 3. requireActiveConsent(personId, 'PORTAL_ACCESS') && (…, 'JOB_APPLICATION')
                                                  → erro CONSENT_REQUIRED se ABSENT/OUTDATED/REVOKED
    (+ 'CV_AI_EXTRACTION' apenas quando houver anexo de CV — CAD-02 parcial)
@@ -91,7 +95,8 @@ finalidade **antes** ou dentro da mesma transação da ativação. Decisão: reg
 `transitionContent()` (USP-016) **já audita** a transição internamente (emite `CONTENT_SUBMITTED_TO_MODERATION` via `eventTypeFor(to, trigger)`) e roda status+audit na **mesma transação**. Logo a Action **não** envolve seu próprio `withAudit` para a transição — apenas valida permissão/propriedade e delega:
 
 ```ts
-1. requirePermission(self) + propriedade do perfil (a Pessoa é dona do CandidateProfile)
+1. getCurrentPerson() (self-scoped P-002) → UNAUTHENTICATED se nula; a propriedade é
+   implícita: `contentId = person.id` da sessão (sem `personId` no input → sem IDOR)
 2. pré-condição: perfil existe (a validação DRAFT→IN_MODERATION é feita pela máquina de estados)
 3. return transitionContent({
        contentKind: ContentKind.CANDIDATE_PROFILE,

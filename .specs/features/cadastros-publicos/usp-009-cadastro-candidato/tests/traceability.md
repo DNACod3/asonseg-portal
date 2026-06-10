@@ -29,12 +29,12 @@ Todos os facts em status **Red** (gerados, falhando por ausência de implementa�
 - CAD-02 (diferido) → `it.todo` → coberto na USP-040
 - CAD-03 → `…submit-candidate-for-moderation.int.test.ts::DRAFT→IN_MODERATION` / `::INVALID_TRANSITION` (USP-016 ✅)
 - CAD-04 (fora) → `it.todo` → coberto na USP-016 (coordenador) + US de e-mail
-- E2E (apoio, não Top 8) → `tests/e2e/usp-009-cadastro-candidato.e2e.ts`
+- E2E (apoio, não Top 8) → `e2e/candidato.spec.ts` (confinamento da rota autenticada — fluxo completo coberto em unit/int, ver decisão de pirâmide no spec)
 
 Artefatos:
 - BDD: `tests/bdd/usp-009-cadastro-candidato.feature` (12 cenários)
 - Vitest red: `tests/unit/usp-009-cadastro-candidato.spec.ts`
-- E2E (apoio): `tests/e2e/usp-009-cadastro-candidato.e2e.ts`
+- E2E (apoio): `e2e/candidato.spec.ts` (executável no CI)
 
 ## Lacunas / decisões (atualizado 2026-06-10 — USP-016 mergeada)
 

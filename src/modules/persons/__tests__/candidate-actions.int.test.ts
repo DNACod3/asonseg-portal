@@ -144,6 +144,22 @@ skipIfNoDb('USP-009 #44 — cadastro de candidato (integração)', () => {
     expect(count).toBe(1);
   });
 
+  it('CAD-03 permissão: recusa não autenticado (UNAUTHENTICATED)', async () => {
+    mockPerson = null;
+    const res = await submitCandidateForModeration();
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe('UNAUTHENTICATED');
+  });
+
+  it('CAD-03 pré-condição: perfil inexistente é rejeitado (NOT_FOUND)', async () => {
+    mockPerson = baseMockPerson(personNoConsentId); // pessoa sem CandidateProfile
+    const res = await submitCandidateForModeration();
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe('NOT_FOUND');
+  });
+
   it('CAD-03 happy path: envia para moderação (DRAFT → IN_MODERATION)', async () => {
     mockPerson = baseMockPerson(personId);
     const res = await submitCandidateForModeration();

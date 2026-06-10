@@ -91,7 +91,7 @@ Cadeia linear: cada task desbloqueia a próxima ao fechar (cascade do protocolo 
 Testes-fonte **gerados** (skill-tdad, 2026-06-10) em [`tests/`](./tests/) — todos em status **Red**:
 - BDD: [`tests/bdd/usp-009-cadastro-candidato.feature`](./tests/bdd/usp-009-cadastro-candidato.feature) — 12 cenários, tags `@cad-01..@cad-05`.
 - Vitest red: [`tests/unit/usp-009-cadastro-candidato.spec.ts`](./tests/unit/usp-009-cadastro-candidato.spec.ts) — roda red limpo (8 failed por `not implemented` + 9 todo).
-- E2E (apoio, não Top 8): [`tests/e2e/usp-009-cadastro-candidato.e2e.ts`](./tests/e2e/usp-009-cadastro-candidato.e2e.ts) — `test.fixme`.
+- E2E (apoio, não Top 8): conectado em [`e2e/candidato.spec.ts`](../../../../../e2e/candidato.spec.ts) na fase Execute — spec real e executável no CI (trava o confinamento da rota; fluxo completo coberto em unit/int, por decisão de pirâmide).
 - Matriz: [`tests/traceability.md`](./tests/traceability.md) — cobertura 5/5 requisitos (CAD-02 diferido USP-040, CAD-03 bloqueado USP-016, CAD-04 fora/USP-016).
 
 Na fase Execute, mover/conectar os facts aos paths-alvo de cada task (`modules/persons/__tests__/`, `schemas/`, `components/__tests__/`).
