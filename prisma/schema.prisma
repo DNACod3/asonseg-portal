@@ -88,8 +88,8 @@ enum Role {
   COORDINATOR
   SOCIAL_ASSISTANT
   BOARD
-  BENEFICIARY         // Release 2
-  FAMILY_RESPONSIBLE  // Release 2
+  BENEFICIARY // Release 2
+  FAMILY_RESPONSIBLE // Release 2
 
   @@map("role")
 }
@@ -164,12 +164,12 @@ model Person {
   createdAt                 DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  credential            Credential?
-  roleGrants            PersonRoleGrant[]
-  consents              Consent[]
-  credentialClaims      CredentialClaim[]
-  delegatedPermissions  DelegatedPermission[]
-  companyGrants         PersonCompanyGrant[]
+  credential           Credential?
+  roleGrants           PersonRoleGrant[]
+  consents             Consent[]
+  credentialClaims     CredentialClaim[]
+  delegatedPermissions DelegatedPermission[]
+  companyGrants        PersonCompanyGrant[]
 
   @@map("persons")
 }
@@ -256,15 +256,15 @@ enum PermissionId {
 /// Permissão administrativa delegada pelo coordenador a um voluntário (USP-008).
 /// Concessão aplica imediatamente; revogação via revokedAt (efeito no próximo carregamento — ADR-0030).
 model DelegatedPermission {
-  id          String       @id @default(uuid()) @db.Uuid
-  personId    String       @map("person_id") @db.Uuid
-  permission  PermissionId
+  id         String       @id @default(uuid()) @db.Uuid
+  personId   String       @map("person_id") @db.Uuid
+  permission PermissionId
   /// Área de escopo (opcional — ex.: "empregabilidade"). Null = sem restrição de área.
-  scopeArea   String?      @map("scope_area")
-  grantedBy   String       @map("granted_by") @db.Uuid
-  grantedAt   DateTime     @default(now()) @map("granted_at") @db.Timestamptz(6)
-  revokedAt   DateTime?    @map("revoked_at") @db.Timestamptz(6)
-  revokedBy   String?      @map("revoked_by") @db.Uuid
+  scopeArea  String?      @map("scope_area")
+  grantedBy  String       @map("granted_by") @db.Uuid
+  grantedAt  DateTime     @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt  DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  revokedBy  String?      @map("revoked_by") @db.Uuid
 
   person Person @relation(fields: [personId], references: [id])
 
@@ -359,6 +359,27 @@ model PersonCompanyGrant {
   @@index([personId, revokedAt])
   @@index([companyId, grantType, revokedAt])
   @@map("person_company_grants")
+}
+
+// ── Moderação de conteúdo (USP-016 / ADR-0011) ───────────────────────────────
+// Máquina de estados do ciclo de vida de vaga/CV/serviço. A USP-016 é a **owner**
+// do enum `ContentStatus` (GAP-2): as USPs de conteúdo (Job/Service/CandidateProfile)
+// reusam esta coluna, nunca redeclaram. Histórico de transições vive no `audit_log`
+// (append-only, ADR-0008) — não há tabela própria de transições.
+
+/// Estado de moderação de um conteúdo (ADR-0011). `EXPIRED` só se aplica a vaga (JOB).
+enum ContentStatus {
+  DRAFT
+  IN_MODERATION
+  AWAITING_ADJUSTMENTS
+  ACTIVE
+  REJECTED
+  PAUSED
+  EXPIRED
+  ARCHIVED
+  INACTIVATED
+
+  @@map("content_status")
 }
 
 /// Resultado de uma tentativa de autenticação.
