@@ -102,11 +102,24 @@ import { MODERATION_NOTIFICATION_TOKEN } from '@/modules/moderation/ports/modera
 import { CACHE_INVALIDATION_TOKEN } from '@/modules/moderation/ports/cache-invalidation.port';
 import { COMPANY_VERIFY_HOOK_TOKEN } from '@/modules/moderation/ports/company-verify-hook.port';
 import { PrismaModerationContentRepository } from '@/modules/moderation/adapters/prisma-moderation-content-repository';
+import { DispatchingContentStatusRepository } from '@/modules/moderation/adapters/dispatching-content-status-repository';
+import { ContentKind } from '@/modules/moderation/domain/content-status';
 import { StubModerationNotification } from '@/modules/moderation/adapters/stub-moderation-notification';
 import { NextCacheInvalidation } from '@/modules/moderation/adapters/next-cache-invalidation';
 import { StubCompanyVerifyHook } from '@/modules/moderation/adapters/stub-company-verify-hook';
+import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
 /* eslint-enable no-restricted-imports */
-container.register(CONTENT_STATUS_REPOSITORY_TOKEN, () => new PrismaModerationContentRepository());
+// Despacho por ContentKind (GAP-8): CANDIDATE_PROFILE (USP-009) usa a tabela real
+// `candidate_profiles`; JOB/CV/SERVICE caem no fallback `_moderation_fixture` até
+// suas USPs. Cada tipo que aterrissa acrescenta seu adapter ao mapa.
+container.register(
+  CONTENT_STATUS_REPOSITORY_TOKEN,
+  () =>
+    new DispatchingContentStatusRepository(
+      { [ContentKind.CANDIDATE_PROFILE]: new PrismaCandidateProfileStatusRepository() },
+      new PrismaModerationContentRepository(),
+    ),
+);
 container.register(MODERATION_NOTIFICATION_TOKEN, () => new StubModerationNotification());
 container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
 container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new StubCompanyVerifyHook());

@@ -19,6 +19,7 @@ const KIND_LABELS: Record<ContentKind, string> = {
   [ContentKind.JOB]: 'Vaga',
   [ContentKind.CV]: 'Currículo',
   [ContentKind.SERVICE]: 'Serviço',
+  [ContentKind.CANDIDATE_PROFILE]: 'Perfil de candidato',
 };
 
 type ReasonMode = 'return' | 'reject';

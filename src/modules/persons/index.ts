@@ -48,7 +48,7 @@ export type {
   PersonReactivationRole,
 } from './domain/person-reactivation';
 
-// ── Cadastro de candidato (USP-009 / CAD-01) ─────────────────────────────────
+// ── Cadastro de candidato (USP-009 / CAD-01, CAD-03, CAD-05) ──────────────────
 export {
   EDUCATION_LEVELS,
   EDUCATION_LEVEL_LABELS,
@@ -61,6 +61,9 @@ export {
   PHONE_MAX_DIGITS,
 } from './schemas/candidate';
 export type { CandidateProfileInput, CandidateProfileData } from './schemas/candidate';
+export { activateCandidateRole } from './actions/activate-candidate-role';
+export type { ActivateCandidateRoleResult } from './actions/activate-candidate-role';
+export { submitCandidateForModeration } from './actions/submit-candidate-for-moderation';
 
 // Porta "único responsável de Empresa" (P-002 / E-003). O adapter real chega com
 // o módulo `companies`; o nulo é o binding padrão (ver shared/container.ts).
