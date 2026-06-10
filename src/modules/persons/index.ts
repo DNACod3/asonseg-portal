@@ -64,6 +64,8 @@ export type { CandidateProfileInput, CandidateProfileData } from './schemas/cand
 export { activateCandidateRole } from './actions/activate-candidate-role';
 export type { ActivateCandidateRoleResult } from './actions/activate-candidate-role';
 export { submitCandidateForModeration } from './actions/submit-candidate-for-moderation';
+export { CandidateForm } from './components/candidate-form';
+export type { CandidateFormProps } from './components/candidate-form';
 
 // Porta "único responsável de Empresa" (P-002 / E-003). O adapter real chega com
 // o módulo `companies`; o nulo é o binding padrão (ver shared/container.ts).
