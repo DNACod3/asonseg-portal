@@ -15,10 +15,27 @@ import { z } from 'zod';
  * **P-005:** não há `personId` no input — a action opera sobre a Pessoa
  * autenticada da sessão (`getCurrentPerson`).
  */
+/**
+ * Campos de formulário (selects/inputs) chegam como `''` quando vazios, não
+ * `undefined` — o que faria `.uuid()`/validações falharem em campos opcionais.
+ * Normaliza `''` (após trim) para `undefined` antes de validar.
+ */
+const emptyToUndefined = (value: unknown) =>
+  typeof value === 'string' && value.trim() === '' ? undefined : value;
+
 export const providerProfileSchema = z.object({
-  headline: z.string().trim().max(120, 'Máximo de 120 caracteres.').optional(),
-  description: z.string().trim().max(5000, 'Máximo de 5000 caracteres.').optional(),
-  regionId: z.string().uuid('Selecione uma região válida.').optional(),
+  headline: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().max(120, 'Máximo de 120 caracteres.').optional(),
+  ),
+  description: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().max(5000, 'Máximo de 5000 caracteres.').optional(),
+  ),
+  regionId: z.preprocess(
+    emptyToUndefined,
+    z.string().uuid('Selecione uma região válida.').optional(),
+  ),
 });
 
 /** Tipo de entrada (o que o formulário envia). */

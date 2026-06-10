@@ -72,6 +72,8 @@ export { providerProfileSchema } from './schemas/provider';
 export type { ProviderProfileInput, ProviderProfileData } from './schemas/provider';
 export { activateProviderRole } from './actions/activate-provider-role';
 export type { ActivateProviderRoleResult } from './actions/activate-provider-role';
+export { ProviderForm } from './components/provider-form';
+export type { ProviderFormProps } from './components/provider-form';
 
 // Porta "único responsável de Empresa" (P-002 / E-003). O adapter real chega com
 // o módulo `companies`; o nulo é o binding padrão (ver shared/container.ts).
