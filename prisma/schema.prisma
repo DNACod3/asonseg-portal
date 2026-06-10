@@ -63,6 +63,8 @@ model Region {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  providerProfiles ProviderProfile[]
+
   @@map("regions")
 }
 
@@ -173,6 +175,7 @@ model Person {
   delegatedPermissions DelegatedPermission[]
   companyGrants        PersonCompanyGrant[]
   candidateProfile     CandidateProfile?
+  providerProfile      ProviderProfile?
 
   @@map("persons")
 }
@@ -308,10 +311,15 @@ model Consent {
 // PersonCompanyGrant vincula Pessoa↔Empresa com tipo RESPONSIBLE; append-only
 // (revogação via revokedAt, nunca delete).
 
-/// Tipo jurídico da Empresa (CNPJ regular = LTDA/SA/etc.; MEI = Microempreendedor).
+/// Regime tributário da Empresa (ADR-0031). MEI = Microempreendedor Individual;
+/// demais valores classificam Empresas com CNPJ regular por regime fiscal.
+/// Substitui o par anterior {CNPJ_REGULAR, MEI}: CNPJ_REGULAR → SIMPLES_NACIONAL.
 enum CompanyType {
-  CNPJ_REGULAR
   MEI
+  SIMPLES_NACIONAL
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+  SA
 
   @@map("company_type")
 }
@@ -328,7 +336,7 @@ enum CompanyGrantType {
 model Company {
   id           String      @id @default(uuid()) @db.Uuid
   cnpj         String      @unique
-  type         CompanyType @default(CNPJ_REGULAR)
+  type         CompanyType @default(SIMPLES_NACIONAL)
   razaoSocial  String      @map("razao_social")
   nomeFantasia String      @map("nome_fantasia")
   setor        String
@@ -413,6 +421,28 @@ model CandidateProfile {
 
   @@index([publicationStatus])
   @@map("candidate_profiles")
+}
+
+/// Perfil do prestador de serviço PF (USP-010 / CAD-06..08, ADR-0031).
+/// Ativado imediatamente (papel não é moderado — ADR-0015); a moderação incide
+/// sobre o serviço (USP-016/USP-029). **Sem campo de CNPJ**: o CNPJ MEI vive em
+/// `companies` via fluxo USP-012 (ADR-0031). Upload da foto difere p/ Fase 4
+/// (bucket `provider-photos`); `photo_storage_path` permanece nullable.
+model ProviderProfile {
+  personId          String        @id @map("person_id") @db.Uuid
+  headline          String?
+  description       String?       @db.Text
+  photoStoragePath  String?       @map("photo_storage_path")
+  regionId          String?       @map("region_id") @db.Uuid
+  publicationStatus ContentStatus @default(DRAFT) @map("publication_status")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  region Region? @relation(fields: [regionId], references: [id])
+
+  @@index([publicationStatus])
+  @@map("provider_profiles")
 }
 
 /// Store transitório de conteúdo moderável para a máquina de estados (GAP-8).

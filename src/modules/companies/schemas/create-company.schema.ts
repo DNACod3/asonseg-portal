@@ -14,7 +14,11 @@ export const createCompanySchema = z.object({
     .transform((v) => normalizeCnpj(v))
     .refine(isValidCnpj, 'CNPJ inválido. Verifique o número digitado.'),
 
-  type: z.enum(['CNPJ_REGULAR', 'MEI']).default('CNPJ_REGULAR'),
+  // Regime tributário (ADR-0031). A escolha rica do regime é da USP-012; aqui
+  // o default neutro SIMPLES_NACIONAL substitui o antigo CNPJ_REGULAR.
+  type: z
+    .enum(['MEI', 'SIMPLES_NACIONAL', 'LUCRO_PRESUMIDO', 'LUCRO_REAL', 'SA'])
+    .default('SIMPLES_NACIONAL'),
 
   razaoSocial: z
     .string()

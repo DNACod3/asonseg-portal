@@ -3,7 +3,7 @@ import { createCompanySchema } from '../schemas/create-company.schema';
 
 const VALID_BASE = {
   cnpj: '11.222.333/0001-81',
-  type: 'CNPJ_REGULAR' as const,
+  type: 'SIMPLES_NACIONAL' as const,
   razaoSocial: 'Empresa Teste Ltda',
   nomeFantasia: 'Empresa Teste',
   setor: 'Tecnologia',
@@ -55,12 +55,12 @@ describe('createCompanySchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('aplica default CNPJ_REGULAR quando type omitido', () => {
+  it('aplica default SIMPLES_NACIONAL quando type omitido', () => {
     const { type: _type, ...withoutType } = VALID_BASE;
     const result = createCompanySchema.safeParse(withoutType);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.type).toBe('CNPJ_REGULAR');
+      expect(result.data.type).toBe('SIMPLES_NACIONAL');
     }
   });
 

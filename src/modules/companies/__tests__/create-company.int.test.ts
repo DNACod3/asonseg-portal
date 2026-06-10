@@ -32,7 +32,7 @@ const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
 const VALID_INPUT = {
   cnpj: '11.222.333/0001-81',
-  type: 'CNPJ_REGULAR' as const,
+  type: 'SIMPLES_NACIONAL' as const,
   razaoSocial: 'Empresa Integração Ltda',
   nomeFantasia: 'Empresa Integração',
   setor: 'Tecnologia',

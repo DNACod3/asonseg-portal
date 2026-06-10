@@ -45,7 +45,7 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
   } = useForm<CreateCompanyInput>({
     resolver: zodResolver(createCompanySchema),
     defaultValues: {
-      type: 'CNPJ_REGULAR',
+      type: 'SIMPLES_NACIONAL',
       companyRepresentationTermVersion: term.version,
       companyRepresentationTermHash: term.contentHash,
     },
@@ -87,8 +87,8 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
         <label className={labelClass}>Tipo</label>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="radio" value="CNPJ_REGULAR" {...register('type')} />
-            CNPJ Regular (LTDA, S.A., etc.)
+            <input type="radio" value="SIMPLES_NACIONAL" {...register('type')} />
+            CNPJ Regular (Simples Nacional, etc.)
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="radio" value="MEI" {...register('type')} />
