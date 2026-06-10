@@ -12,13 +12,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
  * whitelist operacional, ainda que a linha trouxesse CPF/e-mail/telefone.
  */
 
-const prismaState = vi.hoisted(() => ({ findUnique: vi.fn() }));
+const prismaState = vi.hoisted(() => ({ findUnique: vi.fn(), findMany: vi.fn() }));
 
 vi.mock('@/shared/lib/prisma', () => ({
-  prisma: { person: { findUnique: (...args: unknown[]) => prismaState.findUnique(...args) } },
+  prisma: {
+    person: {
+      findUnique: (...args: unknown[]) => prismaState.findUnique(...args),
+      findMany: (...args: unknown[]) => prismaState.findMany(...args),
+    },
+  },
 }));
 
-const { viewPersonForStaff } = await import('../views/view-person-for-staff');
+const { viewPersonForStaff, viewStaffPersonNames } = await import('../views/view-person-for-staff');
 
 const PERSON_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -138,5 +143,51 @@ describe('viewPersonForStaff', () => {
     // Papéis: só ATIVOS e com paginação defensiva.
     expect(arg.select.roleGrants.where).toEqual({ status: 'ACTIVE' });
     expect(arg.select.roleGrants.take).toBeGreaterThan(0);
+  });
+});
+
+describe('viewStaffPersonNames', () => {
+  const A = '11111111-1111-4111-8111-111111111111';
+  const B = '22222222-2222-4222-8222-222222222222';
+
+  it('devolve Map id→nome em uma única consulta (anti-N+1), só id e fullName no select', async () => {
+    prismaState.findMany.mockResolvedValue([
+      { id: A, fullName: 'Maria da Silva' },
+      { id: B, fullName: 'João Souza' },
+    ]);
+
+    const names = await viewStaffPersonNames([A, B]);
+
+    expect(names.get(A)).toBe('Maria da Silva');
+    expect(names.get(B)).toBe('João Souza');
+    expect(prismaState.findMany).toHaveBeenCalledTimes(1);
+    const arg = prismaState.findMany.mock.calls[0]?.[0] as {
+      where: { id: { in: string[] } };
+      select: Record<string, unknown>;
+    };
+    expect(arg.where.id.in.sort()).toEqual([A, B].sort());
+    expect(Object.keys(arg.select).sort()).toEqual(['fullName', 'id']);
+  });
+
+  it('deduplica ids repetidos antes de consultar', async () => {
+    prismaState.findMany.mockResolvedValue([{ id: A, fullName: 'Maria' }]);
+
+    await viewStaffPersonNames([A, A, A]);
+
+    const arg = prismaState.findMany.mock.calls[0]?.[0] as { where: { id: { in: string[] } } };
+    expect(arg.where.id.in).toEqual([A]);
+  });
+
+  it('lista vazia: Map vazio sem tocar o banco', async () => {
+    const names = await viewStaffPersonNames([]);
+    expect(names.size).toBe(0);
+    expect(prismaState.findMany).not.toHaveBeenCalled();
+  });
+
+  it('ids inexistentes simplesmente não aparecem no Map', async () => {
+    prismaState.findMany.mockResolvedValue([{ id: A, fullName: 'Maria' }]);
+    const names = await viewStaffPersonNames([A, B]);
+    expect(names.get(A)).toBe('Maria');
+    expect(names.has(B)).toBe(false);
   });
 });

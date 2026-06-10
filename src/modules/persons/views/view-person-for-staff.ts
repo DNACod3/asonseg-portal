@@ -42,3 +42,26 @@ export async function viewPersonForStaff(personId: string): Promise<StaffPersonV
     inactivationReason: person.inactivationReason,
   };
 }
+
+/**
+ * Resolve nomes de várias Pessoas em lote para exibição a um operador
+ * institucional (staff), em **uma única** consulta (evita N+1). View Model de
+ * privacidade (CLAUDE.md / ADR-0010): expõe apenas `id → fullName`, nada da
+ * ficha social. Usado por telas de staff que listam Pessoas por id — ex.: a fila
+ * de moderação (USP-016) precisa do nome do autor sem ler `Person` direto.
+ * Retorna um `Map` para lookup O(1); ids inexistentes simplesmente não aparecem.
+ */
+export async function viewStaffPersonNames(
+  personIds: readonly string[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(personIds)];
+  if (ids.length === 0) return new Map();
+
+  const persons = await prisma.person.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, fullName: true },
+    take: ids.length,
+  });
+
+  return new Map(persons.map((p) => [p.id, p.fullName]));
+}
