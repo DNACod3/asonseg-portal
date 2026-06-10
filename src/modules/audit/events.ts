@@ -34,6 +34,8 @@ export const AuditEvent = {
   ROLE_GRANT_REVOKED: 'ROLE_GRANT_REVOKED',
   /** Ativação do papel candidato com criação/atualização do perfil em DRAFT (USP-009 / CAD-01). */
   CANDIDATE_ROLE_ACTIVATED: 'CANDIDATE_ROLE_ACTIVATED',
+  /** Ativação do papel prestador PF com criação/atualização do perfil em DRAFT (USP-010 / CAD-06). */
+  PROVIDER_ROLE_ACTIVATED: 'PROVIDER_ROLE_ACTIVATED',
   DELEGATED_PERMISSION_GRANTED: 'DELEGATED_PERMISSION_GRANTED',
   DELEGATED_PERMISSION_REVOKED: 'DELEGATED_PERMISSION_REVOKED',
 
