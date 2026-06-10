@@ -1,5 +1,6 @@
 import { ContentStatus as PrismaContentStatus } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
+import { viewStaffPersonNames } from '@/modules/persons';
 import type { ContentKind } from '../domain/content-status';
 import type { ModerationQueueItem } from '../views/moderation-queue-item';
 
@@ -33,14 +34,10 @@ export async function viewModerationQueue({
 
   if (rows.length === 0) return [];
 
-  // Resolve nomes dos autores em uma única consulta (evita N+1).
-  const authorIds = [...new Set(rows.map((r) => r.authorPersonId))];
-  const authors = await prisma.person.findMany({
-    where: { id: { in: authorIds } },
-    select: { id: true, fullName: true },
-    take: authorIds.length,
-  });
-  const nameById = new Map(authors.map((a) => [a.id, a.fullName]));
+  // Nome do autor via View Model de staff do módulo `persons` (ADR-0010): nunca
+  // lemos `Person` direto de outro módulo. O helper resolve tudo numa única
+  // consulta (evita N+1) e expõe só `id → nome`, sem dados da ficha social.
+  const nameById = await viewStaffPersonNames(rows.map((r) => r.authorPersonId));
 
   return rows.map((r) => ({
     contentKind: r.kind as ContentKind,

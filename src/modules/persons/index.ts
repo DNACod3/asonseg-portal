@@ -58,7 +58,7 @@ export type {
 export { NullCompanyResponsibilityAdapter } from './adapters/null-company-responsibility';
 
 // View de Pessoa para operador institucional (coordenador/diretoria).
-export { viewPersonForStaff } from './views/view-person-for-staff';
+export { viewPersonForStaff, viewStaffPersonNames } from './views/view-person-for-staff';
 export type { StaffPersonView } from './views/view-person-for-staff';
 
 // Componentes de UI da inativação (USP-007) e reativação (USP-045).
