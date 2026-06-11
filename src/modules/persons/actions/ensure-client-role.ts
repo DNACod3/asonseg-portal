@@ -28,37 +28,51 @@ export interface EnsureClientRoleResult {
  *
  * Invariante P-001: o grant CLIENT nunca chega a ACTIVE sem o Consent SERVICE_HIRING
  * persistido na MESMA transação. A ordem é: AWAITING_CONSENT → consent → ACTIVE.
+ *
+ * Pré-condição (AC #118-2): o consentimento-base `PORTAL_ACCESS` deve estar ativo
+ * (criado no cadastro). Se ausente, o helper lança `PORTAL_ACCESS_CONSENT_MISSING`
+ * antes de qualquer escrita, abortando a transação do chamador.
  */
 export async function ensureClientRole(
   tx: Prisma.TransactionClient,
   { personId, term, ip, userAgent }: EnsureClientRoleArgs,
 ): Promise<EnsureClientRoleResult> {
-  // Passo 1 — idempotência: releitura defensiva dentro da tx (fecha corrida de duplo submit).
-  const alreadyActive = await tx.personRoleGrant.findFirst({
-    where: { personId, role: 'CLIENT', status: 'ACTIVE' },
-    select: { id: true },
-  });
-  if (alreadyActive) {
-    return { activated: false, grantId: alreadyActive.id };
-  }
+  // Passo 1 — idempotência: releitura defensiva dentro da tx (fecha corrida de
+  // duplo submit). A decisão é a regra pura `decideClientActivation` sobre os
+  // papéis ATIVOS da Pessoa — uma única leitura. `take` limita a cardinalidade
+  // (bounded pelo enum `Role`), conforme a convenção de paginação obrigatória.
+  const activeRoles = (
+    await tx.personRoleGrant.findMany({
+      where: { personId, status: 'ACTIVE' },
+      select: { role: true },
+      take: 20,
+    })
+  ).map((g) => g.role);
 
-  const { needsActivation } = decideClientActivation(
-    (
-      await tx.personRoleGrant.findMany({
-        where: { personId, status: 'ACTIVE' },
-        select: { role: true },
-      })
-    ).map((g) => g.role),
-  );
+  const { needsActivation } = decideClientActivation(activeRoles);
   if (!needsActivation) {
     const grant = await tx.personRoleGrant.findFirst({
-      where: { personId, role: 'CLIENT' },
+      where: { personId, role: 'CLIENT', status: 'ACTIVE' },
       select: { id: true },
     });
     return { activated: false, grantId: grant?.id ?? '' };
   }
 
-  // Passo 2 — cria/reaproveita grant em AWAITING_CONSENT (ADR-0020: intermediário obrigatório).
+  // Passo 2 — P-001 (PORTAL_ACCESS): o consentimento-base do cadastro deve estar
+  // ativo (criado no registro — em geral já existe). Verificação defensiva, antes
+  // de qualquer escrita: se ausente, aborta a tx do chamador (invariante do fluxo —
+  // design §2 passo 3 / AC #118-2). Não fabrica o consent-base aqui.
+  const portalConsent = await tx.consent.findFirst({
+    where: { personId, purpose: 'PORTAL_ACCESS', revokedAt: null },
+    select: { id: true },
+  });
+  if (!portalConsent) {
+    throw Object.assign(new Error('PORTAL_ACCESS_CONSENT_MISSING'), {
+      code: 'PORTAL_ACCESS_CONSENT_MISSING',
+    });
+  }
+
+  // Passo 3 — cria/reaproveita grant em AWAITING_CONSENT (ADR-0020: intermediário obrigatório).
   const existingGrant = await tx.personRoleGrant.findFirst({
     where: { personId, role: 'CLIENT' },
     orderBy: { activatedAt: 'desc' },
@@ -72,7 +86,7 @@ export async function ensureClientRole(
     });
   }
 
-  // Passo 3 — P-001: consent SERVICE_HIRING na MESMA transação, ANTES de ACTIVE.
+  // Passo 4 — P-001: consent SERVICE_HIRING na MESMA transação, ANTES de ACTIVE.
   const newConsentId = crypto.randomUUID();
   const activeConsent = await tx.consent.findFirst({
     where: { personId, purpose: 'SERVICE_HIRING', revokedAt: null },
@@ -105,7 +119,7 @@ export async function ensureClientRole(
     });
   }
 
-  // Passo 4 — upsert ClientProfile (perfil leve, sem dados obrigatórios).
+  // Passo 5 — upsert ClientProfile (perfil leve, sem dados obrigatórios).
   await tx.clientProfile.upsert({
     where: { personId },
     create: { personId },
@@ -113,7 +127,9 @@ export async function ensureClientRole(
     select: { personId: true },
   });
 
-  // Passo 5 — só agora CLIENT vira ACTIVE (P-001: consent já persistido acima).
+  // Passo 6 — só agora CLIENT vira ACTIVE (P-001: consent já persistido acima).
+  // `activatedAt: new Date()` grava o instante em UTC (timestamptz) — conversão p/
+  // America/Sao_Paulo só na borda de exibição (espelha activate-additional-role.ts).
   await tx.personRoleGrant.update({
     where: { id: grantId },
     data: {
@@ -124,9 +140,10 @@ export async function ensureClientRole(
       revokedBy: null,
       revocationReason: null,
     },
+    select: { id: true },
   });
 
-  // Passo 6 — CLIENT_ROLE_ACTIVATED apenas quando há ativação real (nunca no no-op).
+  // Passo 7 — CLIENT_ROLE_ACTIVATED apenas quando há ativação real (nunca no no-op).
   await tx.auditLog.create({
     data: {
       action: AuditEvent.CLIENT_ROLE_ACTIVATED,
