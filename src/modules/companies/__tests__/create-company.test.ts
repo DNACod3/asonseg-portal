@@ -89,7 +89,7 @@ function makePerson(): CurrentPerson {
 
 const VALID_INPUT = {
   cnpj: '11.222.333/0001-81',
-  type: 'CNPJ_REGULAR' as const,
+  type: 'SIMPLES_NACIONAL' as const,
   razaoSocial: 'Empresa Ltda',
   nomeFantasia: 'Empresa',
   setor: 'Tecnologia',
