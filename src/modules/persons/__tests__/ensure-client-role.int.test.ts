@@ -11,6 +11,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
  */
 
 const { prisma } = await import('@/shared/lib/prisma');
+// Import por caminho relativo intra-módulo (não pelo barrel `@/modules/persons`):
+// o barrel reexporta Server Actions ('use server') que importam `next/headers` no
+// topo, indisponível no ambiente Node do Vitest. A regra de barrel da CLAUDE.md
+// rege imports entre módulos em produção, não o acesso interno de um teste.
 const { ensureClientRole } = await import('../actions/ensure-client-role');
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
@@ -97,6 +101,12 @@ skipIfNoDb('USP-011 — ensureClientRole (integração)', () => {
     expect(consent).not.toBeNull();
     expect(consent?.termVersion).toBe(TERM.version);
     expect(consent?.acceptedIp).toBe(IP);
+
+    // AC #118-2: o consent-base PORTAL_ACCESS permanece ativo após a ativação.
+    const portal = await prisma.consent.findFirst({
+      where: { personId, purpose: 'PORTAL_ACCESS', revokedAt: null },
+    });
+    expect(portal).not.toBeNull();
   });
 
   it('AC #118-2: consent SERVICE_HIRING persistido com versão, data e IP', async () => {
@@ -165,6 +175,11 @@ skipIfNoDb('USP-011 — ensureClientRole (integração)', () => {
         select: { id: true },
       })
     ).id;
+    // PORTAL_ACCESS ativo: o helper precisa avançar até a ativação real para que o
+    // throw posterior exercite o rollback do trabalho efetivamente persistido.
+    await prisma.consent.create({
+      data: { personId: testPersonId, purpose: 'PORTAL_ACCESS', termVersion: 'v1.0', termContentHash: 'x' },
+    });
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -182,6 +197,32 @@ skipIfNoDb('USP-011 — ensureClientRole (integração)', () => {
     expect(profile).toBeNull();
     expect(consent).toBeNull();
 
+    await prisma.consent.deleteMany({ where: { personId: testPersonId } });
     await prisma.person.delete({ where: { id: testPersonId } });
+  });
+
+  it('AC #118-2 guard: lança e nada persiste quando PORTAL_ACCESS está ausente', async () => {
+    const noPortalId = (
+      await prisma.person.create({
+        data: { fullName: 'Sem Portal USP011', status: 'ATIVO' },
+        select: { id: true },
+      })
+    ).id;
+
+    // Sem PORTAL_ACCESS: o helper deve abortar (lançar) ANTES de qualquer escrita.
+    await expect(
+      prisma.$transaction(async (tx) => {
+        return ensureClientRole(tx, { personId: noPortalId, term: TERM, ip: null, userAgent: null });
+      }),
+    ).rejects.toThrow('PORTAL_ACCESS_CONSENT_MISSING');
+
+    const grant = await prisma.personRoleGrant.findFirst({ where: { personId: noPortalId, role: 'CLIENT' } });
+    const profile = await prisma.clientProfile.findUnique({ where: { personId: noPortalId } });
+    const consent = await prisma.consent.findFirst({ where: { personId: noPortalId, purpose: 'SERVICE_HIRING' } });
+    expect(grant).toBeNull();
+    expect(profile).toBeNull();
+    expect(consent).toBeNull();
+
+    await prisma.person.delete({ where: { id: noPortalId } });
   });
 });
