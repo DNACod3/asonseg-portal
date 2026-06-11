@@ -67,6 +67,11 @@ export { submitCandidateForModeration } from './actions/submit-candidate-for-mod
 export { CandidateForm } from './components/candidate-form';
 export type { CandidateFormProps } from './components/candidate-form';
 
+// USP-011 — Cadastro de cliente de serviço (papel leve, ativação automática).
+export { decideClientActivation } from './domain/client';
+export { ensureClientRole } from './actions/ensure-client-role';
+export type { EnsureClientRoleArgs, EnsureClientRoleResult } from './actions/ensure-client-role';
+
 // USP-010 — Cadastro de prestador de serviço PF (sem CNPJ — ADR-0031).
 export { providerProfileSchema } from './schemas/provider';
 export type { ProviderProfileInput, ProviderProfileData } from './schemas/provider';

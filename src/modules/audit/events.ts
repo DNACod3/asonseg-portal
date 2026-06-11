@@ -36,6 +36,8 @@ export const AuditEvent = {
   CANDIDATE_ROLE_ACTIVATED: 'CANDIDATE_ROLE_ACTIVATED',
   /** Ativação do papel prestador PF com criação/atualização do perfil em DRAFT (USP-010 / CAD-06). */
   PROVIDER_ROLE_ACTIVATED: 'PROVIDER_ROLE_ACTIVATED',
+  /** Ativação automática do papel cliente na 1ª manifestação de interesse (USP-011 / CAD-09). */
+  CLIENT_ROLE_ACTIVATED: 'CLIENT_ROLE_ACTIVATED',
   DELEGATED_PERMISSION_GRANTED: 'DELEGATED_PERMISSION_GRANTED',
   DELEGATED_PERMISSION_REVOKED: 'DELEGATED_PERMISSION_REVOKED',
 
