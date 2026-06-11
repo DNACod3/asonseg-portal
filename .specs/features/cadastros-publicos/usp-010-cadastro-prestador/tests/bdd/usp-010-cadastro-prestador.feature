@@ -14,16 +14,20 @@ Funcionalidade: Cadastro de prestador de serviço PF (ativação do papel)
     Dado uma Pessoa autenticada chamada "João" sem o papel de prestador ativo
     E que ele aceitou a finalidade de consentimento "PORTAL_ACCESS"
 
-  # ───────────────────── E-001 — ativar papel imediatamente, em transação única ─────────────────────
+  # ───────────────────── E-001 — ativar papel imediatamente; consent atômico ao papel ─────────────────────
+  # Arquitetura: duas Server Actions encadeadas. (1) `activateAdditionalRole` (USP-006) grava o papel
+  # PROVIDER e o consentimento SERVICE_OFFERING na MESMA transação (invariante LGPD papel⇔consent, P-003).
+  # (2) `activateProviderRole` cria o ProviderProfile DRAFT e audita PROVIDER_ROLE_ACTIVATED na transação
+  # seguinte, após verificar (não regravar) os consentimentos. Não há transação única dos três eventos.
 
   @e-001 @happy-path @lgpd
   Cenário: Ativação com aceite do termo da finalidade 3 ativa o papel imediatamente
     Dado que "João" aceita o termo da finalidade "SERVICE_OFFERING" na versão vigente "service-offering@v1.0"
     Quando ele submete a ativação do papel de prestador
     Então o sistema ativa o papel de prestador para "João" imediatamente, sem moderação do papel
-    E persiste o consentimento "SERVICE_OFFERING" com versão, data e IP na MESMA transação
-    E cria o perfil de prestador com status "DRAFT"
-    E registra log de auditoria dos eventos "ROLE_GRANT_ACTIVATED", "CONSENT_GRANTED" e "PROVIDER_ROLE_ACTIVATED"
+    E persiste o consentimento "SERVICE_OFFERING" com versão, data e IP atômico à ativação do papel (transação de `activateAdditionalRole`)
+    E cria o perfil de prestador com status "DRAFT" na transação de `activateProviderRole`
+    E registra log de auditoria dos eventos "ROLE_GRANT_ACTIVATED" e "CONSENT_GRANTED" (ativação do papel) e "PROVIDER_ROLE_ACTIVATED" (criação do perfil)
     E a ação retorna sucesso
 
   @e-001 @seguranca @permissao

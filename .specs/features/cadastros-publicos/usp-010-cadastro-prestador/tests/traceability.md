@@ -8,32 +8,32 @@ Todos os facts em status **Red**.
 
 | Req | Tipo EARS | Texto (verbatim de expectations) | Tipo de fact | Cenário BDD | Path-alvo do teste | Status |
 |----|-----------|------------------|--------------|-------------|--------------------|--------|
-| E-001 | WHEN…SHALL | WHEN a Pessoa autenticada solicita ativar o papel prestador PF com aceite do termo da finalidade 3, the system SHALL ativar o papel imediatamente, persistir o consentimento SERVICE_OFFERING (versão+data+IP) e gravar auditoria — em transação única. | integração | `@e-001 @happy-path` | `modules/persons/__tests__/activate-provider-role.int.test.ts::E-001 happy path` | Red |
+| E-001 | WHEN…SHALL | WHEN a Pessoa autenticada solicita ativar o papel prestador PF com aceite do termo da finalidade 3, the system SHALL ativar o papel imediatamente e persistir o consentimento SERVICE_OFFERING (versão+data+IP) **atômico à ativação do papel** (`activateAdditionalRole`); o ProviderProfile DRAFT + auditoria `PROVIDER_ROLE_ACTIVATED` são gravados na transação encadeada de `activateProviderRole` (consent verificado, não regravado). | integração | `@e-001 @happy-path` | `modules/persons/__tests__/provider-actions.int.test.ts::E-001 happy path` | Red |
 | E-001 | (permissão) | (idem — ação autenticada própria; P-005) | integração | `@e-001 @permissao` | `…::permissão / autenticação` | Red |
 | E-001 | (idempotência) | (idem — reativar não duplica papel/perfil/consent) | integração | `@e-001 @idempotencia` | `…::idempotência (concorrência)` | Red |
-| E-002 | WHEN…SHALL (ADR-0031) | WHEN o prestador quer registrar dados fiscais (CNPJ MEI), the system SHALL redirecioná-lo ao fluxo USP-012 (cria Company type=MEI). A USP-010 não coleta/persiste CNPJ. | componente + integração | `@e-002 @redirect` / `@e-002 @must-not` | `modules/persons/components/__tests__/provider-form.test.tsx::CTA MEI → USP-012` + `…::perfil sem CNPJ` | Red |
-| E-003 | WHEN…SHALL | WHEN o papel prestador é ativado, the system SHALL redirecionar para "publicar primeiro serviço" (USP-029) ou painel do prestador. | componente | `@e-003 @happy-path` | `…::provider-form.test.tsx::CTA próximo passo` | Red |
+| E-002 | WHEN…SHALL (ADR-0031) | WHEN o prestador quer registrar dados fiscais (CNPJ MEI), the system SHALL redirecioná-lo ao fluxo USP-012 (cria Company type=MEI). A USP-010 não coleta/persiste CNPJ. | componente + integração | `@e-002 @redirect` / `@e-002 @must-not` | `modules/persons/__tests__/ProviderForm.test.tsx::CTA MEI → USP-012` + `…::perfil sem CNPJ` | Red |
+| E-003 | WHEN…SHALL | WHEN o papel prestador é ativado, the system SHALL redirecionar para "publicar primeiro serviço" (USP-029) ou painel do prestador. | componente | `@e-003 @happy-path` | `…::ProviderForm.test.tsx::CTA próximo passo` | Red |
 | P-003 | must-not | NÃO PODE ativar o papel prestador sem que o consentimento SERVICE_OFFERING esteja persistido na mesma transação. | integração | `@p-003 @borda` / `@p-003 @atomicidade` | `…::P-003 consentimento` | Red |
-| P-004 | must-not | NÃO PODE ativar o papel sem que a tela explicite "agora você OFERECE serviços". | componente | `@p-004 @ui` | `…::provider-form.test.tsx::copy P-004` + `::bloqueia submit` | Red |
+| P-004 | must-not | NÃO PODE ativar o papel sem que a tela explicite "agora você OFERECE serviços". | componente | `@p-004 @ui` | `…::ProviderForm.test.tsx::copy P-004` + `::bloqueia submit` | Red |
 | P-005 | must-not | NÃO PODE ativar o papel prestador em Pessoa sem credencial. | integração | `@p-005 @must-not` | `…::permissão / autenticação` (UNAUTHENTICATED) | Red |
 | ~~P-001~~ | ~~must-not~~ | **REVOGADO (ADR-0031)** — CNPJ MEI agora em `companies`. | — | — | — | Revogado |
 | ~~P-002~~ | ~~must-not~~ | **REVOGADO (ADR-0031)** — sem "prestador PF com MEI"; quem tem MEI é Empresa MEI. | — | — | — | Revogado |
 
 ## Facts (bloco para o corpo do issue — Kickoff Gate, §22/§23)
 
-- E-001 (happy path) → `modules/persons/__tests__/activate-provider-role.int.test.ts::E-001 happy path`
+- E-001 (happy path) → `modules/persons/__tests__/provider-actions.int.test.ts::E-001 happy path`
 - E-001 (permissão/P-005) → `…::permissão / autenticação`
 - E-001 (idempotência) → `…::idempotência (concorrência)`
-- E-002 (redirect MEI) → `modules/persons/components/__tests__/provider-form.test.tsx::CTA MEI → USP-012` + `…::perfil sem CNPJ`
-- E-003 (próximo passo) → `…::provider-form.test.tsx::CTA próximo passo`
+- E-002 (redirect MEI) → `modules/persons/__tests__/ProviderForm.test.tsx::CTA MEI → USP-012` + `…::perfil sem CNPJ`
+- E-003 (próximo passo) → `…::ProviderForm.test.tsx::CTA próximo passo`
 - P-003 (atomicidade/consent) → `…::P-003 consentimento`
-- P-004 (copy/UI) → `…::provider-form.test.tsx::copy P-004`
+- P-004 (copy/UI) → `…::ProviderForm.test.tsx::copy P-004`
 - P-005 (credencial) → `…::permissão / autenticação`
 
 Artefatos:
 - BDD: `tests/bdd/usp-010-cadastro-prestador.feature` (tags `@e-001`..`@p-005`)
 - Vitest red: `tests/unit/usp-010-cadastro-prestador.spec.ts`
-- E2E (apoio, não Top 8): a conectar em `e2e/prestador.spec.ts` na fase Execute (confinamento da rota `/prestador`).
+- E2E (apoio, não Top 8): `e2e/prestador.spec.ts` (confinamento da rota `/prestador` — acesso sem sessão → `/login`).
 
 ## Lacunas / decisões
 
