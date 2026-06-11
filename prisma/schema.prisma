@@ -176,6 +176,7 @@ model Person {
   companyGrants        PersonCompanyGrant[]
   candidateProfile     CandidateProfile?
   providerProfile      ProviderProfile?
+  clientProfile        ClientProfile?
 
   @@map("persons")
 }
@@ -443,6 +444,19 @@ model ProviderProfile {
 
   @@index([publicationStatus])
   @@map("provider_profiles")
+}
+
+/// Perfil leve do cliente de serviço (USP-011 / CAD-09). Ativado automaticamente
+/// na 1ª manifestação de interesse (USP-033). Sem moderação/publicationStatus (ADR-0011/0008).
+/// cityId é UUID nullable sem FK — não há model City no MVP.
+model ClientProfile {
+  personId  String   @id @map("person_id") @db.Uuid
+  cityId    String?  @map("city_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@map("client_profiles")
 }
 
 /// Store transitório de conteúdo moderável para a máquina de estados (GAP-8).
