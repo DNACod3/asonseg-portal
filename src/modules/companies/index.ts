@@ -14,10 +14,18 @@ export {
   ENDERECO_MAX,
 } from './schemas/create-company.schema';
 export type { CreateCompanyInput, CreateCompanyData } from './schemas/create-company.schema';
+export { addResponsibleSchema, classifyIdentifier } from './schemas/add-responsible.schema';
+export type {
+  AddResponsibleInput,
+  AddResponsibleData,
+  ResponsibleIdentifier,
+} from './schemas/add-responsible.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createCompany } from './actions/create-company';
 export type { CreateCompanyResult } from './actions/create-company';
+export { adicionarResponsavel } from './actions/add-responsible';
+export type { AddResponsibleResult } from './actions/add-responsible';
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaCompanyResponsibilityAdapter } from './adapters/prisma-company-responsibility';
