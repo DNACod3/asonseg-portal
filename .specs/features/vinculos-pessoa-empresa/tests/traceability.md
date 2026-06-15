@@ -2,7 +2,8 @@
 
 Fonte: `expectations-USP-013.md` (E-001..E-003, P-001..P-005, L-002) + `intent-USP-013.md` (F1..F4).
 Modelo: **PENDENTE+ACEITE** (decisão de kickoff AD-006). Gerado por skill-tdad. Cobertura: **9/9** itens ICE com fact.
-Status: todos `Red` (falham por ausência de implementação).
+Status: `Verde` após implementação T1–T4 (PR #266). Facts identificados pela tag `@ac-*`
+nos `*.int.test.ts` (não por sufixo `::nome`).
 
 | ID ICE | Tipo EARS | Texto (resumo verbatim) | Tipo de fact | Cenário BDD | Path-alvo (Execute) | Status |
 |---|---|---|---|---|---|---|
@@ -12,9 +13,9 @@ Status: todos `Red` (falham por ausência de implementação).
 | P-001 | must-not | NÃO retornar PII na busca antes da confirmação (resposta binária) | integração | `@ac-p-001` | `add-responsible.int.test.ts::busca-sem-pii` | Red |
 | P-002 | must-not | NÃO vincular sem aceite explícito (nasce pendente) | integração | `@ac-p-002` (add+accept) | `add-responsible.int.test.ts::status-pending` · `accept-responsible-link.int.test.ts::idempotencia` | Red |
 | P-003 | must-not | NÃO criar vínculo sem papel correspondente (atômico) | integração | `@ac-p-003` | `accept-responsible-link.int.test.ts::papel-consent` | Red |
-| P-004 | must-not | NÃO criar 2 vínculos (UNIQUE parcial + 409, mesmo concorrente) | integração + migration | `@ac-p-004` | `add-responsible.int.test.ts::duplicidade-409` · `grant-status-migration.int.test.ts::unique-parcial` | Red |
-| P-005 | must-not | NÃO permitir busca por quem não é responsável ativo | integração | `@ac-p-005` | `add-responsible.int.test.ts::permissao` | Red |
-| L-002 | limite | rate limit anti-enumeração de CPF/e-mail | integração | `@ac-l-002` | `add-responsible.int.test.ts::rate-limit` | Red |
+| P-004 | must-not | NÃO criar 2 vínculos (UNIQUE parcial + 409, mesmo concorrente) | integração + migration | `@ac-p-004` | `add-responsible.int.test.ts` `@ac-p-004` (sequencial + corrida P2002) · `grant-status-migration.int.test.ts` unique-parcial | Verde |
+| P-005 | must-not | NÃO permitir busca por quem não é responsável ativo | integração | `@ac-p-005` | `add-responsible.int.test.ts` `@ac-p-005` | Verde |
+| L-002 | limite | rate limit anti-enumeração de CPF/e-mail | integração | `@ac-l-002` | `add-responsible.int.test.ts` `@ac-l-002` | Verde |
 
 ### Casos obrigatórios de Server Action cobertos
 - **adicionarResponsavel:** happy (E-001) · Zod (`::validacao`) · permissão (P-005) · concorrência (P-004). Consent fin.5 não exigido do ator (capturado no aceite — justificado).
@@ -29,10 +30,11 @@ Status: todos `Red` (falham por ausência de implementação).
 - E-003/P-002 (accept happy) → `accept-responsible-link.int.test.ts::happy`
 - P-001 (busca sem PII) → `add-responsible.int.test.ts::busca-sem-pii`
 - P-002 (idempotência) → `accept-responsible-link.int.test.ts::idempotencia`
-- P-004 (409 + concorrência) → `add-responsible.int.test.ts::duplicidade-409`
-- P-004 (UNIQUE parcial) → `grant-status-migration.int.test.ts::unique-parcial`
-- P-005 (permissão) → `add-responsible.int.test.ts::permissao`
-- L-002 (rate limit) → `add-responsible.int.test.ts::rate-limit`
+- P-004 (409 sequencial) → `add-responsible.int.test.ts` `@ac-p-004` (duplicidade)
+- P-004 (corrida P2002) → `add-responsible.int.test.ts` `@ac-p-004` (corrida concorrente)
+- P-004 (UNIQUE parcial) → `grant-status-migration.int.test.ts` unique-parcial
+- P-005 (permissão) → `add-responsible.int.test.ts` `@ac-p-005`
+- L-002 (rate limit) → `add-responsible.int.test.ts` `@ac-l-002`
 - Template e-mail → `shared/lib/email/__tests__/responsible-link-pending.test.ts`
 - E2E (operação de Empresa) → `e2e/companies/add-responsible.spec.ts` · `e2e/companies/accept-responsible-link.spec.ts`
 
