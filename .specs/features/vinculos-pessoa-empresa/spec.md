@@ -13,7 +13,8 @@ Esta feature (Épico 3) cobre a gestão completa desses vínculos e da edição 
 
 ## Goals
 
-- [ ] Permitir que uma Pessoa-responsável adicione outra Pessoa **já cadastrada** como responsável adicional de uma Empresa, buscando-a por CPF ou e-mail.
+- [ ] Permitir que uma Pessoa-responsável adicione outra Pessoa **já cadastrada** como responsável adicional de uma Empresa, buscando-a por CPF ou e-mail (vínculo nasce **pendente** até aceite explícito da Pessoa adicionada).
+- [ ] Permitir que a Pessoa adicionada **aceite** o vínculo pendente, ativando o papel `COMPANY_RESPONSIBLE` e capturando o consentimento da finalidade 5 na mesma transação.
 - [ ] Permitir que uma Pessoa-responsável remova um vínculo de responsável (próprio ou de terceiro), preservando o histórico de vínculos encerrados.
 - [ ] Garantir que toda Empresa mantenha ao menos uma Pessoa-responsável ativa em qualquer operação.
 - [ ] Permitir que uma Pessoa-responsável edite os dados cadastrais da Empresa.
@@ -37,12 +38,17 @@ Esta feature (Épico 3) cobre a gestão completa desses vínculos e da edição 
 
 **Why P1**: Prioridade "Must" no PRD. Sem ela, a Empresa fica dependente de um único responsável, criando ponto único de falha operacional e bloqueando a regra de inativação de Pessoa (USP-007) que exige redesignação.
 
-**Acceptance Criteria**:
-1. QUANDO o responsável atual busca uma Pessoa por CPF ou e-mail e a adiciona como responsável ENTÃO o sistema DEVE criar vínculo Pessoa↔Empresa com tipo "responsável" (`PersonCompanyGrant` tipo `RESPONSIBLE`).
-2. QUANDO a Pessoa buscada não está cadastrada no portal ENTÃO o sistema DEVE bloquear a operação e orientar que essa Pessoa precisa fazer o auto-cadastro antes.
-3. QUANDO o vínculo é criado ENTÃO o sistema DEVE enviar e-mail à nova Pessoa-responsável informando o vínculo.
+> **Modelo de vínculo (reconciliado com o ICE — fonte da verdade):** o vínculo nasce **pendente de aceite** e só vira **ativo** quando a Pessoa adicionada confirma explicitamente (intent F2 / expectations P-002 / TD §4.4 `aceitarVinculoResponsavel`). A busca por CPF/e-mail retorna resposta **binária sem PII** (P-001) e é restrita a responsável ativo (P-005), com rate limit anti-enumeração (L-002/ADR-0029). Os AC abaixo substituem a redação original "criação imediata" do PRD.
 
-**Independent Test**: Autenticada como responsável de uma Empresa existente, buscar uma segunda Pessoa pré-cadastrada por CPF, adicioná-la e verificar que o vínculo ativo foi criado e que o e-mail de notificação foi disparado; repetir buscando um CPF inexistente e confirmar o bloqueio com orientação de auto-cadastro.
+**Acceptance Criteria** (chaveados aos IDs ICE):
+1. **(E-001 / P-001 / P-005 / L-002)** QUANDO uma Pessoa-responsável **ativa** de uma Empresa busca uma Pessoa por CPF ou e-mail ENTÃO o sistema DEVE retornar resposta **binária** ("encontrada / não encontrada") **sem expor nome, foto ou qualquer PII** antes da confirmação, negar a busca a quem não é responsável ativo da Empresa, e aplicar rate limit por identidade/rota (anti-enumeração de CPF).
+2. **(E-001)** QUANDO o responsável confirma a adição de uma Pessoa encontrada ENTÃO o sistema DEVE criar o vínculo `PersonCompanyGrant` tipo `RESPONSIBLE` com status **`PENDING`** (pendente de aceite — **não** ativo).
+3. **(E-002)** QUANDO a Pessoa buscada não está cadastrada no portal ENTÃO o sistema DEVE bloquear a operação e orientar que essa Pessoa precisa fazer o auto-cadastro antes (sem convite por e-mail no MVP).
+4. **(E-003 / P-002)** QUANDO o vínculo pendente é criado ENTÃO o sistema DEVE enviar e-mail à Pessoa adicionada com link para revisar/aceitar; e o vínculo SÓ vira **`ACTIVE`** quando essa Pessoa o aceita explicitamente (no painel ou via link).
+5. **(P-003)** QUANDO a Pessoa adicionada aceita o vínculo ENTÃO o sistema DEVE, **na mesma transação**, marcar o vínculo `ACTIVE`, ativar o papel `COMPANY_RESPONSIBLE` na Pessoa (se inativo) e capturar o consentimento da finalidade 5 (representação de Empresa).
+6. **(P-004 / ADR-0021)** QUANDO duas adições da mesma Pessoa à mesma Empresa ocorrem (mesmo simultâneas) ENTÃO o sistema DEVE criar **um único** vínculo não-removido, via UNIQUE parcial `(person_id, company_id) WHERE status IN ('PENDING','ACTIVE')` + `409` determinístico no segundo.
+
+**Independent Test**: Autenticada como responsável **ativa** de uma Empresa, buscar uma segunda Pessoa pré-cadastrada por CPF e confirmar que a resposta é binária (sem nome); adicioná-la e verificar que o vínculo nasce `PENDING` e que o e-mail com link de aceite foi enfileirado no outbox; logar como a Pessoa adicionada, aceitar o vínculo e confirmar que ele vira `ACTIVE`, o papel `COMPANY_RESPONSIBLE` é ativado e o consent finalidade 5 é gravado na mesma transação. Repetir a busca com um CPF inexistente e confirmar o bloqueio com orientação de auto-cadastro; e uma busca por usuário não-responsável deve ser negada.
 
 ### P1: Remover responsável de uma Empresa ⭐ MVP
 
@@ -71,7 +77,8 @@ Esta feature (Épico 3) cobre a gestão completa desses vínculos e da edição 
 
 ## Edge Cases
 
-- QUANDO a Pessoa buscada para adicionar já é responsável ativa da mesma Empresa ENTÃO o sistema DEVE bloquear a duplicidade e informar que o vínculo já existe.
+- QUANDO a Pessoa buscada para adicionar já tem vínculo `PENDING` ou `ACTIVE` na mesma Empresa ENTÃO o sistema DEVE bloquear a duplicidade (UNIQUE parcial → `409`) e informar que o vínculo já existe/está pendente.
+- QUANDO a Pessoa adicionada tenta aceitar um vínculo que não está mais `PENDING` (já aceito, removido ou inexistente) ENTÃO o sistema DEVE bloquear com mensagem apropriada (idempotência defensiva).
 - QUANDO o responsável tenta adicionar uma Pessoa buscando por um CPF/e-mail que não corresponde a Pessoa cadastrada ENTÃO o sistema DEVE bloquear e orientar o auto-cadastro (não disparar convite).
 - QUANDO o responsável remove o seu próprio vínculo e ainda existe outro responsável ativo ENTÃO o sistema DEVE permitir a remoção e o ator perde o acesso de gestão àquela Empresa.
 - QUANDO a Pessoa-responsável a ser removida é a única ativa da Empresa ENTÃO o sistema DEVE bloquear e exigir a designação de outro responsável antes da remoção.
@@ -93,7 +100,9 @@ Esta feature (Épico 3) cobre a gestão completa desses vínculos e da edição 
 
 ## Success Criteria
 
-- [ ] Pessoa-responsável consegue adicionar outra Pessoa pré-cadastrada como responsável, com vínculo `RESPONSIBLE` ativo criado e e-mail enviado.
+- [ ] Pessoa-responsável **ativa** consegue buscar (resposta binária, sem PII) e adicionar outra Pessoa pré-cadastrada, criando vínculo `RESPONSIBLE` **`PENDING`** e e-mail de aceite enfileirado no outbox.
+- [ ] Pessoa adicionada aceita o vínculo → status `ACTIVE`, papel `COMPANY_RESPONSIBLE` ativado e consent finalidade 5 capturado, tudo na mesma transação.
+- [ ] Busca/adição por usuário **não-responsável** é negada (P-005); rate limit anti-enumeração aplicado (L-002).
 - [ ] Tentativa de adicionar Pessoa não cadastrada é bloqueada com orientação de auto-cadastro (sem convite por e-mail).
 - [ ] Pessoa-responsável consegue remover um vínculo, com `endedAt` preenchido, e-mail à removida e histórico preservado.
 - [ ] Remoção que deixaria a Empresa sem responsável ativo é bloqueada.

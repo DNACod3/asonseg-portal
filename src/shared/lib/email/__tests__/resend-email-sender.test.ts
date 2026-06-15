@@ -4,6 +4,7 @@ import { ResendEmailSender, type ResendClient } from '../resend-email-sender';
 import { renderWelcomeEmail } from '../templates/welcome';
 import { renderPasswordResetEmail } from '../templates/password-reset';
 import { renderCredentialClaimWelcomeEmail } from '../templates/credential-claim-welcome';
+import { renderResponsibleLinkPendingEmail } from '../templates/responsible-link-pending';
 
 /**
  * Testes da infra de e-mail (USP-005 / #69): adapter Resend com client mockado
@@ -72,6 +73,22 @@ describe('ResendEmailSender', () => {
     expect(payload.text).toContain('https://portal.test/redefinir-senha?token_hash=abc&type=recovery');
   });
 
+  it('envia convite de aceite de vínculo com o nome da Empresa e o link de aceite', async () => {
+    const sender = new ResendEmailSender(fakeClient);
+
+    await sender.send({
+      to: 'novo-resp@example.com',
+      template: 'responsible-link-pending',
+      data: { empresaNome: 'Padaria do Zé Ltda', acceptUrl: 'https://portal.test/empresa/aceitar-vinculo?empresaId=abc' },
+    });
+
+    const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
+    expect(payload.subject).toContain('representar uma empresa');
+    expect(payload.html).toContain('Padaria do Zé Ltda');
+    expect(payload.html).toContain('https://portal.test/empresa/aceitar-vinculo?empresaId=abc');
+    expect(payload.text).toContain('https://portal.test/empresa/aceitar-vinculo?empresaId=abc');
+  });
+
   it('erro do provedor → { ok: false } (não lança)', async () => {
     sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
     const sender = new ResendEmailSender(fakeClient);
@@ -99,6 +116,21 @@ describe('templates de e-mail', () => {
     expect(email.html).toContain('&lt;b&gt;candidato(a)&lt;/b&gt;');
     // No texto plano o papel aparece sem escape (sem parser de markup).
     expect(email.text).toContain('Seu cadastro como <b>candidato(a)</b> foi realizado');
+  });
+
+  it('convite de aceite: inclui nome da Empresa e link, escapando HTML (anti-injeção)', () => {
+    const email = renderResponsibleLinkPendingEmail({
+      empresaNome: '<b>Empresa</b> & Cia',
+      acceptUrl: 'https://portal.test/empresa/aceitar-vinculo?empresaId=abc&x=1',
+    });
+    expect(email.subject).toContain('representar uma empresa');
+    // Link presente no HTML (com `&` escapado) e no texto plano (cru).
+    expect(email.html).toContain('empresaId=abc&amp;x=1');
+    expect(email.text).toContain('https://portal.test/empresa/aceitar-vinculo?empresaId=abc&x=1');
+    // Nome malicioso escapado no HTML; cru no texto plano (sem parser de markup).
+    expect(email.html).not.toContain('<b>Empresa</b>');
+    expect(email.html).toContain('&lt;b&gt;Empresa&lt;/b&gt;');
+    expect(email.text).toContain('<b>Empresa</b> & Cia');
   });
 
   it('redefinição: inclui URL e validade, e escapa HTML do nome (anti-injeção)', () => {

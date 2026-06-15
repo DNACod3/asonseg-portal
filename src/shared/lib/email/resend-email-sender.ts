@@ -10,6 +10,7 @@ import type {
 import { renderWelcomeEmail } from './templates/welcome';
 import { renderPasswordResetEmail } from './templates/password-reset';
 import { renderCredentialClaimWelcomeEmail } from './templates/credential-claim-welcome';
+import { renderResponsibleLinkPendingEmail } from './templates/responsible-link-pending';
 
 /**
  * Subconjunto estrutural do client Resend que o adapter consome. Mantê-lo
@@ -36,6 +37,8 @@ function render(message: EmailMessage): RenderedEmail {
       return renderPasswordResetEmail(message.data);
     case 'credential-claim-welcome':
       return renderCredentialClaimWelcomeEmail(message.data);
+    case 'responsible-link-pending':
+      return renderResponsibleLinkPendingEmail(message.data);
   }
 }
 

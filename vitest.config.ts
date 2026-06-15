@@ -25,6 +25,12 @@ export default defineConfig({
         'src/shared/lib/prisma.ts',
         'src/shared/lib/logger.ts',
         'src/shared/lib/supabase/**',
+        // Glue de IO: server actions e adapters dependem de Prisma/Supabase/headers
+        // e são verificados pela suíte de integração (`*.int.test.ts`, job `e2e` do
+        // CI), não por unit. Mantê-los no gate unit mediria 0% de algo que já tem
+        // teste próprio — exatamente o que a filosofia acima manda deixar de fora.
+        'src/modules/**/actions/**',
+        'src/modules/**/adapters/**',
         'src/**/*.{test,spec}.ts',
         'src/**/index.ts',
       ],

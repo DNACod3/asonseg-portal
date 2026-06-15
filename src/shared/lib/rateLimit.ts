@@ -48,6 +48,9 @@ export const RATE_LIMITS = {
   authenticated: { limit: 60, windowMs: MINUTE_MS },
   registration: { limit: 3, windowMs: 15 * MINUTE_MS },
   passwordReset: { limit: 5, windowMs: 15 * MINUTE_MS },
+  // Busca de Pessoa por CPF/e-mail ao adicionar responsável (USP-013 / L-002):
+  // teto por identidade para conter enumeração de CPF. Valor tunável (ADR-0029).
+  responsibleLookup: { limit: 20, windowMs: MINUTE_MS },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitCategory = keyof typeof RATE_LIMITS;

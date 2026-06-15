@@ -45,6 +45,14 @@ export interface CredentialClaimWelcomeEmailData {
   expiraEmHoras: number;
 }
 
+/** Dados do template de convite para aceite de vínculo de responsável (USP-013 / E-003). */
+export interface ResponsibleLinkPendingEmailData {
+  /** Nome fantasia (ou razão social) da Empresa que adicionou a Pessoa. */
+  empresaNome: string;
+  /** URL absoluta da página autenticada de aceite do vínculo pendente. */
+  acceptUrl: string;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -52,7 +60,8 @@ export interface CredentialClaimWelcomeEmailData {
 export type EmailMessage =
   | { to: string; template: 'welcome'; data: WelcomeEmailData }
   | { to: string; template: 'password-reset'; data: PasswordResetEmailData }
-  | { to: string; template: 'credential-claim-welcome'; data: CredentialClaimWelcomeEmailData };
+  | { to: string; template: 'credential-claim-welcome'; data: CredentialClaimWelcomeEmailData }
+  | { to: string; template: 'responsible-link-pending'; data: ResponsibleLinkPendingEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {
