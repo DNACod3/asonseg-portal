@@ -34,9 +34,16 @@ export type { AddResponsibleResult } from './actions/add-responsible';
 export { aceitarVinculoResponsavel } from './actions/accept-responsible-link';
 export type { AcceptResponsibleLinkResult } from './actions/accept-responsible-link';
 
+// ── Queries ───────────────────────────────────────────────────────────────────
+export { listPendingResponsibleLinks } from './queries/list-pending-responsible-links';
+export type { PendingResponsibleLink } from './queries/list-pending-responsible-links';
+
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaCompanyResponsibilityAdapter } from './adapters/prisma-company-responsibility';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { CreateCompanyForm } from './components/create-company-form';
 export type { CreateCompanyFormProps } from './components/create-company-form';
+export { AddResponsibleForm } from './components/add-responsible-form';
+export type { AddResponsibleFormProps } from './components/add-responsible-form';
+export { PendingResponsibleLinksList } from './components/pending-responsible-links-list';
