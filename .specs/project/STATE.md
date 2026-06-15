@@ -1,13 +1,29 @@
 # State
 
-**Last Updated:** 2026-06-10
-**Current Work:** USP-016 (Moderar rascunho, #117) — **implementação concluída** (2026-06-10) na branch `feat/usp-016-moderar-rascunho`, 3 commits atômicos (#121/#122/#123). Gate verde: `typecheck` ✓, `lint` ✓, **492** unit + **7** integração ✓, `build` ✓. Fundação do módulo `moderation` entregue (máquina de estados + `transitionContent` + actions/fila + página `(app)/moderacao`). Pendente: abrir PR da US + protocolo de fechamento OpenWolf no merge. GAPs: GAP-1 (4 eventos) ✅ já existiam no catálogo `audit/events`; GAP-2 ✅ #121 owner do enum; GAP-3 (notif → USP-044) e GAP-4 (hook Empresa → USP-017) entregues como **port + stub no-op**; GAP-5 (alerta de fila) **diferido** (ver AD-005); GAP-6 ✅; GAP-7 ✅ `PermissionId` já tem `MODERATE_JOB/CV/SERVICE`; **GAP-8** resolvido via `ContentStatusRepository` port + tabela transitória `_moderation_fixture` (1º tipo a aterrissar) — adapters reais chegam com as USPs de conteúdo.
+**Last Updated:** 2026-06-15
+**Current Work:** USP-013 (Adicionar responsável a uma Empresa, #129) — **Execute em andamento** (2026-06-15). Branch `feat/usp-013-adicionar-responsavel`. **Backend #130 (T1–T4) CONCLUÍDO** com testes verdes (24 testes companies + 10 e-mail) e commits atômicos: T1 schema status+UNIQUE parcial (4f413bc), T2 evento+template+Outbox (617dc68), T3 `adicionarResponsavel` (0fec67f), T4 `aceitarVinculoResponsavel` (74377fa). **Pendente:** abrir PR #130; depois UI #131 (T5 form adicionar + T6 aceitar + E2E). Ver blocker de deploy B-003 (gate D-001) e AD-007 (outbox).
+
+**Histórico recente:** USP-016 (Moderar rascunho, #117) concluída e mergeada (fundação `moderation`).
 
 **Parked:** USP-009 (Cadastro de candidato, #31) — só kickoff feito (timer parado em 1.0h, 2026-06-10). Será retomada **somente após a conclusão da USP-016** (a 016 entrega `moderation.transitionContent`, que destrava o #44 da 009 — GAP-1 da USP-009).
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-007: USP-013 — tabela `Outbox` mínima nesta USP; dispatcher fica na USP-044 (2026-06-15)
+
+**Decision:** O design (ADR-0020/TD §4.6) pede `tx.outbox.create()` para o e-mail de aceite (E-003), mas não existe tabela outbox no código (nem a USP-012 envia e-mail). Criei a model Prisma **`Outbox`** mínima (`topic`/`payload`/`processedAt`/`attempts`/`lastError`) + migration, e `adicionarResponsavel` **enfileira** a linha na mesma transação. O **envio assíncrono real** (dispatcher que consome a fila e chama o `EmailSender`) é da **USP-044** — não foi implementado aqui.
+**Reason:** É o que o design literalmente especifica (`tx.outbox.create()`), satisfaz o fact E-003 ("e-mail enfileirado") e respeita a atomicidade do ADR-0020, sem invadir o escopo de envio da USP-044. A pergunta foi levada ao usuário; o tool de decisão falhou tecnicamente e o usuário pediu "continue" → adotado o default mais fiel ao design e de menor risco.
+**Trade-off:** O e-mail de aceite não é efetivamente enviado até a USP-044 entregar o dispatcher; no MVP a Pessoa aceita pelo painel (T6). Sem e-mail cadastrado, o vínculo PENDING é criado mas nenhuma linha de outbox é enfileirada.
+**Impact:** USP-044 deve consumir `topic='email'` do `Outbox`, despachar via `ResendEmailSender`, marcar `processedAt`/`attempts`/`lastError`, e cobrir retentativa.
+
+### AD-006: USP-013 — modelo pendente+aceite (não criação imediata) (2026-06-12)
+
+**Decision:** O vínculo Pessoa↔Empresa criado por `adicionarResponsavel` nasce **`PENDING`** e só vira **`ACTIVE`** após **aceite explícito** da Pessoa adicionada (`aceitarVinculoResponsavel`). Busca por CPF/e-mail é **binária sem PII** (P-001), restrita a responsável ativo (P-005), com rate limit anti-enumeração (L-002). Schema: adicionar enum `CompanyGrantStatus (PENDING|ACTIVE)` + `pendingAt`/`acceptedAt` ao `PersonCompanyGrant` (hoje append-only sem status) + UNIQUE parcial `WHERE revoked_at IS NULL`. Sub-issues #130/#131 **expandidas** (sem nova sub-issue) para cobrir o fluxo de aceite (action + UI + e-mail).
+**Reason:** As ACs originais do PRD/issue ("criação imediata") são vetor LGPD (fracasso de resultado F2 — adição não consentida). A fonte da verdade ICE (intent/expectations + technical-design §4.4/4.5/4.6) já resolveu isso exigindo aceite explícito (P-002). ICE > redação do PRD.
+**Trade-off:** Mais escopo que as 2 sub-issues originais previam (action de aceite + UI de aceite + template de e-mail); PRs maiores. `createCompany` (USP-012) passa a gravar `status: ACTIVE` e a invariante "≥1 responsável ativo" conta só `ACTIVE`.
+**Impact:** T1 (migration) toca USP-012 e `companiesLeftWithoutResponsible`. Gate jurídico D-001 vira pré-condição de deploy (B-003).
 
 ### AD-005: USP-016 — GAP-8 (acesso a status via port + fixture) e GAP-5 (alerta de fila diferido) (2026-06-10)
 
@@ -60,6 +76,15 @@
 **Discovered:** 2026-06-10 (GAP-1 do design da USP-009)
 **Resolved:** 2026-06-10 — USP-016 mergeada entregou `@/modules/moderation` (`transitionContent`, `ContentKind`, `ContentStatus`, `ContentStatusRepository`). O trio da USP-009 foi atualizado (spec/design/tasks/tests).
 **Trabalho herdado pela #44 (não é mais bloqueio, é integração — ver AD-005):** adicionar `ContentKind.CANDIDATE_PROFILE` + transições; adapter `PrismaCandidateProfileStatusRepository`; despacho por `ContentKind` no `container.ts`. Resta GAP-2 (evento `CANDIDATE_ROLE_ACTIVATED`) — a submissão já é auditada por `transitionContent` (`CONTENT_SUBMITTED_TO_MODERATION`).
+
+---
+
+### B-003: Gate jurídico D-001 da USP-013 (bloqueia deploy, não merge)
+
+**Discovered:** 2026-06-12 (D-001 de `expectations-USP-013.md`)
+**Impact:** Antes da USP-013 ir para **produção**, diretoria + jurídico devem decidir **por escrito** o modelo de aceite (explícito por aceite no painel vs. notificação a posteriori). O design já implementa "aceite explícito" (AD-006), então é confirmação formal, não mudança técnica. Não bloqueia desenvolvimento nem merge.
+**Workaround:** Desenvolver e mergear normalmente o modelo pendente+aceite; obter o sign-off antes do cutover/deploy da feature.
+**Resolution:** Diretoria/jurídico assinam a decisão do modelo de aceite.
 
 ---
 
