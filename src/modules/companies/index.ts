@@ -20,12 +20,19 @@ export type {
   AddResponsibleData,
   ResponsibleIdentifier,
 } from './schemas/add-responsible.schema';
+export { acceptResponsibleLinkSchema } from './schemas/accept-responsible-link.schema';
+export type {
+  AcceptResponsibleLinkInput,
+  AcceptResponsibleLinkData,
+} from './schemas/accept-responsible-link.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createCompany } from './actions/create-company';
 export type { CreateCompanyResult } from './actions/create-company';
 export { adicionarResponsavel } from './actions/add-responsible';
 export type { AddResponsibleResult } from './actions/add-responsible';
+export { aceitarVinculoResponsavel } from './actions/accept-responsible-link';
+export type { AcceptResponsibleLinkResult } from './actions/accept-responsible-link';
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaCompanyResponsibilityAdapter } from './adapters/prisma-company-responsibility';
