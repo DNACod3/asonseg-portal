@@ -64,7 +64,11 @@
 
 ---
 
-## Sub-issue #131 — UI (adicionar + aceitar)
+## Sub-issue #131 — UI (adicionar + aceitar) — ✅ CONCLUÍDO (2026-06-15)
+
+> T5 ✅ + T6 ✅ (11e10e5) · E2E de guarda de rota (d47f873). typecheck/lint/build
+> limpos. SPEC_DEVIATION Level-1: UX busca→confirmar colapsada em 1 chamada sem PII.
+> E2E autenticado (fluxo completo) diferido — coberto por testes de integração.
 
 ### T5 — UI adicionar responsável (busca binária + confirmar)
 - **What:** form no painel da Empresa: busca CPF/e-mail → resposta binária → confirmar adição.
