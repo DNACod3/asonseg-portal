@@ -332,6 +332,17 @@ enum CompanyGrantType {
   @@map("company_grant_type")
 }
 
+/// Ciclo de status do vínculo Pessoa↔Empresa (USP-013).
+/// PENDING = criado por adicionarResponsavel, aguardando aceite explícito (P-002);
+/// ACTIVE = aceito (USP-013) ou criado direto no cadastro da Empresa (USP-012).
+/// Remoção continua representada por revokedAt != null (append-only, USP-014).
+enum CompanyGrantStatus {
+  PENDING
+  ACTIVE
+
+  @@map("company_grant_status")
+}
+
 /// Empresa cadastrada no portal (ADR-0015).
 /// CNPJ armazenado apenas com dígitos (normalizado antes de persistir).
 model Company {
@@ -365,11 +376,18 @@ model PersonCompanyGrant {
   revokedAt DateTime?        @map("revoked_at") @db.Timestamptz(6)
   revokedBy String?          @map("revoked_by") @db.Uuid
 
+  // USP-013 — ciclo pendente→ativo (default ACTIVE cobre grants legados/USP-012).
+  status     CompanyGrantStatus @default(ACTIVE) @map("status")
+  pendingAt  DateTime?          @map("pending_at") @db.Timestamptz(6)
+  acceptedAt DateTime?          @map("accepted_at") @db.Timestamptz(6)
+
   person  Person  @relation(fields: [personId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
 
   @@index([personId, revokedAt])
   @@index([companyId, grantType, revokedAt])
+  // UNIQUE parcial (person, company) WHERE revoked_at IS NULL via migration SQL raw
+  // (P-004/ADR-0021) — Prisma não expressa índice parcial no schema.
   @@map("person_company_grants")
 }
 

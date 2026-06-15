@@ -111,6 +111,7 @@ export async function createCompany(
               companyId: created.id,
               grantType: 'RESPONSIBLE',
               grantedBy: person.id,
+              status: 'ACTIVE', // USP-013: criador é responsável ativo de imediato (sem aceite).
             },
           }),
           tx.consent.create({

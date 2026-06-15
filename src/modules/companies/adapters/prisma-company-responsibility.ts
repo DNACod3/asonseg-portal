@@ -13,8 +13,10 @@ import type {
  */
 export class PrismaCompanyResponsibilityAdapter implements CompanyResponsibilityPort {
   async companiesLeftWithoutResponsible(personId: string): Promise<OrphanedCompanyRef[]> {
+    // USP-013: vínculos PENDING (aguardando aceite) NÃO contam para a invariante
+    // "≥1 responsável ativo" — apenas status=ACTIVE e não-revogados.
     const grants = await prisma.personCompanyGrant.findMany({
-      where: { personId, grantType: 'RESPONSIBLE', revokedAt: null },
+      where: { personId, grantType: 'RESPONSIBLE', status: 'ACTIVE', revokedAt: null },
       select: { companyId: true },
       take: 200,
     });
@@ -29,6 +31,7 @@ export class PrismaCompanyResponsibilityAdapter implements CompanyResponsibility
       where: {
         companyId: { in: companyIds },
         grantType: 'RESPONSIBLE',
+        status: 'ACTIVE',
         revokedAt: null,
       },
       _count: { id: true },
