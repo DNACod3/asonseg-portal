@@ -9,6 +9,7 @@ import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
 import { rateLimiter, RATE_LIMITS } from '@/shared/lib/rateLimit';
 import { env } from '@/shared/env';
+import type { EmailMessage } from '@/shared/lib/email/email-sender.port';
 import {
   addResponsibleSchema,
   classifyIdentifier,
@@ -66,7 +67,13 @@ export async function adicionarResponsavel(
     return fail('FORBIDDEN', 'Você não é responsável ativo desta Empresa.');
   }
 
-  // 4. Rate limit anti-enumeração de CPF/e-mail (L-002).
+  // 4. Rate limit anti-enumeração de CPF/e-mail (L-002 / ADR-0029).
+  //    Aplicado APÓS o gate de permissão (passo 3) de propósito: a busca por
+  //    CPF/e-mail (passo 5) nunca roda para quem leva FORBIDDEN, então a única
+  //    superfície de enumeração é a de um responsável ATIVO — é exatamente ela que
+  //    o teto cobre. Manter a permissão antes preserva a sequência canônica de
+  //    Server Action e não abre enumeração (probes não-autorizados param no passo 3,
+  //    sem tocar PII nem o store do limiter).
   const rl = rateLimiter.check(`add-responsible:${person.id}`, RATE_LIMITS.responsibleLookup);
   if (!rl.allowed) {
     return fail(
@@ -136,15 +143,16 @@ export async function adicionarResponsavel(
             select: { nomeFantasia: true },
           });
           const acceptUrl = `${env.NEXT_PUBLIC_SITE_URL}/empresa/aceitar-vinculo?empresaId=${empresaId}`;
+          // `satisfies EmailMessage`: o payload gravado no outbox é checado contra a
+          // union discriminada da porta de e-mail. Qualquer drift de template/campos
+          // vs. o dispatcher (USP-044) quebra o build aqui, não em runtime.
+          const message = {
+            to: target.emailLogin,
+            template: 'responsible-link-pending',
+            data: { empresaNome: company?.nomeFantasia ?? 'Empresa', acceptUrl },
+          } satisfies EmailMessage;
           await tx.outbox.create({
-            data: {
-              topic: 'email',
-              payload: {
-                to: target.emailLogin,
-                template: 'responsible-link-pending',
-                data: { empresaNome: company?.nomeFantasia ?? 'Empresa', acceptUrl },
-              },
-            },
+            data: { topic: 'email', payload: message },
           });
         }
 
