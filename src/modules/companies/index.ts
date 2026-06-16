@@ -56,3 +56,5 @@ export type { CreateCompanyFormProps } from './components/create-company-form';
 export { AddResponsibleForm } from './components/add-responsible-form';
 export type { AddResponsibleFormProps } from './components/add-responsible-form';
 export { PendingResponsibleLinksList } from './components/pending-responsible-links-list';
+export { RemoveResponsibleDialog } from './components/remove-responsible-dialog';
+export type { RemoveResponsibleDialogProps } from './components/remove-responsible-dialog';
