@@ -375,6 +375,10 @@ model PersonCompanyGrant {
   grantedAt DateTime         @default(now()) @map("granted_at") @db.Timestamptz(6)
   revokedAt DateTime?        @map("revoked_at") @db.Timestamptz(6)
   revokedBy String?          @map("revoked_by") @db.Uuid
+  // USP-014 — motivo de negócio (opcional) da remoção, ao lado de quando/quem (D-014-B).
+  // Vive com a entidade (não no audit_log) p/ relatórios desacoplados da auditoria.
+  // Grants revogados antes da USP-014 ficam null (sem backfill).
+  revokeReason String?       @map("revoke_reason")
 
   // USP-013 — ciclo pendente→ativo (default ACTIVE cobre grants legados/USP-012).
   status     CompanyGrantStatus @default(ACTIVE) @map("status")
