@@ -53,6 +53,12 @@ export interface ResponsibleLinkPendingEmailData {
   acceptUrl: string;
 }
 
+/** Dados do template de notificação de remoção de responsável (USP-014 / AC-014-1). */
+export interface ResponsibleRemovedEmailData {
+  /** Nome fantasia (ou razão social) da Empresa cujo vínculo foi encerrado. */
+  empresaNome: string;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -61,7 +67,8 @@ export type EmailMessage =
   | { to: string; template: 'welcome'; data: WelcomeEmailData }
   | { to: string; template: 'password-reset'; data: PasswordResetEmailData }
   | { to: string; template: 'credential-claim-welcome'; data: CredentialClaimWelcomeEmailData }
-  | { to: string; template: 'responsible-link-pending'; data: ResponsibleLinkPendingEmailData };
+  | { to: string; template: 'responsible-link-pending'; data: ResponsibleLinkPendingEmailData }
+  | { to: string; template: 'responsible-removed'; data: ResponsibleRemovedEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {

@@ -25,6 +25,11 @@ export type {
   AcceptResponsibleLinkInput,
   AcceptResponsibleLinkData,
 } from './schemas/accept-responsible-link.schema';
+export { removeResponsibleSchema, MOTIVO_MAX } from './schemas/remove-responsible.schema';
+export type {
+  RemoveResponsibleInput,
+  RemoveResponsibleData,
+} from './schemas/remove-responsible.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createCompany } from './actions/create-company';
@@ -33,10 +38,14 @@ export { adicionarResponsavel } from './actions/add-responsible';
 export type { AddResponsibleResult } from './actions/add-responsible';
 export { aceitarVinculoResponsavel } from './actions/accept-responsible-link';
 export type { AcceptResponsibleLinkResult } from './actions/accept-responsible-link';
+export { removerResponsavel } from './actions/remove-responsible';
+export type { RemoveResponsibleResult } from './actions/remove-responsible';
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 export { listPendingResponsibleLinks } from './queries/list-pending-responsible-links';
 export type { PendingResponsibleLink } from './queries/list-pending-responsible-links';
+export { listActiveResponsibles } from './queries/list-active-responsibles';
+export type { ActiveResponsible } from './queries/list-active-responsibles';
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaCompanyResponsibilityAdapter } from './adapters/prisma-company-responsibility';
@@ -47,3 +56,5 @@ export type { CreateCompanyFormProps } from './components/create-company-form';
 export { AddResponsibleForm } from './components/add-responsible-form';
 export type { AddResponsibleFormProps } from './components/add-responsible-form';
 export { PendingResponsibleLinksList } from './components/pending-responsible-links-list';
+export { RemoveResponsibleDialog } from './components/remove-responsible-dialog';
+export type { RemoveResponsibleDialogProps } from './components/remove-responsible-dialog';
