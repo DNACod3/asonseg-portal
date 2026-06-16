@@ -8,6 +8,7 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
+import { isCnpjUniqueViolation } from '../domain/cnpj';
 import {
   createCompanySchema,
   type CreateCompanyInput,
@@ -154,8 +155,9 @@ export async function createCompany(
 
     return ok({ companyId: company.id, cnpj: company.cnpj, razaoSocial: company.razaoSocial });
   } catch (err) {
-    // Corrida de CNPJ duplicado (P2002).
-    if (err instanceof Error && err.message.includes('companies_cnpj_key')) {
+    // Corrida de CNPJ duplicado (P2002): a unicidade dispara no INSERT quando a
+    // pré-checagem (passo 4) não enxergou o concorrente.
+    if (isCnpjUniqueViolation(err)) {
       return fail(
         'CONFLICT',
         'Este CNPJ já está cadastrado no portal. Para solicitar sua inclusão como responsável, entre em contato com os responsáveis atuais da Empresa.',

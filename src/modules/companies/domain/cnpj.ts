@@ -45,3 +45,20 @@ export function isValidCnpj(cnpj: string): boolean {
 export function formatCnpj(digits: string): string {
   return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
+
+/**
+ * O erro é uma violação de unicidade de CNPJ (índice `companies_cnpj_key`) numa
+ * corrida concorrente? O Prisma 5.x sinaliza via `code === 'P2002'` + `meta.target`
+ * (`['cnpj']`); a mensagem **não** carrega o nome do índice, então casar string na
+ * mensagem é frágil (e nunca casava) — usamos o código estruturado do erro.
+ * Pura (só inspeciona o formato do erro), compartilhada por create/edit (P-005).
+ */
+export function isCnpjUniqueViolation(err: unknown): boolean {
+  if (!(err instanceof Error) || (err as { code?: unknown }).code !== 'P2002') {
+    return false;
+  }
+  const target = (err as { meta?: { target?: unknown } }).meta?.target;
+  return Array.isArray(target)
+    ? target.includes('cnpj')
+    : String(target ?? '').includes('cnpj');
+}
