@@ -8,23 +8,8 @@ import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
 import { identityFieldsChanged } from '../domain/company-edit';
+import { isCnpjUniqueViolation } from '../domain/cnpj';
 import { editCompanySchema, type EditCompanyInput } from '../schemas/edit-company.schema';
-
-/**
- * Identifica a violação de unicidade de CNPJ (índice `companies_cnpj_key`) numa
- * corrida concorrente. O Prisma 5.x sinaliza via `code === 'P2002'` + `meta.target`
- * (`['cnpj']`); a mensagem **não** carrega o nome do índice, então casar string na
- * mensagem é frágil — usamos o código estruturado do erro (D-015-D / P-005).
- */
-function isCnpjUniqueViolation(err: unknown): boolean {
-  if (!(err instanceof Error) || (err as { code?: unknown }).code !== 'P2002') {
-    return false;
-  }
-  const target = (err as { meta?: { target?: unknown } }).meta?.target;
-  return Array.isArray(target)
-    ? target.includes('cnpj')
-    : String(target ?? '').includes('cnpj');
-}
 
 export interface EditCompanyResult {
   companyId: string;
