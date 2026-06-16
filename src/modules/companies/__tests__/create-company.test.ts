@@ -157,7 +157,12 @@ describe('createCompany', () => {
   });
 
   it('CONFLICT: corrida de CNPJ duplicado (P2002)', async () => {
-    const p2002 = new Error('companies_cnpj_key');
+    // Forma real do PrismaClientKnownRequestError de P2002 (Prisma 5.x / Postgres):
+    // `code` + `meta.target`; a mensagem NÃO carrega o nome do índice.
+    const p2002 = Object.assign(
+      new Error('Unique constraint failed on the fields: (`cnpj`)'),
+      { code: 'P2002', meta: { modelName: 'Company', target: ['cnpj'] } },
+    );
     state.withAuditShouldThrow = p2002;
     const result = await createCompany(VALID_INPUT);
     expect(result.ok).toBe(false);
