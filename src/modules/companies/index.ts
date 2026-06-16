@@ -38,6 +38,8 @@ export { adicionarResponsavel } from './actions/add-responsible';
 export type { AddResponsibleResult } from './actions/add-responsible';
 export { aceitarVinculoResponsavel } from './actions/accept-responsible-link';
 export type { AcceptResponsibleLinkResult } from './actions/accept-responsible-link';
+export { removerResponsavel } from './actions/remove-responsible';
+export type { RemoveResponsibleResult } from './actions/remove-responsible';
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 export { listPendingResponsibleLinks } from './queries/list-pending-responsible-links';
