@@ -3,6 +3,8 @@
 
 // ── Domínio ───────────────────────────────────────────────────────────────────
 export { normalizeCnpj, isValidCnpj, formatCnpj } from './domain/cnpj';
+export { identityFieldsChanged } from './domain/company-edit';
+export type { CompanyIdentityFields } from './domain/company-edit';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 export {
@@ -30,6 +32,8 @@ export type {
   RemoveResponsibleInput,
   RemoveResponsibleData,
 } from './schemas/remove-responsible.schema';
+export { editCompanySchema } from './schemas/edit-company.schema';
+export type { EditCompanyInput, EditCompanyData } from './schemas/edit-company.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createCompany } from './actions/create-company';
@@ -40,6 +44,8 @@ export { aceitarVinculoResponsavel } from './actions/accept-responsible-link';
 export type { AcceptResponsibleLinkResult } from './actions/accept-responsible-link';
 export { removerResponsavel } from './actions/remove-responsible';
 export type { RemoveResponsibleResult } from './actions/remove-responsible';
+export { editarEmpresa } from './actions/edit-company';
+export type { EditCompanyResult } from './actions/edit-company';
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 export { listPendingResponsibleLinks } from './queries/list-pending-responsible-links';
