@@ -95,8 +95,8 @@ Esta feature (Épico 3) cobre a gestão completa desses vínculos e da edição 
 | VPE-04 | USP-014 | Design | Pending |
 | VPE-05 | USP-014 | Design | Pending |
 | VPE-06 | USP-014 | Design | Pending |
-| VPE-07 | USP-015 | Design | Pending |
-| VPE-08 | USP-015 | Design | Pending |
+| VPE-07 | USP-015 | Execute | Done |
+| VPE-08 | USP-015 | Execute | Done |
 
 ## Success Criteria
 

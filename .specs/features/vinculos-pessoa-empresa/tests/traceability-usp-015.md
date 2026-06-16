@@ -21,3 +21,13 @@
 
 - RED (antes da implementação): specs Vitest de schema/domain/action falham; E2E `test.fixme`.
 - GREEN (após Execute): schema/domain/action verdes; E2E materializado e passa local.
+
+## Materialização (Execute)
+
+| Fact (`.specs/.../tests/`) | Teste real (`src`/`e2e`) |
+|---|---|
+| `bdd/usp-015-editar-empresa.feature` @ac-015-* / @e-001/2 | `src/modules/companies/__tests__/edit-company.int.test.ts` |
+| @p-001 / @e-002 (regra de rebaixamento) | `src/modules/companies/__tests__/company-edit.test.ts` |
+| Zod (válido/CNPJ/uuid) | `src/modules/companies/__tests__/edit-company.schema.test.ts` |
+| @d-015-e @ui (aviso de re-verificação) | `src/modules/companies/__tests__/edit-company-form.test.tsx` |
+| `e2e/usp-015-editar-empresa.e2e.ts` (skeleton) | `e2e/companies/editar-empresa.spec.ts` (gate de rota) |
