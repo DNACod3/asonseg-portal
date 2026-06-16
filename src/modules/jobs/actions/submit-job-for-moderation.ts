@@ -82,7 +82,7 @@ export async function submitJobForModeration(
           location: data.location,
           benefits: data.benefits ?? null,
           salary: data.salary ?? null,
-          validUntil: data.validUntil,
+          validUntil: new Date(data.validUntil),
           status: 'DRAFT',
         },
         select: { id: true },

@@ -41,6 +41,13 @@ const location = z
   .max(LOCAL_MAX, `Local deve ter no máximo ${LOCAL_MAX} caracteres.`);
 const benefits = z.string().trim().max(BENEFICIOS_MAX).optional();
 const salary = z.string().trim().max(SALARIO_MAX).optional();
+// Validade como string `yyyy-MM-dd` validada (não convertida): mantém input = output
+// (evita o duplo-parse do RHF→Server Action). A conversão para Date acontece na borda
+// de persistência. A regra de futuro/teto roda no superRefine via {@link validadeStatus}.
+const validUntilStr = z
+  .string({ errorMap: () => ({ message: 'Data de validade é obrigatória.' }) })
+  .min(1, 'Data de validade é obrigatória.')
+  .refine((s) => !Number.isNaN(new Date(s).getTime()), 'Data de validade inválida.');
 
 /**
  * Schema de **submissão à moderação** (USP-020 / L-003). Exige todos os campos
@@ -62,12 +69,10 @@ export const publishJobSchema = z
     location,
     benefits,
     salary,
-    validUntil: z.coerce.date({
-      errorMap: () => ({ message: 'Data de validade é obrigatória.' }),
-    }),
+    validUntil: validUntilStr,
   })
   .superRefine((data, ctx) => {
-    const status = validadeStatus(data.validUntil, new Date());
+    const status = validadeStatus(new Date(data.validUntil), new Date());
     if (status === 'passado') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -98,7 +103,7 @@ export const draftJobSchema = z.object({
   location: z.string().trim().max(LOCAL_MAX).optional(),
   benefits,
   salary,
-  validUntil: z.coerce.date().optional(),
+  validUntil: validUntilStr.optional(),
 });
 
 /**

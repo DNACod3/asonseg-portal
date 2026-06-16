@@ -34,3 +34,9 @@ export { submitJobForModeration, type SubmitJobResult } from './actions/submit-j
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaJobStatusRepository } from './adapters/prisma-job-status';
+
+// ── Queries ───────────────────────────────────────────────────────────────────
+export { listApprovedJobAreas, type JobAreaOption } from './queries/list-approved-job-areas';
+
+// ── Componentes ───────────────────────────────────────────────────────────────
+export { JobForm, type JobFormProps } from './components/job-form';

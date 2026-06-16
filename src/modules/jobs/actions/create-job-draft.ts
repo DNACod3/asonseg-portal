@@ -81,7 +81,7 @@ export async function createJobDraft(
             location: data.location ?? null,
             benefits: data.benefits ?? null,
             salary: data.salary ?? null,
-            validUntil: data.validUntil ?? null,
+            validUntil: data.validUntil ? new Date(data.validUntil) : null,
             status: 'DRAFT',
           },
           select: { id: true, companyId: true, title: true, status: true },
