@@ -37,6 +37,7 @@ model JobArea {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   candidateProfiles CandidateProfile[]
+  jobs              Job[]
 
   @@map("job_areas")
 }
@@ -177,6 +178,7 @@ model Person {
   candidateProfile     CandidateProfile?
   providerProfile      ProviderProfile?
   clientProfile        ClientProfile?
+  authoredJobs         Job[]
 
   @@map("persons")
 }
@@ -360,6 +362,7 @@ model Company {
   updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   grants PersonCompanyGrant[]
+  jobs   Job[]
 
   @@index([cnpj])
   @@map("companies")
@@ -367,18 +370,18 @@ model Company {
 
 /// Vínculo Pessoa↔Empresa (append-only). Revogação via revokedAt.
 model PersonCompanyGrant {
-  id        String           @id @default(uuid()) @db.Uuid
-  personId  String           @map("person_id") @db.Uuid
-  companyId String           @map("company_id") @db.Uuid
-  grantType CompanyGrantType @default(RESPONSIBLE) @map("grant_type")
-  grantedBy String           @map("granted_by") @db.Uuid
-  grantedAt DateTime         @default(now()) @map("granted_at") @db.Timestamptz(6)
-  revokedAt DateTime?        @map("revoked_at") @db.Timestamptz(6)
-  revokedBy String?          @map("revoked_by") @db.Uuid
+  id           String           @id @default(uuid()) @db.Uuid
+  personId     String           @map("person_id") @db.Uuid
+  companyId    String           @map("company_id") @db.Uuid
+  grantType    CompanyGrantType @default(RESPONSIBLE) @map("grant_type")
+  grantedBy    String           @map("granted_by") @db.Uuid
+  grantedAt    DateTime         @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt    DateTime?        @map("revoked_at") @db.Timestamptz(6)
+  revokedBy    String?          @map("revoked_by") @db.Uuid
   // USP-014 — motivo de negócio (opcional) da remoção, ao lado de quando/quem (D-014-B).
   // Vive com a entidade (não no audit_log) p/ relatórios desacoplados da auditoria.
   // Grants revogados antes da USP-014 ficam null (sem backfill).
-  revokeReason String?       @map("revoke_reason")
+  revokeReason String?          @map("revoke_reason")
 
   // USP-013 — ciclo pendente→ativo (default ACTIVE cobre grants legados/USP-012).
   status     CompanyGrantStatus @default(ACTIVE) @map("status")
@@ -393,6 +396,41 @@ model PersonCompanyGrant {
   // UNIQUE parcial (person, company) WHERE revoked_at IS NULL via migration SQL raw
   // (P-004/ADR-0021) — Prisma não expressa índice parcial no schema.
   @@map("person_company_grants")
+}
+
+// ── Vagas (USP-020) ──────────────────────────────────────────────────────────
+/// Vaga publicada por uma Empresa (USP-020). Conteúdo moderável: nasce em DRAFT
+/// e transiciona via `transitionContent()` (ContentKind.JOB). Visibilidade pública
+/// (status ACTIVE + validade >= hoje + Empresa verificada) é filtrada on-read na USP-021.
+model Job {
+  id                 String        @id @default(uuid()) @db.Uuid
+  companyId          String        @map("company_id") @db.Uuid
+  authorPersonId     String        @map("author_person_id") @db.Uuid
+  title              String
+  areaId             String        @map("area_id") @db.Uuid
+  description        String        @db.Text
+  requirements       String        @db.Text
+  benefits           String?       @db.Text
+  salary             String?
+  workRegime         String        @map("work_regime") // CLT, PJ, estágio… (string livre no MVP)
+  location           String
+  validUntil         DateTime      @map("valid_until") @db.Date // validade (date); on-read >= hoje (USP-024)
+  status             ContentStatus @default(DRAFT)
+  publishedAt        DateTime?     @map("published_at") @db.Timestamptz(6) // preenchido na 1ª ativação (USP-016)
+  lastStatusChangeAt DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id])
+  area    JobArea @relation(fields: [areaId], references: [id])
+  author  Person  @relation(fields: [authorPersonId], references: [id])
+
+  // Dedup EXATA (P-003 / ADR-0021): impede 2 vagas idênticas vivas da mesma Empresa.
+  // UNIQUE parcial — só estados "vivos" contam — criada via SQL bruto na migration
+  // (Prisma não expressa `@@unique` com WHERE). Ver migration `..._usp020_job`.
+  @@index([status])
+  @@index([companyId])
+  @@map("jobs")
 }
 
 // ── Moderação de conteúdo (USP-016 / ADR-0011) ───────────────────────────────
