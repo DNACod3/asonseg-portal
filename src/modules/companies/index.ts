@@ -25,6 +25,11 @@ export type {
   AcceptResponsibleLinkInput,
   AcceptResponsibleLinkData,
 } from './schemas/accept-responsible-link.schema';
+export { removeResponsibleSchema, MOTIVO_MAX } from './schemas/remove-responsible.schema';
+export type {
+  RemoveResponsibleInput,
+  RemoveResponsibleData,
+} from './schemas/remove-responsible.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createCompany } from './actions/create-company';
