@@ -5,6 +5,7 @@ import { renderWelcomeEmail } from '../templates/welcome';
 import { renderPasswordResetEmail } from '../templates/password-reset';
 import { renderCredentialClaimWelcomeEmail } from '../templates/credential-claim-welcome';
 import { renderResponsibleLinkPendingEmail } from '../templates/responsible-link-pending';
+import { renderResponsibleRemovedEmail } from '../templates/responsible-removed';
 
 /**
  * Testes da infra de e-mail (USP-005 / #69): adapter Resend com client mockado
@@ -89,6 +90,21 @@ describe('ResendEmailSender', () => {
     expect(payload.text).toContain('https://portal.test/empresa/aceitar-vinculo?empresaId=abc');
   });
 
+  it('envia aviso de remoção de vínculo com o nome da Empresa', async () => {
+    const sender = new ResendEmailSender(fakeClient);
+
+    await sender.send({
+      to: 'removido@example.com',
+      template: 'responsible-removed',
+      data: { empresaNome: 'Padaria do Zé Ltda' },
+    });
+
+    const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
+    expect(payload.subject).toContain('encerrado');
+    expect(payload.html).toContain('Padaria do Zé Ltda');
+    expect(payload.text).toContain('Padaria do Zé Ltda');
+  });
+
   it('erro do provedor → { ok: false } (não lança)', async () => {
     sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
     const sender = new ResendEmailSender(fakeClient);
@@ -127,6 +143,15 @@ describe('templates de e-mail', () => {
     // Link presente no HTML (com `&` escapado) e no texto plano (cru).
     expect(email.html).toContain('empresaId=abc&amp;x=1');
     expect(email.text).toContain('https://portal.test/empresa/aceitar-vinculo?empresaId=abc&x=1');
+    // Nome malicioso escapado no HTML; cru no texto plano (sem parser de markup).
+    expect(email.html).not.toContain('<b>Empresa</b>');
+    expect(email.html).toContain('&lt;b&gt;Empresa&lt;/b&gt;');
+    expect(email.text).toContain('<b>Empresa</b> & Cia');
+  });
+
+  it('remoção de vínculo: assunto e nome da Empresa, escapando HTML (anti-injeção)', () => {
+    const email = renderResponsibleRemovedEmail({ empresaNome: '<b>Empresa</b> & Cia' });
+    expect(email.subject).toContain('encerrado');
     // Nome malicioso escapado no HTML; cru no texto plano (sem parser de markup).
     expect(email.html).not.toContain('<b>Empresa</b>');
     expect(email.html).toContain('&lt;b&gt;Empresa&lt;/b&gt;');
