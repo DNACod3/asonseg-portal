@@ -51,9 +51,20 @@ skipIfNoDb('removerResponsavel — integração', () => {
   let companyId = '';
 
   async function cleanup() {
+    // Escopo do teardown: só o outbox criado por estes testes (e-mails p/ os
+    // destinatários conhecidos), nunca a tabela inteira — outras suítes de
+    // integração compartilham o mesmo banco local.
+    await prisma.outbox.deleteMany({
+      where: {
+        topic: 'email',
+        OR: [
+          { payload: { path: ['to'], equals: REMOVED_EMAIL } },
+          { payload: { path: ['to'], equals: OUTSIDER_EMAIL } },
+        ],
+      },
+    });
     const stale = await prisma.company.findUnique({ where: { cnpj: COMPANY_CNPJ }, select: { id: true } });
     if (stale) {
-      await prisma.outbox.deleteMany({});
       await prisma.personCompanyGrant.deleteMany({ where: { companyId: stale.id } });
       await prisma.company.delete({ where: { id: stale.id } });
     }
@@ -209,5 +220,36 @@ skipIfNoDb('removerResponsavel — integração', () => {
       select: { revokedAt: true },
     });
     expect(removed?.revokedAt).not.toBeNull();
+  });
+
+  it('@concorrência — duas remoções paralelas do mesmo grant: uma vence, a outra NOT_FOUND', async () => {
+    // Ambas as chamadas passam o findFirst pré-transação (revokedAt: null) e
+    // entram em withAudit; a guarda `updateMany({ where: { revokedAt: null }})`
+    // dentro da transação fecha a corrida (count === 0 → ALREADY_REVOKED → NOT_FOUND).
+    const target = await grantOf(coRespId);
+    const results = await Promise.all([
+      removerResponsavel({ grantId: target.id }),
+      removerResponsavel({ grantId: target.id }),
+    ]);
+
+    const oks = results.filter((r) => r.ok);
+    const notFound = results.filter((r) => !r.ok && r.error.code === 'NOT_FOUND');
+    expect(oks).toHaveLength(1);
+    expect(notFound).toHaveLength(1);
+
+    // Revogado exatamente uma vez: append-only, sem dupla revogação.
+    const count = await prisma.personCompanyGrant.count({ where: { id: target.id } });
+    expect(count).toBe(1);
+    const grant = await prisma.personCompanyGrant.findUnique({
+      where: { id: target.id },
+      select: { revokedBy: true },
+    });
+    expect(grant?.revokedBy).toBe(actorId);
+
+    // Apenas um e-mail de aviso foi enfileirado (o vencedor).
+    const emails = await prisma.outbox.count({
+      where: { topic: 'email', payload: { path: ['to'], equals: REMOVED_EMAIL } },
+    });
+    expect(emails).toBe(1);
   });
 });
