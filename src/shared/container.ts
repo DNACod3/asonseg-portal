@@ -108,6 +108,7 @@ import { StubModerationNotification } from '@/modules/moderation/adapters/stub-m
 import { NextCacheInvalidation } from '@/modules/moderation/adapters/next-cache-invalidation';
 import { StubCompanyVerifyHook } from '@/modules/moderation/adapters/stub-company-verify-hook';
 import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
+import { PrismaJobStatusRepository } from '@/modules/jobs/adapters/prisma-job-status';
 /* eslint-enable no-restricted-imports */
 // Despacho por ContentKind (GAP-8): CANDIDATE_PROFILE (USP-009) usa a tabela real
 // `candidate_profiles`; JOB/CV/SERVICE caem no fallback `_moderation_fixture` até
@@ -116,7 +117,10 @@ container.register(
   CONTENT_STATUS_REPOSITORY_TOKEN,
   () =>
     new DispatchingContentStatusRepository(
-      { [ContentKind.CANDIDATE_PROFILE]: new PrismaCandidateProfileStatusRepository() },
+      {
+        [ContentKind.CANDIDATE_PROFILE]: new PrismaCandidateProfileStatusRepository(),
+        [ContentKind.JOB]: new PrismaJobStatusRepository(),
+      },
       new PrismaModerationContentRepository(),
     ),
 );

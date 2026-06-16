@@ -61,6 +61,9 @@ export const AuditEvent = {
   CONTENT_INACTIVATED_BY_COORDINATOR: 'CONTENT_INACTIVATED_BY_COORDINATOR',
 
   // ── Vagas ─────────────────────────────────────────────────────────────────
+  // Rascunho salvo (USP-020 / E-003) — não passa pela FSM (status nasce DRAFT);
+  // a submissão à moderação reusa CONTENT_SUBMITTED_TO_MODERATION via transitionContent.
+  JOB_DRAFT_SAVED: 'JOB_DRAFT_SAVED',
   JOB_PUBLISHED: 'JOB_PUBLISHED',
   JOB_EXPIRED: 'JOB_EXPIRED',
   JOB_PAUSED: 'JOB_PAUSED',

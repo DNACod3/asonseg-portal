@@ -9,6 +9,7 @@ export type { ValidadeStatus } from './domain/validade';
 export {
   publishJobSchema,
   draftJobSchema,
+  submitJobSchema,
   TITLE_MIN,
   TITLE_MAX,
   DESCRICAO_MAX,
@@ -23,4 +24,13 @@ export type {
   PublishJobData,
   DraftJobInput,
   DraftJobData,
+  SubmitJobInput,
+  SubmitJobData,
 } from './schemas/publish-job.schema';
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-draft';
+export { submitJobForModeration, type SubmitJobResult } from './actions/submit-job-for-moderation';
+
+// ── Adapters ──────────────────────────────────────────────────────────────────
+export { PrismaJobStatusRepository } from './adapters/prisma-job-status';

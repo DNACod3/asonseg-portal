@@ -101,7 +101,19 @@ export const draftJobSchema = z.object({
   validUntil: z.coerce.date().optional(),
 });
 
+/**
+ * Schema de **submissão** (USP-020). Duas formas: submeter um rascunho existente
+ * (`{ jobId }`) ou submeter um formulário completo de uma vez (cria DRAFT + transiciona).
+ * O formulário completo reusa {@link publishJobSchema} (L-003 + validade futura).
+ */
+export const submitJobSchema = z.union([
+  z.object({ jobId: z.string().uuid('Vaga inválida.') }),
+  publishJobSchema,
+]);
+
 export type PublishJobInput = z.input<typeof publishJobSchema>;
 export type PublishJobData = z.output<typeof publishJobSchema>;
 export type DraftJobInput = z.input<typeof draftJobSchema>;
 export type DraftJobData = z.output<typeof draftJobSchema>;
+export type SubmitJobInput = z.input<typeof submitJobSchema>;
+export type SubmitJobData = z.output<typeof submitJobSchema>;
