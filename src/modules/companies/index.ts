@@ -44,6 +44,8 @@ export type { RemoveResponsibleResult } from './actions/remove-responsible';
 // ── Queries ───────────────────────────────────────────────────────────────────
 export { listPendingResponsibleLinks } from './queries/list-pending-responsible-links';
 export type { PendingResponsibleLink } from './queries/list-pending-responsible-links';
+export { listActiveResponsibles } from './queries/list-active-responsibles';
+export type { ActiveResponsible } from './queries/list-active-responsibles';
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaCompanyResponsibilityAdapter } from './adapters/prisma-company-responsibility';
