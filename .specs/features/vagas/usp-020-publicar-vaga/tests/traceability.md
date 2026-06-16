@@ -1,0 +1,37 @@
+# Rastreabilidade EARS → Fact — USP-020 Publicar vaga (#161)
+
+Fonte: `expectations-USP-020.md` · `intent-USP-020.md` · issue #161 · `matriz-conexoes.md` §USP-020. Gerado por skill-tdad (2026-06-16).
+Requisitos: **VAG-01**.
+**Recorte de escopo (#161):** leva a vaga de rascunho até "em moderação" (`IN_MODERATION`). Entra: rascunho (#164), submit→moderação via `transitionContent` (#164), validade (#163), gate de responsável ativo, dedup exata, auditoria. **Fora desta US** (marcados `@fora-desta-us`): verificação atômica da 1ª vaga (E-002/P-001 → USP-016/017), filtro on-read (P-002/P-007 → USP-021/024), checklist legal (P-004 → USP-016).
+**Cobertura: 8/8 IDs em escopo com fact** (E-001, E-003, E-004, E-005/P-005, P-006, P-003, L-003, L-004). E-002/P-001 · P-002/P-007 · P-004 → cobertos por USP-016/017/021/024.
+Todos os facts desta US em status **Red**.
+**Diferença vs. USP-009/011:** Job entra na FSM existente (`ContentKind.JOB`) via adapter + container (não cria máquina de estados própria); submit = `transitionContent(DRAFT→IN_MODERATION, AUTHOR_ACTION)`. Sem consentimento LGPD (publicar vaga não é finalidade de Pessoa).
+
+| Req | Tipo EARS | Texto (verbatim de expectations) | Tipo de fact | Cenário BDD | Path-alvo do teste | Status |
+|----|-----------|------------------|--------------|-------------|--------------------|--------|
+| E-001 | WHEN…SHALL | WHEN a Pessoa-responsável de uma Empresa submete uma vaga com todos os campos obrigatórios (…) e data de validade futura, the system SHALL persistir a vaga com status "em moderação", vinculada à Empresa selecionada (…). | integração | `@e-001 @happy-path` | `modules/jobs/__tests__/submit-job-for-moderation.int.test.ts::E-001 submissão válida → IN_MODERATION` | Red |
+| AC-020-1 | WHEN…SHALL | QUANDO o responsável submete a vaga com campos obrigatórios e data de validade ENTÃO o sistema DEVE persistir com status "em moderação" (IN_MODERATION). | integração | `@e-001 @ac-020-1` | `…::persiste IN_MODERATION vinculada à Empresa` | Red |
+| E-003 | THE SYSTEM SHALL | The system SHALL permitir salvar como rascunho a qualquer momento sem submeter à moderação (AC-020-4). | integração | `@e-003 @ac-020-4` | `modules/jobs/__tests__/create-job-draft.int.test.ts::E-003 rascunho DRAFT` | Red |
+| AC-020-4 | WHEN…SHALL | QUANDO o responsável salva como rascunho ENTÃO o sistema DEVE permitir salvar sem submeter à moderação (DRAFT). | integração | `@e-003 @ac-020-4` | `…::não entra na fila de moderação; evento JOB_DRAFT_SAVED` | Red |
+| E-004 | IF…THEN…SHALL | IF a data de validade é anterior ou igual a hoje (timezone América/São_Paulo), THEN the system SHALL bloquear o submit com mensagem clara. | unit + integração | `@e-004 @ac-020-3` | `modules/jobs/__tests__/validade.spec.ts::passado/igual-hoje` + `…submit-job…int::VALIDATION validade passada` | Red |
+| AC-020-3 | WHEN…SHALL | QUANDO a validade é anterior ou igual a hoje (America/Sao_Paulo) ENTÃO o sistema DEVE bloquear o submit. | unit | `@e-004 @borda` | `validade.spec.ts::igual a hoje no fuso SP` | Red |
+| E-005 / P-005 | IF…THEN…SHALL / must-not | IF a data de validade ultrapassa um teto máximo razoável (180 dias), THEN the system SHALL bloquear. NÃO PODE aceitar validade absurdamente futura. | unit + integração | `@e-005 @p-005` | `validade.spec.ts::excede_teto` + `…submit…int::VALIDATION excede 180d` | Red |
+| L-003 | THE SYSTEM SHALL | Título, área (catálogo D-007), descrição, requisitos, regime, local e validade — sem submit se algum estiver vazio. | schema Zod + integração | `@l-003 @ac-020-2` (Esquema do Cenário) | `modules/jobs/schemas/publish-job.schema.ts` + `…submit…int::it.each campo obrigatório` | Red |
+| AC-020-2 | THE SYSTEM SHALL | ENTÃO o sistema DEVE exigir data de validade obrigatória. | schema Zod | `@l-003 @ac-020-2` | `publish-job.schema.ts::validUntil required` | Red |
+| P-006 | must-not | O sistema NÃO PODE permitir submissão de vaga por Pessoa que não tem vínculo "responsável" ativo da Empresa selecionada (gate antes da persistência). | integração | `@p-006 @seguranca` | `…submit…int::FORBIDDEN sem responsável ativo` + `::PENDING não autoriza` | Red |
+| D-005 | (derivado) | Chamada direta à API publicando para Empresa sem vínculo → erro determinístico. | integração | `@p-006 @seguranca` | `…submit…int::anti-bypass FORBIDDEN` | Red |
+| P-003 | must-not | NÃO PODE persistir duas vagas idênticas (mesmo título + Empresa + área) — MVP: dedup EXATA via UNIQUE → 409 (ADR-0021). | integração + migration | `@p-003 @concorrencia` | `…submit…int::CONFLICT 2ª idêntica` + índice parcial `job_dedup_alive` | Red |
+| P-003 (concorrência) | (derivado) | Submit concorrente do mesmo rascunho → 1 transição; 2ª = INVALID_TRANSITION (ADR-0011 R3). | integração | `@p-003 @concorrencia` | `…submit…int::submit concorrente` | Red |
+| L-004 | THE SYSTEM SHALL | Log imutável da submissão (responsável, Empresa, data/hora, conteúdo) retido conforme ADR-0008/0023. | integração | `@l-004 @auditoria` | `…submit…int::CONTENT_SUBMITTED_TO_MODERATION append-only` | Red |
+| schema Job | THE SYSTEM SHALL (ubíquo) | Model `Job` (status ContentStatus, companyId, areaId, validUntil date, author) conforme design §1 (padrão CandidateProfile, não content_items). | migration + typecheck | — | `prisma/schema.prisma` model Job + migration `…_usp020_job` | Red (a validar) |
+| E-002 / P-001 | IF…THEN / must-not | 1ª vaga de Empresa não verificada → marca/arrasta verificação; vaga só vai a ACTIVE com Empresa verificada na mesma decisão. | integração (USP-016/017) | `@fora-desta-us @e-002 @p-001` | `modules/moderation`/`companies` (COMPANY_VERIFY_HOOK) — USP-017 | Fora desta US |
+| P-002 / P-007 | must-not | Vaga só visível na busca pública quando ACTIVE + validade ≥ hoje + Empresa verificada (filtro on-read). | integração/E2E (USP-021/024) | `@fora-desta-us @p-002 @p-007` | `modules/jobs` buscarVagas — USP-021/024 | Fora desta US |
+| P-004 | must-not | Checklist de conformidade legal mínima na moderação (idade/gênero/etnia/religião). | E2E/processo (USP-016) | `@fora-desta-us @p-004` | USP-016 + entregável de Fase 0 | Fora desta US |
+
+## Lacunas / decisões pendentes
+
+- **✅ RESOLVIDO (dono do intent, 2026-06-16) — E-001 "snapshot" = vínculo, não cópia:** confirmada a **opção B (FK `companyId` + leitura on-read)**. "Snapshot dos dados da Empresa" em E-001 é **linguagem solta**: significa registrar *qual* Empresa é (vínculo + carimbo de tempo), **não** congelar os campos da Empresa na vaga. Coerente com F2/P-002 (vagas saem do ar quando a Empresa é rebaixada — dados ao vivo) e com USP-021/022/024 (filtro on-read por "Empresa verificada"). **Nenhuma coluna de snapshot** no model `Job`. O fact de E-001 testa o vínculo (`job.companyId`).
+- **Dedup parcial (P-003):** a UNIQUE `(companyId, areaId, title)` vale só para estados "vivos" (`DRAFT, IN_MODERATION, AWAITING_ADJUSTMENTS, ACTIVE, PAUSED`) — via índice parcial SQL na migration (Prisma não declara `WHERE`). Vaga arquivada/rejeitada não bloqueia republicação. Confirmar conjunto de estados com Tech Lead (AD-1 do design).
+- **D-001 (gate de produção, não bloqueia dev/merge):** catálogo D-007 de áreas fechado + checklist legal (P-004) validada antes de produção. `JobArea` já existe no schema; o conteúdo do catálogo é gate operacional.
+- **AD-2 (atomicidade do submit):** submit = persistir DRAFT + `transitionContent` em 2 transações curtas (vs. 1 tx única). Recomendado p/ MVP; confirmar no PR de #164.
+- **`workRegime` string livre (AD-3):** enum fechado fica para quando D-007 definir regimes.
