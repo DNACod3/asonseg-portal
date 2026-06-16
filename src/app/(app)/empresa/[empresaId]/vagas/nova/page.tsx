@@ -34,15 +34,17 @@ export default async function PublicarVagaPage({
     notFound();
   }
 
-  const company = await prisma.company.findUnique({
-    where: { id: empresaId },
-    select: { nomeFantasia: true },
-  });
+  // Leituras independentes após o gate — uma só ida ao banco (round-trips em paralelo).
+  const [company, jobAreas] = await Promise.all([
+    prisma.company.findUnique({
+      where: { id: empresaId },
+      select: { nomeFantasia: true },
+    }),
+    listApprovedJobAreas(),
+  ]);
   if (!company) {
     notFound();
   }
-
-  const jobAreas = await listApprovedJobAreas();
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-10">

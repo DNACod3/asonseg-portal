@@ -136,12 +136,33 @@ skipIfNoDb('createJobDraft — integração', () => {
     if (!result.ok) return;
 
     const entry = await prisma.auditLog.findFirst({
-      where: { action: 'JOB_DRAFT_SAVED', entityType: 'job', entityId: result.data.jobId },
+      where: { action: 'JOB_DRAFT_SAVED', entityType: 'JOB', entityId: result.data.jobId },
       orderBy: { occurredAt: 'desc' },
       select: { after: true },
     });
     expect(entry).not.toBeNull();
     expect((entry?.after as Record<string, unknown>)?.status).toBe('DRAFT');
+  });
+
+  it('VALIDATION: rejeita input inválido (título curto) antes de qualquer persistência', async () => {
+    const result = await createJobDraft({ companyId, title: 'x' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION');
+
+    const count = await prisma.job.count({ where: { companyId } });
+    expect(count).toBe(0);
+  });
+
+  it('UNAUTHENTICATED: sem sessão → erro, sem persistir', async () => {
+    mockPerson = null;
+    const result = await createJobDraft({ companyId, title: 'Rascunho sem sessão' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('UNAUTHENTICATED');
+
+    const count = await prisma.job.count({ where: { companyId } });
+    expect(count).toBe(0);
   });
 
   it('P-006: nega FORBIDDEN quando a Pessoa não é responsável ativo, sem persistir', async () => {

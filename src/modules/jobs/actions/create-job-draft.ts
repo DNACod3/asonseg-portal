@@ -87,7 +87,9 @@ export async function createJobDraft(
           select: { id: true, companyId: true, title: true, status: true },
         });
 
-        audit.entityType = 'job';
+        // Mesmo entityType da via FSM (`transitionContent` → ContentKind.JOB), para o
+        // histórico de auditoria da vaga não fragmentar entre 'job' e 'JOB'.
+        audit.entityType = 'JOB';
         audit.entityId = job.id;
         audit.after = { status: job.status, companyId: job.companyId, title: job.title };
 

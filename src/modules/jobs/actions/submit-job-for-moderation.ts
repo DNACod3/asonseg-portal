@@ -1,8 +1,11 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { getCurrentPerson } from '@/modules/identity';
 import { transitionContent, ContentKind, ContentStatus } from '@/modules/moderation';
+import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
+import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
 import { isJobDedupViolation } from '../domain/dedup';
@@ -68,25 +71,48 @@ export async function submitJobForModeration(
     if (!(await isActiveResponsible(person.id, data.companyId))) {
       return fail('FORBIDDEN', 'Você não é responsável ativo desta Empresa.');
     }
-    // 4b. Form direto: cria a vaga em DRAFT (a transição faz o submit + auditoria).
+    // 4b. Form direto: cria a vaga em DRAFT auditando a criação (JOB_DRAFT_SAVED,
+    // simétrico a createJobDraft); a transição abaixo grava o submit + auditoria.
+    const hdrs = await headers();
+    const rawIp = clientIp(hdrs);
+    const ip = rawIp === 'unknown' ? null : rawIp;
+    const userAgent = hdrs.get('user-agent') ?? null;
     try {
-      const created = await prisma.job.create({
-        data: {
-          companyId: data.companyId,
-          authorPersonId: person.id,
-          title: data.title,
-          areaId: data.areaId,
-          description: data.description,
-          requirements: data.requirements,
-          workRegime: data.workRegime,
-          location: data.location,
-          benefits: data.benefits ?? null,
-          salary: data.salary ?? null,
-          validUntil: new Date(data.validUntil),
-          status: 'DRAFT',
+      const created = await withAudit(
+        AuditEvent.JOB_DRAFT_SAVED,
+        async (tx, audit) => {
+          const job = await tx.job.create({
+            data: {
+              companyId: data.companyId,
+              authorPersonId: person.id,
+              title: data.title,
+              areaId: data.areaId,
+              description: data.description,
+              requirements: data.requirements,
+              workRegime: data.workRegime,
+              location: data.location,
+              benefits: data.benefits ?? null,
+              salary: data.salary ?? null,
+              validUntil: new Date(data.validUntil),
+              status: 'DRAFT',
+            },
+            select: { id: true, companyId: true, title: true, status: true },
+          });
+
+          audit.entityType = 'JOB';
+          audit.entityId = job.id;
+          audit.after = { status: job.status, companyId: job.companyId, title: job.title };
+
+          return job;
         },
-        select: { id: true },
-      });
+        {
+          actorUserId: person.supabaseUserId,
+          actorPersonId: person.id,
+          ip,
+          userAgent,
+          context: { companyId: data.companyId },
+        },
+      );
       jobId = created.id;
     } catch (err) {
       if (isJobDedupViolation(err)) {
