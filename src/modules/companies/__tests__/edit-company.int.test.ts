@@ -205,6 +205,38 @@ skipIfNoDb('editarEmpresa — integração', () => {
     expect(company).toMatchObject({ cnpj: CNPJ_A, isVerified: true }); // inalterado
   });
 
+  it('CONFLICT via guarda P2002: corrida escapa da pré-checagem de CNPJ (D-015-D)', async () => {
+    // Simula a janela de corrida entre a pré-checagem (passo 5) e o UPDATE: a
+    // consulta de unicidade por CNPJ não enxerga o concorrente (retorna null),
+    // mas a constraint única dispara no UPDATE dentro da transação → P2002.
+    // O spy só intercepta a pré-checagem (`where.cnpj`); o `before` (`where.id`)
+    // e o `update` (em `tx`, fora do spy) seguem reais contra o Postgres.
+    const realFindUnique = prisma.company.findUnique.bind(prisma.company);
+    const spy = vi.spyOn(prisma.company, 'findUnique').mockImplementation((args) => {
+      const where = (args as { where?: { cnpj?: string } }).where;
+      if (where?.cnpj === CNPJ_OUTRA) {
+        return Promise.resolve(null) as ReturnType<typeof prisma.company.findUnique>;
+      }
+      return realFindUnique(args);
+    });
+
+    try {
+      const result = await editarEmpresa({ ...baseInput(), cnpj: CNPJ_OUTRA });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('CONFLICT');
+    } finally {
+      spy.mockRestore();
+    }
+
+    // Transação revertida: a Empresa permanece com o CNPJ original e verificada.
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { cnpj: true, isVerified: true },
+    });
+    expect(company).toMatchObject({ cnpj: CNPJ_A, isVerified: true });
+  });
+
   it('NOT_FOUND: empresaId inexistente', async () => {
     const result = await editarEmpresa({
       ...baseInput(),

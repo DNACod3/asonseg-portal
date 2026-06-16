@@ -12,9 +12,14 @@ import {
  * Schema de edição de Empresa (USP-015 / #141).
  *
  * Reusa os mesmos validadores de campo de `createCompanySchema` (normalização e
- * dígitos do CNPJ via `domain/cnpj`, trims/limites de tamanho, `type`) e adiciona
+ * dígitos do CNPJ via `domain/cnpj`, trims/limites de tamanho) e adiciona
  * `empresaId: uuid`. `isVerified` **não** é campo de entrada — o rebaixamento é
  * decidido pelo sistema na action (D-015-C), nunca enviado pelo cliente.
+ *
+ * `type` é **obrigatório** na edição (sem `.default`): a action sempre grava
+ * `type` no UPDATE, então um payload sem o campo rebaixaria silenciosamente o
+ * regime tributário de uma Empresa `MEI`/`LUCRO_REAL` para `SIMPLES_NACIONAL`.
+ * O formulário sempre o pré-preenche, então exigi-lo não afeta a UX.
  */
 export const editCompanySchema = z.object({
   empresaId: z.string().uuid('Identificador de empresa inválido.'),
@@ -25,9 +30,10 @@ export const editCompanySchema = z.object({
     .transform((v) => normalizeCnpj(v))
     .refine(isValidCnpj, 'CNPJ inválido. Verifique o número digitado.'),
 
-  type: z
-    .enum(['MEI', 'SIMPLES_NACIONAL', 'LUCRO_PRESUMIDO', 'LUCRO_REAL', 'SA'])
-    .default('SIMPLES_NACIONAL'),
+  type: z.enum(['MEI', 'SIMPLES_NACIONAL', 'LUCRO_PRESUMIDO', 'LUCRO_REAL', 'SA'], {
+    required_error: 'Tipo de empresa é obrigatório.',
+    invalid_type_error: 'Tipo de empresa inválido.',
+  }),
 
   razaoSocial: z
     .string()

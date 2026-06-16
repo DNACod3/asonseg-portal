@@ -10,6 +10,22 @@ import { prisma } from '@/shared/lib/prisma';
 import { identityFieldsChanged } from '../domain/company-edit';
 import { editCompanySchema, type EditCompanyInput } from '../schemas/edit-company.schema';
 
+/**
+ * Identifica a violação de unicidade de CNPJ (índice `companies_cnpj_key`) numa
+ * corrida concorrente. O Prisma 5.x sinaliza via `code === 'P2002'` + `meta.target`
+ * (`['cnpj']`); a mensagem **não** carrega o nome do índice, então casar string na
+ * mensagem é frágil — usamos o código estruturado do erro (D-015-D / P-005).
+ */
+function isCnpjUniqueViolation(err: unknown): boolean {
+  if (!(err instanceof Error) || (err as { code?: unknown }).code !== 'P2002') {
+    return false;
+  }
+  const target = (err as { meta?: { target?: unknown } }).meta?.target;
+  return Array.isArray(target)
+    ? target.includes('cnpj')
+    : String(target ?? '').includes('cnpj');
+}
+
 export interface EditCompanyResult {
   companyId: string;
   /** Estado da verificação após a edição. */
@@ -184,8 +200,9 @@ export async function editarEmpresa(
       downgraded: willDowngrade,
     });
   } catch (err) {
-    // Corrida de CNPJ duplicado (P2002 / D-015-D).
-    if (err instanceof Error && err.message.includes('companies_cnpj_key')) {
+    // Corrida de CNPJ duplicado (P2002 / D-015-D): a unicidade dispara no UPDATE
+    // quando a pré-checagem (passo 5) não enxergou o concorrente.
+    if (isCnpjUniqueViolation(err)) {
       return fail('CONFLICT', 'Este CNPJ já está cadastrado em outra Empresa.');
     }
     const errCode = err instanceof Error ? (err as NodeJS.ErrnoException).code ?? err.message : String(err);

@@ -24,9 +24,13 @@ describe('identityFieldsChanged (USP-015 / D-015-B)', () => {
     expect(identityFieldsChanged(BASE, { ...BASE, nomeFantasia: 'Padaria Aurora & Cia' })).toBe(true);
   });
 
-  it('é pura: não considera campos não-identitários (setor/descricao/endereco/type)', () => {
-    // Os tipos só carregam os 3 identitários; mudar qualquer outra coisa fora deles
-    // (mesmo objeto identitário) não muda o resultado.
-    expect(identityFieldsChanged(BASE, { ...BASE })).toBe(false);
+  it('true quando vários campos identitários mudam ao mesmo tempo', () => {
+    expect(
+      identityFieldsChanged(BASE, {
+        cnpj: '11444777000161',
+        razaoSocial: 'Outra Razão Ltda',
+        nomeFantasia: 'Outro Nome',
+      }),
+    ).toBe(true);
   });
 });

@@ -42,6 +42,15 @@ describe('editCompanySchema (USP-015)', () => {
     expect(parsed.success).toBe(false);
   });
 
+  it('rejeita payload sem `type` (obrigatório — evita rebaixar o regime tributário)', () => {
+    const { type: _t, ...semType } = VALID;
+    const parsed = editCompanySchema.safeParse(semType);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.flatten().fieldErrors.type).toBeDefined();
+    }
+  });
+
   it('não aceita isVerified como campo de entrada (controlado pelo sistema)', () => {
     const parsed = editCompanySchema.safeParse({ ...VALID, isVerified: true });
     expect(parsed.success).toBe(true);
