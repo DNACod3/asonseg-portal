@@ -83,3 +83,57 @@ describe.skipIf(!hasDb)('USP-016 #123 — viewModerationQueue (integração)', (
     expect(ours.map((q) => q.contentId)).toEqual([visible]);
   });
 });
+
+// USP-017 — vagas REAIS (model `jobs`) na fila com flag de verificação (E-001).
+describe.skipIf(!hasDb)('USP-017 #157 — fila popula companyUnverified de vagas reais', () => {
+  const JOB_CNPJ = '11444777000244';
+  const createdPersonIds: string[] = [];
+
+  afterEach(async () => {
+    const company = await prisma.company.findUnique({ where: { cnpj: JOB_CNPJ }, select: { id: true } });
+    if (company) {
+      await prisma.job.deleteMany({ where: { companyId: company.id } });
+      await prisma.personCompanyGrant.deleteMany({ where: { companyId: company.id } });
+      await prisma.company.delete({ where: { id: company.id } });
+    }
+    if (createdPersonIds.length > 0) {
+      await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
+      createdPersonIds.length = 0;
+    }
+  });
+
+  it('E-001: vaga real IN_MODERATION aparece com companyUnverified=true e companyId', async () => {
+    const author = await prisma.person.create({
+      data: { fullName: 'Autor Vaga Real', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(author.id);
+    const company = await prisma.company.create({
+      data: {
+        cnpj: JOB_CNPJ,
+        type: 'SIMPLES_NACIONAL',
+        razaoSocial: 'Vaga Real Ltda',
+        nomeFantasia: 'Vaga Real',
+        setor: 'Comércio',
+        isVerified: false,
+        createdBy: author.id,
+      },
+      select: { id: true },
+    });
+    const job = await prisma.job.create({
+      data: {
+        companyId: company.id,
+        authorPersonId: author.id,
+        title: 'Vaga Real Int',
+        status: PrismaContentStatus.IN_MODERATION,
+      },
+      select: { id: true },
+    });
+
+    const queue = await viewModerationQueue({ viewerPersonId: VIEWER });
+    const item = queue.find((q) => q.contentId === job.id);
+    expect(item).toBeDefined();
+    expect(item?.companyUnverified).toBe(true);
+    expect(item?.companyId).toBe(company.id);
+  });
+});

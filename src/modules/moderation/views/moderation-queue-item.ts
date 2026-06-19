@@ -13,8 +13,14 @@ export interface ModerationQueueItem {
   authorName: string | null;
   submittedAt: Date;
   /**
-   * Flag de **exibição** de Empresa não verificada (P-002). O painel de
-   * verificação é da USP-017 — aqui é só indicador visual.
+   * Flag de **exibição** de Empresa não verificada (E-001 / P-002). Disparador do
+   * painel de verificação (USP-017): `true` quando o conteúdo é uma vaga (`JOB`)
+   * cuja Empresa ainda não foi verificada.
    */
   companyUnverified?: boolean;
+  /**
+   * Empresa dona da vaga (só para `JOB`) — chave para carregar o contexto de
+   * verificação (dados, histórico de rejeições, diff) no painel da USP-017.
+   */
+  companyId?: string;
 }
