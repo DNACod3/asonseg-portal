@@ -61,7 +61,10 @@ export { listPendingResponsibleLinks } from './queries/list-pending-responsible-
 export type { PendingResponsibleLink } from './queries/list-pending-responsible-links';
 export { listActiveResponsibles } from './queries/list-active-responsibles';
 export type { ActiveResponsible } from './queries/list-active-responsibles';
-export { listCompanyRejections } from './queries/list-company-rejections';
+export {
+  listCompanyRejections,
+  listCompanyRejectionsByCompany,
+} from './queries/list-company-rejections';
 export type { CompanyRejection } from './queries/list-company-rejections';
 
 // ── Views ───────────────────────────────────────────────────────────────────

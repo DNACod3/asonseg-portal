@@ -4,17 +4,40 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { prisma } from '@/shared/lib/prisma';
 import { withAudit, AuditEvent } from '@/modules/audit';
-import { viewCompanyVerificationContexts, listCompanyRejections } from '@/modules/companies';
+import {
+  viewCompanyVerificationContexts,
+  listCompanyRejections,
+  listCompanyRejectionsByCompany,
+} from '@/modules/companies';
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 const CNPJ = '11444777000255';
+const CNPJ_2 = '11444777000174';
 const createdPersonIds: string[] = [];
+const createdCompanyIds: string[] = [];
+
+async function rejectJob(jobId: string, actorPersonId: string, reason: string): Promise<void> {
+  // Mesma forma que transitionContent grava o evento de rejeição.
+  await withAudit(
+    AuditEvent.CONTENT_REJECTED,
+    async (_tx, audit) => {
+      audit.entityType = 'JOB';
+      audit.entityId = jobId;
+      audit.justification = reason;
+    },
+    { actorPersonId },
+  );
+}
 
 async function cleanup(): Promise<void> {
-  const company = await prisma.company.findUnique({ where: { cnpj: CNPJ }, select: { id: true } });
-  if (company) {
-    await prisma.job.deleteMany({ where: { companyId: company.id } });
-    await prisma.company.delete({ where: { id: company.id } });
+  for (const cnpj of [CNPJ, CNPJ_2]) {
+    const company = await prisma.company.findUnique({ where: { cnpj }, select: { id: true } });
+    if (company && !createdCompanyIds.includes(company.id)) createdCompanyIds.push(company.id);
+  }
+  if (createdCompanyIds.length > 0) {
+    await prisma.job.deleteMany({ where: { companyId: { in: createdCompanyIds } } });
+    await prisma.company.deleteMany({ where: { id: { in: createdCompanyIds } } });
+    createdCompanyIds.length = 0;
   }
   if (createdPersonIds.length > 0) {
     await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
@@ -87,16 +110,7 @@ skipIfNoDb('USP-017 #157 — leituras de verificação (integração)', () => {
       select: { id: true },
     });
 
-    // Evento de rejeição no audit_log (mesma forma que transitionContent grava).
-    await withAudit(
-      AuditEvent.CONTENT_REJECTED,
-      async (_tx, audit) => {
-        audit.entityType = 'JOB';
-        audit.entityId = job.id;
-        audit.justification = 'Dados da Empresa não conferem.';
-      },
-      { actorPersonId: actor.id },
-    );
+    await rejectJob(job.id, actor.id, 'Dados da Empresa não conferem.');
 
     const history = await listCompanyRejections(company.id);
     expect(history).toHaveLength(1);
@@ -105,5 +119,119 @@ skipIfNoDb('USP-017 #157 — leituras de verificação (integração)', () => {
       reason: 'Dados da Empresa não conferem.',
     });
 
+  });
+
+  it('retorna vazio quando a Empresa não tem vagas (borda: sem jobs)', async () => {
+    const actor = await prisma.person.create({
+      data: { fullName: 'Autor Sem Vagas', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(actor.id);
+    const company = await prisma.company.create({
+      data: {
+        cnpj: CNPJ,
+        type: 'SIMPLES_NACIONAL',
+        razaoSocial: 'Sem Vagas Ltda',
+        nomeFantasia: 'Sem Vagas',
+        setor: 'Comércio',
+        createdBy: actor.id,
+      },
+      select: { id: true },
+    });
+
+    expect(await listCompanyRejections(company.id)).toEqual([]);
+  });
+
+  it('retorna vazio quando há vagas mas nenhuma rejeição (borda: sem CONTENT_REJECTED)', async () => {
+    const actor = await prisma.person.create({
+      data: { fullName: 'Autor Sem Rejeição', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(actor.id);
+    const company = await prisma.company.create({
+      data: {
+        cnpj: CNPJ,
+        type: 'SIMPLES_NACIONAL',
+        razaoSocial: 'Sem Rejeição Ltda',
+        nomeFantasia: 'Sem Rejeição',
+        setor: 'Comércio',
+        createdBy: actor.id,
+      },
+      select: { id: true },
+    });
+    await prisma.job.create({
+      data: { companyId: company.id, authorPersonId: actor.id, title: 'Vaga Ativa', status: 'ACTIVE' },
+    });
+
+    expect(await listCompanyRejections(company.id)).toEqual([]);
+  });
+
+  it('ordena do mais recente para o mais antigo com 2+ rejeições', async () => {
+    const actor = await prisma.person.create({
+      data: { fullName: 'Moderador Ordem', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(actor.id);
+    const company = await prisma.company.create({
+      data: {
+        cnpj: CNPJ,
+        type: 'SIMPLES_NACIONAL',
+        razaoSocial: 'Multi Rejeição Ltda',
+        nomeFantasia: 'Multi',
+        setor: 'Comércio',
+        createdBy: actor.id,
+      },
+      select: { id: true },
+    });
+    const jobA = await prisma.job.create({
+      data: { companyId: company.id, authorPersonId: actor.id, title: 'Vaga A', status: 'REJECTED' },
+      select: { id: true },
+    });
+    const jobB = await prisma.job.create({
+      data: { companyId: company.id, authorPersonId: actor.id, title: 'Vaga B', status: 'REJECTED' },
+      select: { id: true },
+    });
+    await rejectJob(jobA.id, actor.id, 'Primeira rejeição');
+    await rejectJob(jobB.id, actor.id, 'Segunda rejeição');
+
+    const history = await listCompanyRejections(company.id);
+    expect(history.map((r) => r.reason)).toEqual(['Segunda rejeição', 'Primeira rejeição']);
+    const [first, second] = history;
+    expect((first?.rejectedAt.getTime() ?? 0)).toBeGreaterThanOrEqual(second?.rejectedAt.getTime() ?? 0);
+  });
+
+  it('listCompanyRejectionsByCompany agrupa por Empresa em lote (uma passada)', async () => {
+    const actor = await prisma.person.create({
+      data: { fullName: 'Moderador Lote', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(actor.id);
+    const empresaA = await prisma.company.create({
+      data: { cnpj: CNPJ, type: 'SIMPLES_NACIONAL', razaoSocial: 'Lote A Ltda', nomeFantasia: 'A', setor: 'Comércio', createdBy: actor.id },
+      select: { id: true },
+    });
+    const empresaB = await prisma.company.create({
+      data: { cnpj: CNPJ_2, type: 'SIMPLES_NACIONAL', razaoSocial: 'Lote B Ltda', nomeFantasia: 'B', setor: 'Serviços', createdBy: actor.id },
+      select: { id: true },
+    });
+    const jobA = await prisma.job.create({
+      data: { companyId: empresaA.id, authorPersonId: actor.id, title: 'Vaga A', status: 'REJECTED' },
+      select: { id: true },
+    });
+    const jobB = await prisma.job.create({
+      data: { companyId: empresaB.id, authorPersonId: actor.id, title: 'Vaga B', status: 'REJECTED' },
+      select: { id: true },
+    });
+    await rejectJob(jobA.id, actor.id, 'Rejeição A');
+    await rejectJob(jobB.id, actor.id, 'Rejeição B');
+
+    const byCompany = await listCompanyRejectionsByCompany([empresaA.id, empresaB.id]);
+    expect(byCompany.get(empresaA.id)?.map((r) => r.reason)).toEqual(['Rejeição A']);
+    expect(byCompany.get(empresaB.id)?.map((r) => r.reason)).toEqual(['Rejeição B']);
+  });
+
+  it('listCompanyRejectionsByCompany devolve Map vazio sem ids', async () => {
+    const byCompany = await listCompanyRejectionsByCompany([]);
+    expect(byCompany.size).toBe(0);
   });
 });

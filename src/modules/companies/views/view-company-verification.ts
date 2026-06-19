@@ -54,6 +54,9 @@ export async function viewCompanyVerificationContexts(
 
   const companies = await prisma.company.findMany({
     where: { id: { in: unique } },
+    // Paginação obrigatória (project-guideline §13): a busca já é limitada pela
+    // lista de ids únicos, então `take` apenas formaliza o teto.
+    take: unique.length,
     select: {
       id: true,
       cnpj: true,

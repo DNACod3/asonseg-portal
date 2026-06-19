@@ -9,8 +9,7 @@ import {
 } from '@/modules/moderation';
 import {
   viewCompanyVerificationContexts,
-  listCompanyRejections,
-  type CompanyRejection,
+  listCompanyRejectionsByCompany,
 } from '@/modules/companies';
 import { formatSaoPaulo } from '@/shared/lib/time';
 
@@ -36,19 +35,16 @@ export default async function ModeracaoPage() {
 
   const items = await viewModerationQueue({ viewerPersonId: person.id });
 
-  // Contexto de verificação das Empresas das vagas na fila (USP-017) — batch para
-  // evitar N+1; o histórico de rejeições é carregado por Empresa em paralelo.
+  // Contexto de verificação das Empresas das vagas na fila (USP-017) — ambas as
+  // leituras são em lote (uma consulta por leitura, não N+1). O histórico de
+  // rejeições só interessa enquanto a Empresa não está verificada (E-003), então
+  // restringimos a busca às Empresas ainda não verificadas.
   const companyIds = [
     ...new Set(items.map((i) => i.companyId).filter((id): id is string => Boolean(id))),
   ];
   const contexts = await viewCompanyVerificationContexts(companyIds);
-  const rejectionsByCompany = new Map<string, CompanyRejection[]>(
-    await Promise.all(
-      companyIds.map(
-        async (id) => [id, await listCompanyRejections(id)] as const,
-      ),
-    ),
-  );
+  const unverifiedCompanyIds = companyIds.filter((id) => !contexts.get(id)?.isVerified);
+  const rejectionsByCompany = await listCompanyRejectionsByCompany(unverifiedCompanyIds);
 
   function buildVerification(companyId: string | undefined): VerificationPanelData | undefined {
     if (!companyId) return undefined;
