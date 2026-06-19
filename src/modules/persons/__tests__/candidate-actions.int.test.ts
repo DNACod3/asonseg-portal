@@ -50,7 +50,10 @@ skipIfNoDb('USP-009 #44 — cadastro de candidato (integração)', () => {
     // Side effects de moderação como no-op (evita chamadas ao Next fora de request).
     container.register(MODERATION_NOTIFICATION_TOKEN, () => ({ sendModerationDecision: vi.fn() }));
     container.register(CACHE_INVALIDATION_TOKEN, () => ({ revalidateForContent: vi.fn() }));
-    container.register(COMPANY_VERIFY_HOOK_TOKEN, () => ({ onContentActivated: vi.fn() }));
+    container.register(COMPANY_VERIFY_HOOK_TOKEN, () => ({
+      onContentActivated: vi.fn(),
+      onContentRejected: vi.fn(),
+    }));
 
     const area = await prisma.jobArea.create({
       data: { name: `Área Teste USP009 ${Date.now()}` },

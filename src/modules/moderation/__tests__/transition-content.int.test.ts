@@ -54,6 +54,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
   let notifySpy: ReturnType<typeof vi.fn>;
   let cacheSpy: ReturnType<typeof vi.fn>;
   let hookSpy: ReturnType<typeof vi.fn>;
+  let rejectHookSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     // Side effects viram spies (evita next/cache fora de request e permite asserções).
@@ -61,6 +62,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     notifySpy = vi.fn().mockResolvedValue(undefined);
     cacheSpy = vi.fn().mockResolvedValue(undefined);
     hookSpy = vi.fn().mockResolvedValue(undefined);
+    rejectHookSpy = vi.fn().mockResolvedValue(undefined);
     container.register(CONTENT_STATUS_REPOSITORY_TOKEN, () => new PrismaModerationContentRepository());
     container.register(
       MODERATION_NOTIFICATION_TOKEN,
@@ -72,7 +74,8 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     );
     container.register(
       COMPANY_VERIFY_HOOK_TOKEN,
-      () => ({ onContentActivated: hookSpy }) as unknown as CompanyVerifyHookPort,
+      () =>
+        ({ onContentActivated: hookSpy, onContentRejected: rejectHookSpy }) as unknown as CompanyVerifyHookPort,
     );
   });
 
@@ -120,7 +123,8 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(await statusOf(id)).toBe('REJECTED');
     const rows = await auditRows(id);
     expect(rows[0]).toMatchObject({ action: 'CONTENT_REJECTED', justification: motivo });
-    expect(hookSpy).not.toHaveBeenCalled(); // só ativa hook em ACTIVE
+    expect(hookSpy).not.toHaveBeenCalled(); // verificação só em ACTIVE
+    expect(rejectHookSpy).toHaveBeenCalledTimes(1); // contador de rejeição em REJECTED
   });
 
   it('AC6: transição não declarada retorna INVALID_TRANSITION sem alterar status nem audit', async () => {

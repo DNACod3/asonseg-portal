@@ -93,8 +93,8 @@ container.register(COMPANY_RESPONSIBILITY_TOKEN, () => new PrismaCompanyResponsi
 
 // Moderação (USP-016 / ADR-0011): ports da máquina de estados `transitionContent`.
 // ContentStatusRepository → adapter sobre `_moderation_fixture` (1º tipo a aterrissar,
-// GAP-8). Notification/CompanyVerify são stubs no-op (GAP-3 → USP-044, GAP-4 → USP-017);
-// cache é o adapter real do Next (ADR-T-0013). Imports profundos para não carregar
+// GAP-8). Notification é stub no-op (GAP-3 → USP-044); CompanyVerify já é o adapter
+// real (USP-017) e cache é o adapter real do Next (ADR-T-0013). Imports profundos para não carregar
 // `transition-content` (que importa este container) durante a inicialização — evita ciclo.
 /* eslint-disable no-restricted-imports */
 import { CONTENT_STATUS_REPOSITORY_TOKEN } from '@/modules/moderation/ports/content-status.port';
@@ -106,7 +106,7 @@ import { DispatchingContentStatusRepository } from '@/modules/moderation/adapter
 import { ContentKind } from '@/modules/moderation/domain/content-status';
 import { StubModerationNotification } from '@/modules/moderation/adapters/stub-moderation-notification';
 import { NextCacheInvalidation } from '@/modules/moderation/adapters/next-cache-invalidation';
-import { StubCompanyVerifyHook } from '@/modules/moderation/adapters/stub-company-verify-hook';
+import { PrismaCompanyVerifyHook } from '@/modules/moderation/adapters/prisma-company-verify-hook';
 import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
 import { PrismaJobStatusRepository } from '@/modules/jobs/adapters/prisma-job-status';
 /* eslint-enable no-restricted-imports */
@@ -126,4 +126,4 @@ container.register(
 );
 container.register(MODERATION_NOTIFICATION_TOKEN, () => new StubModerationNotification());
 container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
-container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new StubCompanyVerifyHook());
+container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new PrismaCompanyVerifyHook());

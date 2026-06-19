@@ -357,6 +357,14 @@ model Company {
   descricao    String?
   endereco     String?
   isVerified   Boolean     @default(false) @map("is_verified")
+  // USP-017 — verificação na 1ª vaga aprovada (efeito colateral atômico de
+  // transitionContent, ADR-0024). `isVerified` É o estado de "1ª vaga" (AD-2):
+  // a detecção não conta jobs. Marcação só pelo CompanyVerifyHook (P-005/AD-3).
+  verifiedAt         DateTime? @map("verified_at") @db.Timestamptz(6) // E-002 / E-004
+  verifiedByPersonId String?   @map("verified_by_person_id") @db.Uuid // E-002 (responsável que aprovou)
+  verificationJobId  String?   @map("verification_job_id") @db.Uuid   // E-002 (vaga que disparou)
+  verifiedSnapshot   Json?     @map("verified_snapshot")              // L-002 (dados vigentes no instante, P-004)
+  rejectionCount     Int       @default(0) @map("rejection_count")    // E-003 / F3 (vagas rejeitadas enquanto não verificada)
   createdBy    String      @map("created_by") @db.Uuid
   createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)

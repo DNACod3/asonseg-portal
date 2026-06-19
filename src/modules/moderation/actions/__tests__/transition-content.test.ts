@@ -59,6 +59,7 @@ const repo = { loadStatus: vi.fn(), updateStatus: vi.fn() };
 const notify = vi.fn();
 const cache = vi.fn();
 const hook = vi.fn();
+const rejectHook = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -70,6 +71,7 @@ beforeEach(() => {
   notify.mockResolvedValue(undefined);
   cache.mockResolvedValue(undefined);
   hook.mockResolvedValue(undefined);
+  rejectHook.mockResolvedValue(undefined);
   container.register(
     CONTENT_STATUS_REPOSITORY_TOKEN,
     () => repo as unknown as ContentStatusRepository,
@@ -84,7 +86,7 @@ beforeEach(() => {
   );
   container.register(
     COMPANY_VERIFY_HOOK_TOKEN,
-    () => ({ onContentActivated: hook }) as unknown as CompanyVerifyHookPort,
+    () => ({ onContentActivated: hook, onContentRejected: rejectHook }) as unknown as CompanyVerifyHookPort,
   );
 });
 
@@ -136,7 +138,8 @@ describe('transitionContent — caminho feliz e auditoria', () => {
     expect(res.ok).toBe(true);
     expect(auditState.event).toBe(AuditEvent.CONTENT_REJECTED);
     expect(auditState.audit?.justification).toBe(MOTIVO);
-    expect(hook).not.toHaveBeenCalled();
+    expect(hook).not.toHaveBeenCalled(); // verificação só em ACTIVE
+    expect(rejectHook).toHaveBeenCalledTimes(1); // contador de rejeição em REJECTED (USP-017)
   });
 
   it('devolver para ajustes com motivo: evento CONTENT_RETURNED_FOR_ADJUSTMENTS', async () => {
