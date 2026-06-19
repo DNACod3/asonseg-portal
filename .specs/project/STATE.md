@@ -1,7 +1,11 @@
 # State
 
-**Last Updated:** 2026-06-15
-**Current Work:** USP-013 (Adicionar responsável a uma Empresa, #129) — **Execute em andamento** (2026-06-15). Branch `feat/usp-013-adicionar-responsavel`. **Backend #130 (T1–T4) CONCLUÍDO** com testes verdes (24 testes companies + 10 e-mail) e commits atômicos: T1 schema status+UNIQUE parcial (4f413bc), T2 evento+template+Outbox (617dc68), T3 `adicionarResponsavel` (0fec67f), T4 `aceitarVinculoResponsavel` (74377fa). **Pendente:** abrir PR #130; depois UI #131 (T5 form adicionar + T6 aceitar + E2E). Ver blocker de deploy B-003 (gate D-001) e AD-007 (outbox).
+**Last Updated:** 2026-06-19
+**Current Work:** USP-017 (Validar Empresa na 1ª vaga, #155) — **DEV COMPLETO** (não commitado). #156 (backend) + #157 (UI) implementados. Gates verdes: typecheck ✓, lint ✓, 665 unit ✓, 192 integração ✓ (Postgres local). **Pendente:** branch/PR + protocolo OpenWolf de fechamento. ⚠️ Mudanças estão na working tree do branch `feat/usp-020-publicar-vaga` (USP-020 ainda NÃO mergeada em master) — USP-017 depende do model `Job` da USP-020, então a PR de USP-017 deve **empilhar** sobre a branch da USP-020 (ou ser desenvolvida após o merge da 020).
+
+**Resumo da entrega USP-017:** #156 — migração `Company` (+`verifiedAt/By/JobId`, `verifiedSnapshot Json`, `rejectionCount`); `PrismaCompanyVerifyHook` real (substitui o stub) com `onContentActivated` (verifica 1ª vaga: marca+snapshot dentro do tx + `COMPANY_VERIFIED`) e `onContentRejected` (incrementa contador); snapshot lido dentro do tx (P-004); idempotência via `isVerified` (E-004/AD-2); `recordAuditEvent` extraído do `withAudit` p/ evento secundário no mesmo tx; guard estático P-005/D-004 (`no-external-verify.test.ts`). #157 — `viewModerationQueue` une vagas reais (`jobs`) ao fixture e popula `companyUnverified`/`companyId`; `CompanyVerificationContext` (View Model + diff D-006); `listCompanyRejections` (histórico via audit_log); `VerificationPanel` (banner, dados, checklist P-001 que bloqueia aprovar, separação P-002, histórico P-003, estado verificado E-004, diff D-006) integrado à `ModerationQueue` + página. Checklist com itens de fonte configurável (`verification-checklist.ts`, R3); conteúdo definitivo = D-001 (gate de produção).
+
+**Histórico USP-013:** concluída e mergeada (backend #266/#268, UI #131/#268). Schema `status`, invariante, outbox/e-mail entregues.
 
 **Histórico recente:** USP-016 (Moderar rascunho, #117) concluída e mergeada (fundação `moderation`).
 
@@ -10,6 +14,26 @@
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-010: USP-017 — verificação de Empresa reusa a infra já cabeada pela USP-016 (kickoff 2026-06-19)
+
+**Decision:** USP-017 (#155) NÃO cria caminho novo de efeito colateral — o `transitionContent` já chama `COMPANY_VERIFY_HOOK_TOKEN.onContentActivated(tx, …)` dentro do `tx` quando `to=ACTIVE` (`moderation/actions/transition-content.ts:106-113`, legado da USP-016/GAP-4), o evento `COMPANY_VERIFIED` já existe (`audit/events.ts:46`), `Company.isVerified` já existe e o DTO da fila já tem `companyUnverified?`. O trabalho real: (#156) migração com `verifiedAt`/`verifiedByPersonId`/`verificationJobId`/`verifiedSnapshot Json`/`rejectionCount`, adapter real `PrismaCompanyVerifyHook` (substitui o stub), idempotência via `isVerified=false` (AD-2, sem contar jobs), snapshot lido **dentro do tx** (P-004), incremento de rejeição (AD-5), guard P-005; (#157) painel+checklist+histórico de rejeições+diff de edição. Atomicidade aprovação-vaga↔verificação por ADR-0024. Spec/design/tasks/facts em `.specs/features/moderacao-conteudo/usp-017-validar-empresa-primeira-vaga/`.
+**Reason:** A USP-016 deixou o hook como stub explicitamente para a USP-017 (GAP-4). Detectar "1ª vaga" pela própria flag `isVerified` (não por `count(jobs)`) é mais barato e correto sob rebaixamento da USP-015 (volta a `false`). Histórico de rejeições vive no `audit_log` (ADR-0023) — sem tabela nova; `rejectionCount` é só o agregado p/ o badge.
+**Trade-off:** Caminho de rejeição pode exigir estender o hook com `onContentRejected` (R2/AD-5) — confirmar em #156.
+**Impact:** Marca MP2; desbloqueia exibição de Empresa verificada (USP-027/028/041). Entry gate de DEV aberto; D-001 (conteúdo da checklist) é gate só de produção (ver B-004).
+
+### AD-009: USP-020 — `Job` segue padrão `CandidateProfile` (status na entidade), não `content_items` do TD §4.5 (2026-06-16)
+
+**Decision:** O model `Job` (USP-020 / #162) tem coluna `status ContentStatus @default(DRAFT)` na própria tabela (espelhando `CandidateProfile.publicationStatus`), **NÃO** as tabelas `content_items`/`content_transitions` do TD §4.5 — que **nunca foram implementadas** (USP-009 já divergiu; histórico vive em `audit_log`, ADR-0023). A FSM (`@/modules/moderation`) já suporta `ContentKind.JOB` e `TRANSITIONS[JOB]` (inclui `DRAFT→IN_MODERATION`); falta só registrar um `PrismaJobStatusRepository` no `byKind` do `DispatchingContentStatusRepository` (parte de #164). Dedup exata (P-003/ADR-0021) via índice parcial SQL `WHERE status IN (estados vivos)`. `JobArea`/`Region`/`ContentStatus` já existem (taxonomia US #111). Spec/design/tasks em `.specs/features/vagas/usp-020-publicar-vaga/`.
+**Reason:** O schema implementado é a fonte da verdade sobre o TD doc (que descreve o supertipo `content_items` abandonado). Replicar o padrão `CandidateProfile` mantém coerência com o 1º conteúdo real que aterrissou na FSM.
+**Trade-off:** Cada conteúdo (Job, Service) carrega seu próprio adapter de status + registro no container — duplicação controlada, mas a FSM/transições permanecem centralizadas.
+**Impact:** Vale para todas as USPs de vagas downstream (021–024) e para serviços (029+): mesmo padrão de adapter por `ContentKind`. Fronteira da USP-020 = rascunho + submit→`IN_MODERATION`; verificação atômica da 1ª vaga (P-001) e filtro on-read (P-002/P-007) são USP-016/017/021/024.
+
+### AD-008: USP-014 — remoção reusa `revokedAt`/`revokedBy` + nova coluna `revokeReason`; entrega em PR único (2026-06-16)
+
+**Decision:** A remoção de responsável (USP-014) reusa `revokedAt`/`revokedBy` (não cria `endedAt`/`endedBy` como o body da #135 sugere — `schema.prisma:369-389`, comentário em `:338`). O **motivo** opcional vira **coluna de negócio `revokeReason String?`** no `PersonCompanyGrant` (migração pequena, sem backfill), NÃO um campo no audit_log. O `audit_log` registra o **evento** `COMPANY_RESPONSIBLE_REMOVED` (já catalogado — `audit/events.ts:49,125`). Invariante "≥1 ACTIVE" via regra pura `wouldLeaveCompanyWithoutResponsible` em `domain/grants.ts` (espelha `PrismaCompanyResponsibilityAdapter`). **Toda a US num único PR** (`feat/usp-014-remover-responsavel`) fechando #135 e #137.
+**Reason:** O motivo é **atributo de negócio** do ciclo do vínculo (consumível por `reporting`), ao lado de quando/quem. Guardá-lo só no audit_log inverteria a dependência (reporting → auditoria forense) e exigiria extração de JSON numa tabela de alto volume — decisão revista a pedido do usuário (impacto em relatórios/consultas). Coluna nullable é estável, indexável e mantém relatórios desacoplados da auditoria. "Evitar migração" era argumento fraco — o projeto migra de rotina.
+**Trade-off:** +1 coluna e +1 migração vs. a proposta inicial; em troca, motivo consultável por `select` e modelo coerente (quando/quem/porquê na mesma linha). Auto-remoção não invalida sessão: ADR-0030 revalida permissão por requisição (acesso cai na próxima navegação).
 
 ### AD-007: USP-013 — tabela `Outbox` mínima nesta USP; dispatcher fica na USP-044 (2026-06-15)
 
@@ -85,6 +109,15 @@
 **Impact:** Antes da USP-013 ir para **produção**, diretoria + jurídico devem decidir **por escrito** o modelo de aceite (explícito por aceite no painel vs. notificação a posteriori). O design já implementa "aceite explícito" (AD-006), então é confirmação formal, não mudança técnica. Não bloqueia desenvolvimento nem merge.
 **Workaround:** Desenvolver e mergear normalmente o modelo pendente+aceite; obter o sign-off antes do cutover/deploy da feature.
 **Resolution:** Diretoria/jurídico assinam a decisão do modelo de aceite.
+
+---
+
+### B-004: Gate de produção D-001 da USP-017 — conteúdo da checklist de verificação (bloqueia go-live, não merge)
+
+**Discovered:** 2026-06-19 (D-001 de `expectations-USP-017.md`, kickoff #155)
+**Impact:** Antes da USP-017 ir para **produção**, a **checklist de verificação de Empresa** (critérios objetivos que o coordenador segue p/ aprovar/rejeitar) precisa estar validada **por escrito** (sponsor + coordenador + Bravi PO) e testada com voluntários. Sem ela, RP-005 (empresa-fantasma) fica desprotegido. É o entregável de **Fase 0** `seed-taxonomia-checklists` (AC-111-2).
+**Workaround:** Desenvolver/mergear normalmente o **mecanismo** da checklist (P-001 RESOLVIDO — itens marcáveis + dispensa com motivo), lendo os itens de fonte configurável (seed), não hard-coded (R3 do design). O conteúdo é seedado depois sem redeploy.
+**Resolution:** Sponsor+coordenador+Bravi PO assinam os itens da checklist; seed populado antes do cutover.
 
 ---
 
