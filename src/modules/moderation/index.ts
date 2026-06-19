@@ -48,6 +48,7 @@ export { DispatchingContentStatusRepository } from './adapters/dispatching-conte
 export { StubModerationNotification } from './adapters/stub-moderation-notification';
 export { NextCacheInvalidation } from './adapters/next-cache-invalidation';
 export { StubCompanyVerifyHook } from './adapters/stub-company-verify-hook';
+export { PrismaCompanyVerifyHook } from './adapters/prisma-company-verify-hook';
 
 // ── Actions de decisão + fila do coordenador (#123) ──────────────────────────
 export { approveContent, returnForAdjustments, rejectContent } from './actions/decide';
@@ -66,3 +67,12 @@ export type { ModerationQueueItem } from './views/moderation-queue-item';
 export { canAccessModerationQueue } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
+export { VerificationPanel } from './components/verification-panel';
+export type {
+  VerificationPanelData,
+  VerificationRejectionRow,
+} from './components/verification-panel';
+export {
+  VERIFICATION_CHECKLIST_ITEMS,
+  type VerificationChecklistItem,
+} from './domain/verification-checklist';

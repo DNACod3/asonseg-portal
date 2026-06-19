@@ -102,9 +102,17 @@ export async function transitionContent(
           container.resolve(CACHE_INVALIDATION_TOKEN).revalidateForContent({ contentKind, contentId, to }),
         );
 
-        // Hook de Empresa verificada (USP-017) — write transacional acoplado à ativação.
+        // Hook de Empresa (USP-017) — writes transacionais acoplados à decisão
+        // (ADR-0024): verificação na 1ª vaga aprovada / contador na rejeição.
         if (to === ContentStatus.ACTIVE) {
           await container.resolve(COMPANY_VERIFY_HOOK_TOKEN).onContentActivated(tx, {
+            contentKind,
+            contentId,
+            from,
+            actorPersonId: input.actorPersonId,
+          });
+        } else if (to === ContentStatus.REJECTED) {
+          await container.resolve(COMPANY_VERIFY_HOOK_TOKEN).onContentRejected(tx, {
             contentKind,
             contentId,
             from,

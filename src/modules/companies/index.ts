@@ -5,6 +5,15 @@
 export { normalizeCnpj, isValidCnpj, formatCnpj } from './domain/cnpj';
 export { identityFieldsChanged } from './domain/company-edit';
 export type { CompanyIdentityFields } from './domain/company-edit';
+export {
+  buildVerificationSnapshot,
+  diffVerificationSnapshot,
+} from './domain/company-verification';
+export type {
+  CompanyVerificationSnapshot,
+  CompanyVerificationFields,
+  SnapshotField,
+} from './domain/company-verification';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 export {
@@ -52,6 +61,15 @@ export { listPendingResponsibleLinks } from './queries/list-pending-responsible-
 export type { PendingResponsibleLink } from './queries/list-pending-responsible-links';
 export { listActiveResponsibles } from './queries/list-active-responsibles';
 export type { ActiveResponsible } from './queries/list-active-responsibles';
+export {
+  listCompanyRejections,
+  listCompanyRejectionsByCompany,
+} from './queries/list-company-rejections';
+export type { CompanyRejection } from './queries/list-company-rejections';
+
+// ── Views ───────────────────────────────────────────────────────────────────
+export { viewCompanyVerificationContexts } from './views/view-company-verification';
+export type { CompanyVerificationContext } from './views/view-company-verification';
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaCompanyResponsibilityAdapter } from './adapters/prisma-company-responsibility';

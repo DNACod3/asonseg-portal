@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { ContentKind } from '../domain/content-status';
 import { MIN_JUSTIFICATION_LENGTH } from '../domain/justification';
 import { approveContent, rejectContent, returnForAdjustments } from '../actions/decide';
+import { VerificationPanel, type VerificationPanelData } from './verification-panel';
 
 /** Item da fila já formatado pelo Server Component (data em fuso de SP). */
 export interface ModerationQueueRow {
@@ -13,6 +14,8 @@ export interface ModerationQueueRow {
   authorName: string | null;
   submittedAtLabel: string;
   companyUnverified?: boolean;
+  /** Contexto de verificação da Empresa (só vagas — USP-017). Dispara o painel. */
+  verification?: VerificationPanelData;
 }
 
 const KIND_LABELS: Record<ContentKind, string> = {
@@ -44,6 +47,12 @@ export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
   // Estado do formulário de motivo aberto, por item.
   const [reason, setReason] = useState<Record<string, { mode: ReasonMode; text: string }>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Prontidão da checklist de verificação por item (P-001) — reportada pelo painel.
+  const [verifyReady, setVerifyReady] = useState<Record<string, boolean>>({});
+
+  const setReady = useCallback((id: string, ready: boolean) => {
+    setVerifyReady((prev) => (prev[id] === ready ? prev : { ...prev, [id]: ready }));
+  }, []);
 
   function resolve(id: string) {
     setRows((prev) => prev.filter((r) => r.contentId !== id));
@@ -110,6 +119,8 @@ export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
         const rowPending = isPending && pendingId === row.contentId;
         const reasonEntry = reason[row.contentId];
         const error = errors[row.contentId];
+        // P-001 — vaga de Empresa não verificada exige checklist concluída p/ aprovar.
+        const needsChecklist = Boolean(row.verification && !row.verification.isVerified);
         return (
           <li
             key={row.contentId}
@@ -122,7 +133,7 @@ export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
               {row.companyUnverified && (
                 <span
                   className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700"
-                  title="A verificação de Empresa é tratada na USP-017"
+                  title="Verifique os dados da Empresa no painel abaixo antes de aprovar."
                 >
                   Empresa não verificada
                 </span>
@@ -134,6 +145,14 @@ export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
               <span className="text-xs text-gray-600">Autor: {row.authorName ?? '—'}</span>
               <span className="text-xs text-gray-500">Enviado em {row.submittedAtLabel}</span>
             </div>
+
+            {/* Bloco "Verificação da Empresa", separado da decisão da vaga (P-002/AD-6). */}
+            {row.verification && (
+              <VerificationPanel
+                data={row.verification}
+                onReadinessChange={(ready) => setReady(row.contentId, ready)}
+              />
+            )}
 
             {reasonEntry ? (
               <div className="flex flex-col gap-2">
@@ -185,7 +204,12 @@ export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
                 <button
                   type="button"
                   onClick={() => onApprove(row)}
-                  disabled={rowPending}
+                  disabled={rowPending || (needsChecklist && !verifyReady[row.contentId])}
+                  title={
+                    needsChecklist && !verifyReady[row.contentId]
+                      ? 'Conclua a checklist de verificação da Empresa para aprovar (P-001).'
+                      : undefined
+                  }
                   className={`${btnBase} bg-green-600 text-white hover:bg-green-700 focus:ring-green-300`}
                 >
                   {rowPending ? 'Processando…' : 'Aprovar'}

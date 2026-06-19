@@ -17,7 +17,14 @@ export class StubCompanyVerifyHook implements CompanyVerifyHookPort {
   async onContentActivated(_tx: AuditTx, activation: ContentActivation): Promise<void> {
     this.log.info(
       { contentKind: activation.contentKind, contentId: activation.contentId },
-      'moderation:company-verify-hook:stub (flag is_verified chega na USP-017)',
+      'moderation:company-verify-hook:stub:activated (flag is_verified chega na USP-017)',
+    );
+  }
+
+  async onContentRejected(_tx: AuditTx, activation: ContentActivation): Promise<void> {
+    this.log.info(
+      { contentKind: activation.contentKind, contentId: activation.contentId },
+      'moderation:company-verify-hook:stub:rejected (rejectionCount chega na USP-017)',
     );
   }
 }

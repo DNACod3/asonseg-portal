@@ -9,6 +9,7 @@ export {
 } from './events';
 export {
   withAudit,
+  recordAuditEvent,
   type AuditContext,
   type AuditRecorder,
   type AuditFn,

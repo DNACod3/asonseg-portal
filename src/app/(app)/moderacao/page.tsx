@@ -5,8 +5,15 @@ import {
   canAccessModerationQueue,
   viewModerationQueue,
   type ModerationQueueRow,
+  type VerificationPanelData,
 } from '@/modules/moderation';
+import {
+  viewCompanyVerificationContexts,
+  listCompanyRejectionsByCompany,
+} from '@/modules/companies';
 import { formatSaoPaulo } from '@/shared/lib/time';
+
+const DATE_LABEL = "dd/MM/yyyy 'às' HH:mm";
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
@@ -27,13 +34,50 @@ export default async function ModeracaoPage() {
   }
 
   const items = await viewModerationQueue({ viewerPersonId: person.id });
+
+  // Contexto de verificação das Empresas das vagas na fila (USP-017) — ambas as
+  // leituras são em lote (uma consulta por leitura, não N+1). O histórico de
+  // rejeições só interessa enquanto a Empresa não está verificada (E-003), então
+  // restringimos a busca às Empresas ainda não verificadas.
+  const companyIds = [
+    ...new Set(items.map((i) => i.companyId).filter((id): id is string => Boolean(id))),
+  ];
+  const contexts = await viewCompanyVerificationContexts(companyIds);
+  const unverifiedCompanyIds = companyIds.filter((id) => !contexts.get(id)?.isVerified);
+  const rejectionsByCompany = await listCompanyRejectionsByCompany(unverifiedCompanyIds);
+
+  function buildVerification(companyId: string | undefined): VerificationPanelData | undefined {
+    if (!companyId) return undefined;
+    const ctx = contexts.get(companyId);
+    if (!ctx) return undefined;
+    return {
+      companyId: ctx.companyId,
+      cnpj: ctx.cnpj,
+      razaoSocial: ctx.razaoSocial,
+      nomeFantasia: ctx.nomeFantasia,
+      setor: ctx.setor,
+      endereco: ctx.endereco,
+      isVerified: ctx.isVerified,
+      verifiedAtLabel: ctx.verifiedAt ? formatSaoPaulo(ctx.verifiedAt, DATE_LABEL) : null,
+      verifiedByName: ctx.verifiedByName,
+      rejectionCount: ctx.rejectionCount,
+      changedSinceVerification: ctx.changedSinceVerification,
+      rejections: (rejectionsByCompany.get(companyId) ?? []).map((r) => ({
+        rejectedAtLabel: formatSaoPaulo(r.rejectedAt, DATE_LABEL),
+        byName: r.byName,
+        reason: r.reason,
+      })),
+    };
+  }
+
   const rows: ModerationQueueRow[] = items.map((item) => ({
     contentKind: item.contentKind,
     contentId: item.contentId,
     title: item.title,
     authorName: item.authorName,
-    submittedAtLabel: formatSaoPaulo(item.submittedAt, "dd/MM/yyyy 'às' HH:mm"),
+    submittedAtLabel: formatSaoPaulo(item.submittedAt, DATE_LABEL),
     companyUnverified: item.companyUnverified,
+    verification: buildVerification(item.companyId),
   }));
 
   return (

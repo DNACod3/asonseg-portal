@@ -73,49 +73,66 @@ export async function withAudit<T>(
   fn: AuditFn<T>,
   ctx: AuditContext = {},
 ): Promise<T> {
-  const log = childLogger({ module: 'audit', event });
-
   return prisma.$transaction(async (tx) => {
     const audit: AuditRecorder = {};
     const result = await fn(tx, audit);
-
-    const justification = audit.justification?.trim() || null;
-    if (requiresJustification(event) && !justification) {
-      // Falha => rollback de toda a transação (ADR-0020 / ADR-0004).
-      throw new Error(`Auditoria: o evento ${event} exige justificativa.`);
-    }
-
-    await tx.auditLog.create({
-      data: {
-        action: event,
-        actorUserId: ctx.actorUserId ?? null,
-        actorPersonId: ctx.actorPersonId ?? null,
-        ip: ctx.ip ?? null,
-        userAgent: ctx.userAgent ?? null,
-        entityType: audit.entityType ?? null,
-        entityId: audit.entityId ?? null,
-        before: toJsonInput(audit.before),
-        after: toJsonInput(audit.after),
-        context: toJsonInput(mergeContext(ctx.context, audit.context)),
-        justification,
-      },
-      // Só precisamos confirmar a gravação; não devolvemos before/after/context
-      // (JSONB potencialmente grandes) pela conexão para serem descartados.
-      select: { id: true },
-    });
-
-    log.info(
-      {
-        actorPersonId: ctx.actorPersonId ?? null,
-        entityType: audit.entityType ?? null,
-        entityId: audit.entityId ?? null,
-        ip: ctx.ip ?? null,
-      },
-      'audit:event',
-    );
-
+    await recordAuditEvent(tx, event, audit, ctx);
     return result;
   });
+}
+
+/**
+ * Grava um único evento de auditoria **numa transação já aberta** (`tx`) — extraído
+ * de {@link withAudit} para permitir um **evento secundário no mesmo tx** sem abrir
+ * outra transação (ex.: `COMPANY_VERIFIED` emitido pelo hook de Empresa dentro do
+ * tx que aprova a 1ª vaga — USP-017 / ADR-0024). Aplica a mesma minimização de PII
+ * (`normalizeJson`) e a mesma exigência de justificativa que o caminho principal.
+ *
+ * Use apenas para o evento adicional acoplado a uma operação que **já** roda sob
+ * `withAudit`. Para escritas sensíveis isoladas, use `withAudit` (abre o tx).
+ */
+export async function recordAuditEvent(
+  tx: AuditTx,
+  event: AuditEventName,
+  audit: AuditRecorder,
+  ctx: AuditContext = {},
+): Promise<void> {
+  const log = childLogger({ module: 'audit', event });
+
+  const justification = audit.justification?.trim() || null;
+  if (requiresJustification(event) && !justification) {
+    // Falha => rollback de toda a transação (ADR-0020 / ADR-0004).
+    throw new Error(`Auditoria: o evento ${event} exige justificativa.`);
+  }
+
+  await tx.auditLog.create({
+    data: {
+      action: event,
+      actorUserId: ctx.actorUserId ?? null,
+      actorPersonId: ctx.actorPersonId ?? null,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+      entityType: audit.entityType ?? null,
+      entityId: audit.entityId ?? null,
+      before: toJsonInput(audit.before),
+      after: toJsonInput(audit.after),
+      context: toJsonInput(mergeContext(ctx.context, audit.context)),
+      justification,
+    },
+    // Só precisamos confirmar a gravação; não devolvemos before/after/context
+    // (JSONB potencialmente grandes) pela conexão para serem descartados.
+    select: { id: true },
+  });
+
+  log.info(
+    {
+      actorPersonId: ctx.actorPersonId ?? null,
+      entityType: audit.entityType ?? null,
+      entityId: audit.entityId ?? null,
+      ip: ctx.ip ?? null,
+    },
+    'audit:event',
+  );
 }
 
 const REDACTED = '[REDACTED]';
