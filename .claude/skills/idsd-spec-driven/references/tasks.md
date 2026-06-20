@@ -37,9 +37,36 @@
 
 ## Process
 
+### 0. 🧬 ICE Entry Gate (MANDATORY, precedes everything)
+
+> **Two different things are called "gate". Keep them apart.**
+> - **Entry Gate** (this step): an *authorization to enter dev* read from the matrix card. It blocks the **whole USP** before any task exists.
+> - **TestGate** (the `TestGate` field of each task, formerly `Gate`): the *test-runner level* (quick/full/build). It runs per task during Execute.
+
+Before breaking a USP into tasks, read its card in `docs/prd/matriz-conexoes.md` and the premise ledger (matrix §2). **Detect ALL 5 blocking signals:**
+
+1. **Q-aberta(dono)** — an open `❓` owned by the client/PO (e.g. F3/US-011 "definition of active herd"; D-006/US-016 "report layout").
+2. **❓(técnico/arquitetural)** — an open technical investigation (e.g. D-005/US-018 ".DBF extractability").
+3. **ADR Proposed / `[NECESSITA VALIDAÇÃO]`** — the USP depends on an ADR not yet Accepted (e.g. ADR-0013/US-018).
+4. **Pré-condição D-NNN** — an explicit precondition on the card even without a textual Q-aberta (e.g. US-016 precondition D-006).
+5. **Premissa PR-NNN ABERTA consumida transitivamente** — a ledger premise in `ABERTO`/`[NECESSITA VALIDAÇÃO]` that this USP consumes directly OR through an upstream USP (e.g. PR-001 → US-018 → US-009/011/013/014/015/016).
+
+**If ANY signal fires → STOP. Do NOT produce `tasks.md`.** Return the structured stop (mirrors guia §8.3):
+
+```
+⛔ US-NNN não entra em dev — gate <qual> aberto.
+   <ADR Proposed / Q-aberta / pré-condição / premissa> inverificável/bloqueado.
+   Não é meu para resolver: <Tech Lead (técnico) | Cliente via PO (dono do intent)>.
+   Blast radius (ledger PR-NNN): trava em cascata <USPs downstream>.
+```
+
+Then offer only what is safe to advance without the blocked input (see guia §8.4 — e.g. staging tables, LOAD phase, Phases 1–4 with test data). **The dev agent never resolves an entry gate itself** — it is a Tech-Lead investigation or a Client decision, not an implementation choice.
+
+**Write-back:** when a gate is later cleared (guia §8.5 — e.g. D-005 ratifies ADR-0013), the card in the matrix is flipped `ABERTO → RESOLVIDO` **before** the USP is admitted. The matrix (ledger §2 + cards §4) is the **single canonical source** of blocker/premise status; `STATE.md` only mirrors it by pointer (see [state-management.md](state-management.md)).
+
 ### 1. Review Design
 
-Read `.specs/[feature]/design.md` before creating tasks.
+Read `.specs/[feature]/design.md` before creating tasks. **🧬 In ICE mode** `design.md` is the *adapter* output — the resolved pointers from the card (TD §4.4/§4.5/§4.6 + ADRs + runbooks), not a re-derived architecture. See [design.md](design.md).
 
 ### 1.5. Load Test Coverage Matrix
 
@@ -64,6 +91,14 @@ MUST include writing/updating those tests in the same task. Tests are NOT separa
 
 If TESTING.md does not exist (greenfield project), ask the user what test types and commands
 the project will use before creating tasks.
+
+**🧬 ICE mode — `TESTING.md` is mandatory and pre-authored, not asked for ad-hoc.** Even greenfield, the project ships a versioned `docs/architecture/TESTING.md` (Test Coverage Matrix + Parallelism Assessment + Gate Check Commands). Read it; do not negotiate gates verbally.
+
+**🧬 ICE mode — the test producer is `skill-tdad`, and the agent does NOT invent the `Tests` field.** For each USP:
+
+1. Run `skill-tdad` over `expectations-US-NNN.md`. It emits, in RED, one `.feature` per US (PT-BR, one `Scenario` per AC tagged `@ac-NNN-N`), the Vitest specs, the Playwright E2E skeletons for top flows, and a traceability map AC→target-path. It returns the **target paths**.
+2. **Slicing rule (resolves the co-location tension):** the `.feature` is per-US but tasks are atomic. `skill-tdad` returns paths **keyed by AC**; the Tasks phase maps **each AC → the task that satisfies it**, and that task's `Tests` field = the AC's fact path. So a per-US feature file is sliced across N tasks by AC ownership — every task still carries its own executable tests (no deferral), and there is exactly **one** test producer (not the Execute sub-agent — see [implement.md](implement.md), the native "write tests first" step is suppressed in ICE mode).
+3. Each `eval(−)` / must-not `P-NNN` becomes a **negative scenario** (asserts the failure-of-outcome does NOT happen) owned by whichever task could violate it. A must-not with no owning task is a red flag — the decomposition missed a guard.
 
 ### 2. Break Into Atomic Tasks
 
@@ -91,6 +126,8 @@ Before showing tasks to the user, run ALL three pre-approval checks. These are N
 **Check 3: Test Co-location Validation** — verify every task's `Tests` field matches the TESTING.md coverage matrix (see Test Co-location Validation section). Build the validation table and include it in the output.
 
 **Output both tables with the tasks** so the user can see the validation results. Any ❌ means you MUST restructure before presenting — do not show failing tasks to the user and ask them to approve.
+
+**🧬 ICE mode — Dev Sênior is in the loop, not optional.** The project model is "Claude per-US, Senior Dev reviews". For any ICED/must-not/foundational USP, the 3 pre-approval tables (Granularity, Diagram-Definition Cross-Check, Test Co-location) go to the **Dev Sênior for human approval BEFORE Execute** — the orchestrator does not self-approve and proceed. After Execute, the same reviewer checks the result against the `project-guideline` checklists (□) and 🚨 rules, using the `pr-review` skill as the materializer (see [validate.md](validate.md)). Human review is mandatory on the 5 ICE USPs (all high-risk); for low-risk PRD-only USPs it may be lighter.
 
 ### 6. ASK About MCPs and Skills
 
@@ -168,7 +205,7 @@ T8 → T9
 - [ ] No TypeScript errors
 
 **Tests**: [unit/e2e/integration/none — from coverage matrix]
-**Gate**: [quick/full/build — from gate check commands]
+**TestGate**: [quick/full/build — from gate check commands]
 
 ---
 
@@ -192,7 +229,7 @@ T8 → T9
 - [ ] Test count: [N] tests pass (no silent deletions)
 
 **Tests**: unit
-**Gate**: quick
+**TestGate**: quick
 
 ---
 
@@ -217,7 +254,7 @@ T8 → T9
 - [ ] Test count: [N] tests pass (no silent deletions)
 
 **Tests**: unit
-**Gate**: quick
+**TestGate**: quick
 
 ---
 
@@ -240,7 +277,7 @@ T8 → T9
 - [ ] Test count: [N] tests pass (no silent deletions)
 
 **Tests**: integration
-**Gate**: full
+**TestGate**: full
 
 **Commit**: `feat([scope]): [description]`
 
@@ -368,7 +405,7 @@ Pick whichever option keeps tasks atomic and cohesive. The goal: no task produce
 - **Tools per task** — MCPs and Skills prevent wrong approaches
 - **Dependencies are gates** — Clear what blocks what
 - **Done when = Testable** — If you can't verify it, rewrite it
-- **Requirement ID = Traceable** — Every task traces back to a spec requirement
+- **Requirement ID = Traceable** — Every task traces back to a spec requirement. **🧬 In ICE mode the Requirement ID IS the ICE ID** (`E-NNN` for must-do, `P-NNN` for must-not, `AC-NNN-N` for acceptance clauses) — never invent a parallel `[CATEGORY]-NN` that would fork traceability away from intent/expectations.
 - **One commit per task** — Plan the commit message format in advance
 
 ---
@@ -398,7 +435,7 @@ Every task MUST include:
 **What:** [Deliverable]
 **Where:** [File path]
 **Tests**: [unit/e2e/integration/none]
-**Gate**: [quick/full/build]
+**TestGate**: [quick/full/build]
 
 **Done when:**
 

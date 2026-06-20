@@ -1,5 +1,6 @@
 
-<h1 align="center">🎯 Bravi Spec-Driven</h1>
+<h1 align="center">🎯 IDSD Spec-Driven</h1>
+<p align="center"><sub>Variante ICE-aware de <code>bravi-spec-driven</code> — esteira de execução (Tasks+Execute) da metodologia IDSD. Em modo ICE, Specify/Design são adaptadores e o card da matriz é a porta única. Detalhe canônico em <code>SKILL.md</code>.</sub></p>
 
 <p align="center">
   <strong>Plan and implement projects with precision. Granular tasks. Clear dependencies. Right tools. Zero ceremony.</strong>

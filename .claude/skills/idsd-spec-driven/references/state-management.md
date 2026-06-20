@@ -37,6 +37,11 @@
 **Impact:** [Severity and scope]
 **Workaround:** [Temporary solution if available]
 **Resolution:** [Path to permanent fix]
+**🧬 Ledger pointer:** [PR-NNN / D-NNN in docs/prd/matriz-conexoes.md — REQUIRED in ICE mode]
+
+> **🧬 ICE mode — the matrix is the single source of truth for blocker/premise status.** STATE.md does **not** own blocker status; it **mirrors by pointer**. Every `B-NNN` that reflects an ICE blocker (e.g. D-005, F3, D-006) or an open premise (e.g. PR-001) MUST carry the `PR-NNN`/`D-NNN` pointer above. The canonical status lives in the ledger (`matriz-conexoes.md` §2) and the cards (§4). The Entry Gate (tasks.md §0) reads the **matrix**, not STATE.md.
+>
+> **Write-back is mandatory.** When a gate clears (e.g. D-005 ratifies ADR-0013), the orchestrator flips the **card** `ABERTO → RESOLVIDO` in the matrix BEFORE admitting the USP, then updates the mirror here. Never let STATE.md say "resolved" while the matrix still says "ABERTO" — the matrix wins, and the matrix is updated first.
 
 ---
 
@@ -87,6 +92,10 @@ Capture in-progress thoughts and action items that don't fit in active tasks.
 | Scope creep captured             | Add to Deferred Ideas                  |
 | In-progress thought              | Add to Todos                           |
 | Session end                      | Update "Last Updated" + "Current Work" |
+
+## 🧬 ICE mode — reconcile with the task board (openwolf-task-protocol)
+
+If `openwolf-task-protocol` governs a GitHub Project board for this project, **decide one source of USP/task status** — do not let the board and the matrix drift into a fourth map. The board's *sibling-unblock cascade* and the ledger's *blast-radius* are the **same concept** (a premise falls → downstream USPs (un)block) in two systems. Rule of thumb: the **matrix ledger** owns premise/gate truth; the board owns time/Status(In Progress)/Spent. When a gate flips in the matrix, propagate the unblock to the board (and vice-versa) explicitly — never silently.
 
 ## Size Management (Hybrid Strategy)
 

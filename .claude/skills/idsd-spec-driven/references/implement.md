@@ -68,7 +68,9 @@ Success: [how to verify]
 
 ### 4. Write Tests First (RED)
 
-If the task includes tests (per the Tests field in tasks.md or TESTING.md coverage matrix):
+**🧬 ICE mode — do NOT write the tests here; they already exist.** The RED tests were produced by **`skill-tdad`** during the Tasks phase, from the `eval(+)/eval(−)` and must-not of `expectations-US-NNN.md`, and the task's `Tests` field points at their paths. In ICE mode this step is **"confirm RED", not "write"**: run the test command, confirm the facts at the task's `Tests` paths FAIL, and proceed. There is exactly one test producer (skill-tdad) — the Execute sub-agent does not author a second set. If a needed fact is missing, that is a Tasks-phase gap: go back and run skill-tdad, do not improvise a test here.
+
+If the task includes tests (per the Tests field in tasks.md or TESTING.md coverage matrix) **and you are NOT in ICE mode** (greenfield):
 
 1. Write the test file(s) BEFORE writing any implementation
 2. Tests must encode the expected behavior from the task's "Done when" criteria
@@ -104,17 +106,19 @@ Follow [coding-principles.md](coding-principles.md):
 - Touch ONLY listed files
 - No scope creep
 
-### 5. Gate Check (VERIFY)
+### 5. TestGate Check (VERIFY)
 
-Run the gate check command from the task definition. This is MANDATORY — not "if applicable."
+> **TestGate** is the test-runner level (quick/full/build) — distinct from the **Entry Gate** of the Tasks phase (which authorizes the whole USP into dev). By the time you reach Execute, the Entry Gate has already passed.
 
-1. Look up the command for the task's Gate level (quick/full/build) in TESTING.md's Gate Check Commands section, then run it
+Run the TestGate command from the task definition. This is MANDATORY — not "if applicable."
+
+1. Look up the command for the task's `TestGate` level (quick/full/build) in TESTING.md's Gate Check Commands section, then run it
 2. Non-zero exit code = STOP. Fix the failure. Re-run. Do not proceed until green.
 3. Confirm the test count matches expectations (no tests were silently deleted or skipped)
 
 **Tiered gates (from TESTING.md Gate Check Commands):**
 
-| Task includes                    | Gate level | What runs                |
+| Task includes                    | TestGate level | What runs                |
 | -------------------------------- | ---------- | ------------------------ |
 | Unit tests only                  | Quick      | Unit test command        |
 | E2E or integration tests         | Full       | Unit + E2E commands      |
@@ -136,6 +140,10 @@ After the gate check passes:
 // Reason: [why the deviation was necessary]
 ```
 
+   **🧬 ICE mode — two levels of deviation, NOT one:**
+   - **Level 1 — diverges from technical-design / a technical ADR.** Allowed as an inline marker + **re-entry into `architecture-planning-idsd`** (delta). The executor does not silently re-decide architecture; it flags and escalates the design question.
+   - **Level 2 — diverges from a must-not `P-NNN` or a failure-of-outcome `F-X`.** This is **NOT an inline note the dev resolves alone** — it is a **must-not violation**: blocking in review (`project-guideline` 🚨), escalated to the **Dev Sênior / intent owner via PO**. Never auto-resolve a Level-2 deviation. Mark it, stop, escalate.
+
 3. Quick complexity check: "Would senior engineer flag this as overcomplicated?"
    - Yes → Simplify, re-run gate
    - No → Proceed to commit
@@ -143,6 +151,8 @@ After the gate check passes:
 ### 7. Atomic Git Commit
 
 Each task gets its own commit immediately after verification. Never batch multiple tasks into one commit.
+
+> **🧬 ICE mode — prerequisites & ID:** the repo must be a **git repository** (run `git init` once as Fase 0 — without it there is no atomic commit, no `git bisect`, no rollback; the `SPEC_DEVIATION` inline marker still works without git, but the commit-level guarantees do not). The commit message MUST reference the **ICE Requirement ID** it satisfies (`E-NNN`/`P-NNN`), e.g. `feat(eventos): marcar evento estornado como soft-state (US-008 P-003)`. A task is not `Verified` until its commit hash exists and references its Requirement ID.
 
 **Format ([Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)):**
 
@@ -222,7 +232,19 @@ During implementation, you will notice things that could be improved, refactored
 
 ### 9. Update Task Status
 
-Mark task complete in tasks.md. Update requirement traceability in spec.md if requirement IDs are used.
+Mark task complete in tasks.md. Update requirement traceability in spec.md if requirement IDs are used. **🧬 In ICE mode, update the status of the ICE IDs** (`E-NNN`/`P-NNN`: `Implementing → Verified`), not parallel IDs, and reflect the blocker mirror in STATE.md (see [state-management.md](state-management.md)).
+
+### 9b. 🧬 Compliance Gate (third gate type — code-done ≠ shippable)
+
+There are **three** distinct gates in this method; do not collapse them:
+
+| Gate | When | Blocks | Owner |
+|---|---|---|---|
+| **Entry Gate** | before task breakdown (Tasks §0) | the whole USP entering dev | Tech Lead / Client via PO |
+| **TestGate** | per task, during Execute (§5) | the task (test runner) | the runner |
+| **Compliance Gate** | after code is Verified | the USP reaching **production** | the reviewer / domain owner |
+
+A task being `Verified` (tests green) does **not** mean the USP is shippable. If a Compliance Gate is pending (e.g. a breed-association report layout sign-off, an audit-trail sign-off), the traceability status stops at `Verified` and MUST NOT advance to a "production/done" state. Record the pending Compliance Gate in STATE.md Active Blockers; only the reviewer/owner clears it. This prevents marking as shipped something that still fails an external compliance check despite passing all tests.
 
 ---
 
@@ -233,8 +255,8 @@ Mark task complete in tasks.md. Update requirement traceability in spec.md if re
 
 **Reading**: task definition from tasks.md
 **Dependencies**: [All done? ✅ | Blocked by: TY]
-**Tests**: [unit/e2e/integration/none]
-**Gate**: [quick/full/build]
+**Tests**: [unit/e2e/integration/none — 🧬 ICE: skill-tdad fact paths]
+**TestGate**: [quick/full/build]
 
 ### Pre-Implementation (MANDATORY)
 

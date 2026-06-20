@@ -4,6 +4,23 @@
 
 **Skip this phase when:** The change is straightforward — no architectural decisions, no new patterns, no component interactions to plan. For simple features, design happens inline during Execute.
 
+## 🧬 ICE Mode: resolve pointers, do NOT decompose architecture
+
+When the project has an ICE layer, **this phase does not design anything new** — the architecture is already frozen in `docs/architecture/technical-design.md` + ADRs + runbooks. The skill's own boundary says so: *"Do NOT use for architecture decomposition or technical design docs."* In ICE mode, `design.md` for a USP is the **resolution of the card's pointers**, nothing more:
+
+| design.md section | In ICE mode, fill it by RESOLVING… |
+|---|---|
+| Architecture Overview | The card's `Fase` + the relevant slice of the system diagram in `architecture-document.md` §4 — quoted, not redrawn |
+| Code Reuse Analysis | The **runbooks** the card lists (each is a reusable recipe) + the entities/schemas already defined in **TD §4.5** |
+| Components / Interfaces | The endpoints the card points to in **TD §4.4** (e.g. `estornarEvento`, `corrigirEvento`) — copied, not invented |
+| Data Models | The schemas in **TD §4.5** (e.g. `events.estornado_em/por`, `audit_log`) — referenced by anchor, not re-typed |
+| Tech Decisions | **Already decided** in ADRs 0008–0014. Point to `ADR-NNNN`. Record a NEW micro-decision only if implementation forces one the TD didn't cover. |
+| Error Handling | The failure-modes→containment table in `architecture-document.md` §5 + the 🚨/⚠️ gotchas in the runbooks |
+
+**Hard rule:** if implementation would contradict an ADR or the TD, that is **NOT a local design decision** — it is a re-entry into `architecture-planning-idsd` (delta / Passo 0). The executor never re-decides what an ADR fixed. Resolve, quote, point — never re-derive.
+
+If there is no ICE layer, ignore this block and use the generative Process below.
+
 ## Process
 
 ### 1. Load Context

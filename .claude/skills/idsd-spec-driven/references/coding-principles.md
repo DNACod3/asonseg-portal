@@ -48,6 +48,13 @@ Behavioral bias, not checklist. Read before every implementation.
 - Multi-step work? State brief plan with verify checkpoints
 - Every changed line must trace directly to user's request
 
+### 🧬 ICE Integrity (when the project has an ICE layer)
+
+- **The matrix card is the only door.** Never implement a requirement, schema, contract, or behavior the card does not point to. If it isn't reachable from intent/expectations/TD/ADRs/runbooks, it does not exist for this USP — fabricating it (even plausibly) is the cardinal sin.
+- **Never re-decide what an ADR fixed.** If the code would contradict an ADR or the technical-design, STOP and re-enter `architecture-planning-idsd` (delta). That is not a local choice.
+- **A must-not deviation is not yours to resolve.** Diverging from a `P-NNN` / `F-X` is a blocking review escalation to the Dev Sênior / intent owner — never an inline note you decide alone.
+- **Requirement IDs are the ICE IDs** (`E-NNN`/`P-NNN`/`AC-NNN-N`). Never mint a parallel ID scheme.
+
 ---
 
 ## After Each Change

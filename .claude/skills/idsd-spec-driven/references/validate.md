@@ -79,6 +79,14 @@ For each changed file, verify against [coding-principles.md](coding-principles.m
 
 ❌ Any "No"? → Fix before marking complete.
 
+### 5b. 🧬 Must-Not Verification & Dev Sênior Review (ICE mode)
+
+Tests passing (TestGate green) is necessary but **not sufficient** for an ICED USP. Before reporting:
+
+1. **Must-not check.** For every `P-NNN` of the USP, confirm its negative fact (`eval(−)`) is present and GREEN (i.e. the failure-of-outcome provably does NOT happen). A USP cannot be `Verified` with a missing or red must-not. Example (US-008): `P-001` — an estornado event must not appear in any report row or total; `P-003` — it must still appear in the prontuário marked estornado.
+2. **Dev Sênior review (human-in-the-loop, mandatory on the 5 ICE USPs).** The project model is "Claude per-US, Senior Dev reviews". Hand the changed diff to the **`pr-review` skill** (the materializer) and to the Dev Sênior, checked against the `project-guideline` □ checklists and 🚨 rules. Any 🚨 violation is **blocking**. Level-2 `SPEC_DEVIATION` (must-not/`F-X`) is auto-blocking here.
+3. **Compliance Gate.** If a post-code Compliance Gate is pending (see implement.md §9b), the USP stops at `Verified` and does NOT advance to production/done. Record it as an Active Blocker.
+
 ### 6. Interactive UAT (if user-facing feature)
 
 For each testable deliverable, present one test at a time:
@@ -222,12 +230,13 @@ Fix tasks follow the same format as regular tasks and can be executed with the i
 
 ## Requirement Traceability Update
 
-Update spec.md requirement statuses:
+Update spec.md requirement statuses. **🧬 In ICE mode the IDs are the ICE IDs** (`E-NNN`/`P-NNN`), and a `P-NNN` only reaches Verified when its `eval(−)` is green:
 
 | Requirement | Previous Status | New Status   |
 | ----------- | --------------- | ------------ |
-| [FEAT]-01   | Implementing    | ✅ Verified  |
-| [FEAT]-02   | Implementing    | ❌ Needs Fix |
+| E-001       | Implementing    | ✅ Verified  |
+| P-001 (F-X) | Implementing    | ✅ Verified (eval(−) green) |
+| E-002       | Implementing    | ❌ Needs Fix |
 
 ---
 
