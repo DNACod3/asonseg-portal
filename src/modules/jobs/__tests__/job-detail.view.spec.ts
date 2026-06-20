@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import type { CurrentPerson } from '@/modules/identity';
 import {
   viewJobDetail,
+  jobDetailJsonLd,
+  serializeJsonLd,
   APPLICATION_COUNTER_THRESHOLD,
   type JobDetailRow,
 } from '../views/job-detail.view';
@@ -114,5 +116,78 @@ describe('viewJobDetail', () => {
     expect(detail.benefits).toContain('Vale-transporte');
     expect(detail.area).toBe('Comércio e Vendas');
     expect(detail.region).toBe('Ingleses');
+  });
+});
+
+/**
+ * Serializer JSON-LD (USP-022 / T4 / P-002). O conteúdo deve ser sempre anônimo (recebe a
+ * projeção `viewer=null`) e a serialização precisa ser segura para injeção em `<script>`.
+ */
+describe('jobDetailJsonLd', () => {
+  const anon = () => viewJobDetail(row(), null);
+
+  it('@p-002 hiringOrganization é anonimizado por setor, nunca o nome real', () => {
+    const ld = jobDetailJsonLd(anon());
+    expect(ld['@type']).toBe('JobPosting');
+    expect(ld.hiringOrganization).toEqual({
+      '@type': 'Organization',
+      name: `Empresa do setor de ${SETOR}`,
+    });
+    expect(JSON.stringify(ld)).not.toContain(REAL_NAME);
+  });
+
+  it('projeta baseSalary (MonetaryAmount) a partir da faixa visível', () => {
+    const ld = jobDetailJsonLd(viewJobDetail(row(), candidato));
+    const baseSalary = ld.baseSalary as {
+      '@type': string;
+      currency: string;
+      value: Record<string, unknown>;
+    };
+    expect(baseSalary['@type']).toBe('MonetaryAmount');
+    expect(baseSalary.currency).toBe('BRL');
+    expect(baseSalary.value).toMatchObject({ minValue: 2000, maxValue: 2800, unitText: 'MONTH' });
+  });
+
+  it('omite baseSalary quando o salário não é visível', () => {
+    const ld = jobDetailJsonLd(viewJobDetail(row({ salaryVisible: false }), candidato));
+    expect(ld.baseSalary).toBeUndefined();
+  });
+
+  it('projeta jobLocation (Place/PostalAddress) a partir da localização', () => {
+    const ld = jobDetailJsonLd(anon());
+    const jobLocation = ld.jobLocation as {
+      '@type': string;
+      address: { addressLocality: string };
+    };
+    expect(jobLocation['@type']).toBe('Place');
+    expect(jobLocation.address.addressLocality).toBe('Ingleses - Florianópolis/SC');
+  });
+
+  it('omite jobLocation quando não há localização', () => {
+    const ld = jobDetailJsonLd(viewJobDetail(row({ location: null }), null));
+    expect(ld.jobLocation).toBeUndefined();
+  });
+});
+
+describe('serializeJsonLd', () => {
+  it('produz JSON válido e equivalente ao objeto de origem', () => {
+    const ld = jobDetailJsonLd(viewJobDetail(row(), null));
+    expect(JSON.parse(serializeJsonLd(ld))).toEqual(ld);
+  });
+
+  it('escapa break-out de <script> e separadores de linha (anti-XSS)', () => {
+    const out = serializeJsonLd({
+      title: '</script><script>alert(1)</script>',
+      note: `a & b${String.fromCharCode(0x2028)}c${String.fromCharCode(0x2029)}d`,
+    });
+    // Nenhum caractere capaz de quebrar o bloco <script> sobrevive na string serializada.
+    expect(out).not.toContain('<');
+    expect(out).not.toContain('>');
+    expect(out).not.toContain('&');
+    expect(out).not.toContain(String.fromCharCode(0x2028));
+    expect(out).not.toContain(String.fromCharCode(0x2029));
+    expect(out).toContain('\\u003c');
+    // Ainda assim é JSON válido e preserva o valor original ao desserializar.
+    expect(JSON.parse(out).title).toBe('</script><script>alert(1)</script>');
   });
 });

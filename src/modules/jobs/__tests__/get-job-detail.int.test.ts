@@ -143,10 +143,10 @@ skipIfNoDb('getActiveJobDetail — integração', () => {
     );
     await prisma.application.createMany({
       data: [
-        { candidatoId: candidatos[0]!.id, jobId: jAtiva, cancelledAt: null },
-        { candidatoId: candidatos[1]!.id, jobId: jAtiva, cancelledAt: null },
-        { candidatoId: candidatos[2]!.id, jobId: jAtiva, cancelledAt: null },
-        { candidatoId: candidatos[3]!.id, jobId: jAtiva, cancelledAt: new Date() },
+        { candidatePersonId: candidatos[0]!.id, jobId: jAtiva, cancelledAt: null },
+        { candidatePersonId: candidatos[1]!.id, jobId: jAtiva, cancelledAt: null },
+        { candidatePersonId: candidatos[2]!.id, jobId: jAtiva, cancelledAt: null },
+        { candidatePersonId: candidatos[3]!.id, jobId: jAtiva, cancelledAt: new Date() },
       ],
     });
   });

@@ -292,7 +292,7 @@ async function seedDemoApplications(): Promise<number> {
   let count = 0;
   for (const app of DEMO_APPLICATIONS) {
     const data = {
-      candidatoId: app.candidatoId,
+      candidatePersonId: app.candidatoId,
       jobId: app.jobId,
       cancelledAt: app.cancelled ? dateOffset(-1) : null,
     };

@@ -466,13 +466,13 @@ model Job {
 /// encaminhamento são da USP-025/044 (AD-012). `cancelledAt = null` ⇒ candidatura ativa
 /// (soft-cancel); o índice parcial de contagem `(jobId, cancelledAt)` resolve o contador on-read.
 model Application {
-  id          String    @id @default(uuid()) @db.Uuid
-  candidatoId String    @map("candidato_id") @db.Uuid
-  jobId       String    @map("job_id") @db.Uuid
-  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6) // null = candidatura ativa (soft-cancel)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                String    @id @default(uuid()) @db.Uuid
+  candidatePersonId String    @map("candidate_person_id") @db.Uuid
+  jobId             String    @map("job_id") @db.Uuid
+  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(6) // null = candidatura ativa (soft-cancel)
+  appliedAt         DateTime  @default(now()) @map("applied_at") @db.Timestamptz(6)
 
-  candidato Person @relation(fields: [candidatoId], references: [id])
+  candidate Person @relation(fields: [candidatePersonId], references: [id])
   job       Job    @relation(fields: [jobId], references: [id])
 
   // Deferido p/ USP-025/044 (escrita): `viaEncaminhamento Boolean` + `encaminhamentoId`

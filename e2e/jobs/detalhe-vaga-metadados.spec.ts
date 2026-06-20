@@ -37,9 +37,12 @@ test.describe('Detalhe da vaga — metadados anonimizados (USP-022 / P-002)', ()
     expect(data.hiringOrganization.name).toMatch(/Empresa do setor de/i);
   });
 
-  test('vaga indisponível: metadados sem dado sensível', async ({ page }) => {
+  test('vaga indisponível: metadados sem dado sensível e noindex', async ({ page }) => {
     await page.goto('/vagas/00000000-0000-0000-0000-0000000000ff');
     await expect(page).toHaveTitle(/indisponível/i);
     expect(await page.content()).not.toContain(REAL_NAME);
+    // Vaga não-detalhável não pode ser indexada (generateMetadata ⇒ robots.index=false).
+    const robots = await page.locator('meta[name="robots"]').getAttribute('content');
+    expect(robots).toMatch(/noindex/i);
   });
 });

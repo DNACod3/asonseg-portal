@@ -28,13 +28,13 @@ Adicionar à `prisma/schema.prisma` (campos `@map` snake_case; padrão do repo):
 
 ```prisma
 model Application {
-  id          String    @id @default(uuid()) @db.Uuid
-  candidatoId String    @map("candidato_id") @db.Uuid
-  jobId       String    @map("job_id")       @db.Uuid
-  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz  // null = candidatura ativa (soft-cancel)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  id                String    @id @default(uuid()) @db.Uuid
+  candidatePersonId String    @map("candidate_person_id") @db.Uuid
+  jobId             String    @map("job_id")              @db.Uuid
+  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz  // null = candidatura ativa (soft-cancel)
+  appliedAt         DateTime  @default(now()) @map("applied_at") @db.Timestamptz
 
-  candidato Person @relation(fields: [candidatoId], references: [id])
+  candidate Person @relation(fields: [candidatePersonId], references: [id])
   job       Job    @relation(fields: [jobId], references: [id])
 
   @@index([jobId, cancelledAt])     // contagem on-read do contador (E-003)
@@ -43,6 +43,8 @@ model Application {
 ```
 
 - Reversa: `Job.applications Application[]` e `Person.applications Application[]`.
+- **Nomes alinhados ao TD §4.5** (`candidatePersonId`/`candidate_person_id`, `appliedAt`/`applied_at`): aproveita o zero dado em
+  prod p/ não forçar rename na USP-025. **Decisão registrada (AD-012).**
 - **`cancelledAt DateTime?` (null = ativa)** em vez de enum `status (ativa|cancelada)` do TD §4.5: alinha ao corpo do board
   (#173 conta "applications com `cancelledAt = null`") e dá índice parcial limpo para a contagem. **Decisão registrada (AD-012).**
 - **Índice único parcial** de candidatura ativa por (candidato, vaga) é **da USP-025** (escrita) — aqui não há escrita, só leitura.

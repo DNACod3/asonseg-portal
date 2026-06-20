@@ -51,6 +51,7 @@ export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/jo
 export {
   viewJobDetail,
   jobDetailJsonLd,
+  serializeJsonLd,
   APPLICATION_COUNTER_THRESHOLD,
   CANDIDATE_ROLE,
   type JobDetail,

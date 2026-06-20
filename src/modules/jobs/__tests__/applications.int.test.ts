@@ -73,10 +73,10 @@ skipIfNoDb('applications — contagem on-read', () => {
     // 3 candidaturas ativas + 1 cancelada na MESMA vaga.
     await prisma.application.createMany({
       data: [
-        { candidatoId: candidateIds[0]!, jobId, cancelledAt: null },
-        { candidatoId: candidateIds[1]!, jobId, cancelledAt: null },
-        { candidatoId: candidateIds[2]!, jobId, cancelledAt: null },
-        { candidatoId: candidateIds[3]!, jobId, cancelledAt: new Date() },
+        { candidatePersonId: candidateIds[0]!, jobId, cancelledAt: null },
+        { candidatePersonId: candidateIds[1]!, jobId, cancelledAt: null },
+        { candidatePersonId: candidateIds[2]!, jobId, cancelledAt: null },
+        { candidatePersonId: candidateIds[3]!, jobId, cancelledAt: new Date() },
       ],
     });
   });

@@ -5,6 +5,7 @@ import {
   getActiveJobDetail,
   viewJobDetail,
   jobDetailJsonLd,
+  serializeJsonLd,
   JobDetailView,
 } from '@/modules/jobs';
 
@@ -107,7 +108,7 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
       {row != null && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jobDetailJsonLd(viewJobDetail(row, null))) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jobDetailJsonLd(viewJobDetail(row, null))) }}
         />
       )}
 

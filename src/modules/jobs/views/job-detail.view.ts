@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import type { CurrentPerson } from '@/modules/identity';
+import { decimalToNumber, companyDisplayName } from './company-display';
 
 /**
  * View Model do **detalhe da vaga** (USP-022 / ADR-0017 / ADR-0022).
@@ -85,10 +86,6 @@ export interface JobDetailRow {
   applicationCount: number;
 }
 
-function decimalToNumber(value: Prisma.Decimal | null): number | null {
-  return value == null ? null : value.toNumber();
-}
-
 /**
  * Projeta uma linha de detalhe de vaga para o View Model, aplicando privacidade por papel.
  *
@@ -123,11 +120,8 @@ export function viewJobDetail(row: JobDetailRow, viewer: CurrentPerson | null): 
       ? { min: decimalToNumber(row.salaryMin), max: decimalToNumber(row.salaryMax) }
       : null,
     company: {
-      // Autenticado vê o nome real (E-002); anônimo, o rótulo por setor (E-001/P-002).
-      // Fallback defensivo ao setor caso `nomeFantasia` não tenha sido carregado.
-      displayName: isAnonymized
-        ? `Empresa do setor de ${row.company.setor}`
-        : row.company.nomeFantasia ?? `Empresa do setor de ${row.company.setor}`,
+      // Anonimização por papel na fonte única (E-001/E-002/P-002) — ver `company-display`.
+      displayName: companyDisplayName(row.company, isAnonymized),
       isAnonymized,
     },
     applicationCount:
@@ -177,4 +171,22 @@ export function jobDetailJsonLd(job: JobDetail): Record<string, unknown> {
       : undefined,
     baseSalary: salary,
   };
+}
+
+/**
+ * Serializa um objeto JSON-LD para injeção **segura** dentro de um `<script>` (USP-022 / T4).
+ *
+ * `JSON.stringify` por si só não escapa `<`, `>` ou `&`, então um campo controlado pela
+ * Empresa (título/descrição/local) contendo `</script>` quebraria o bloco e abriria XSS
+ * armazenado. Aqui esses caracteres — mais os separadores de linha U+2028/U+2029, que são
+ * quebras de linha válidas em JS mas não em JSON — viram escapes unicode. O resultado segue
+ * sendo JSON válido (o parser do crawler o lê igual), mas inerte como HTML.
+ */
+export function serializeJsonLd(data: Record<string, unknown>): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }

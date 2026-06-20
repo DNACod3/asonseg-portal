@@ -6,10 +6,10 @@
 -- CreateTable
 CREATE TABLE "applications" (
     "id" UUID NOT NULL,
-    "candidato_id" UUID NOT NULL,
+    "candidate_person_id" UUID NOT NULL,
     "job_id" UUID NOT NULL,
     "cancelled_at" TIMESTAMPTZ(6),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "applied_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "applications_pkey" PRIMARY KEY ("id")
 );
@@ -18,8 +18,8 @@ CREATE TABLE "applications" (
 CREATE INDEX "applications_job_id_cancelled_at_idx" ON "applications"("job_id", "cancelled_at");
 
 -- AddForeignKey
-ALTER TABLE "applications" ADD CONSTRAINT "applications_candidato_id_fkey"
-    FOREIGN KEY ("candidato_id") REFERENCES "persons"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "applications" ADD CONSTRAINT "applications_candidate_person_id_fkey"
+    FOREIGN KEY ("candidate_person_id") REFERENCES "persons"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 ALTER TABLE "applications" ADD CONSTRAINT "applications_job_id_fkey"
     FOREIGN KEY ("job_id") REFERENCES "jobs"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
