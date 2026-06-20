@@ -65,3 +65,4 @@ export {
 } from './components/job-search-filters';
 export { JobCard } from './components/job-card';
 export { JobList } from './components/job-list';
+export { JobDetailView } from './components/job-detail';
