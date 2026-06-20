@@ -93,7 +93,10 @@ async function seedServiceCategories(): Promise<number> {
 
 const DEMO_AUTHOR_ID = '00000000-0000-0000-0000-0000000000a1';
 const DEMO_COMPANY_ID = '00000000-0000-0000-0000-0000000000c1';
-const DEMO_COMPANY_CNPJ = '11444777000161';
+// CNPJ exclusivo do seed — NÃO reutilizar em fixtures de teste: os testes de
+// integração de jobs fazem cleanup por CNPJ e apagariam estas vagas de demo
+// (e quebrariam o E2E de descoberta, que roda no mesmo job/DB no CI).
+const DEMO_COMPANY_CNPJ = '11444777000242';
 const DEMO_COMPANY_SETOR = 'Comércio e Vendas';
 
 /** yyyy-MM-dd deslocado `days` dias de hoje (validade/publicação das vagas demo). */

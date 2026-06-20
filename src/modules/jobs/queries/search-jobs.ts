@@ -27,21 +27,28 @@ export interface SearchJobsResult {
   total: number;
 }
 
-/** `select` explícito: só o que o View Model precisa (P-004 — nada de entidade crua). */
-const jobListSelect = {
-  id: true,
-  title: true,
-  educationLevelRequired: true,
-  contractType: true,
-  workRegime: true,
-  salaryMin: true,
-  salaryMax: true,
-  salaryVisible: true,
-  publishedAt: true,
-  area: { select: { name: true } },
-  region: { select: { name: true } },
-  company: { select: { nomeFantasia: true, setor: true } },
-} satisfies Prisma.JobSelect;
+/**
+ * `select` explícito por papel (P-004 — least privilege). O nome real da Empresa
+ * (`nomeFantasia`) é dado restrito para o anônimo (ADR-0017): NÃO é sequer carregado
+ * quando não há viewer — assim não há como vazar no HTML/Flight/JSON, nem por engano
+ * de template. O `setor` (base da anonimização) é sempre buscado.
+ */
+function jobListSelect(authenticated: boolean) {
+  return {
+    id: true,
+    title: true,
+    educationLevelRequired: true,
+    contractType: true,
+    workRegime: true,
+    salaryMin: true,
+    salaryMax: true,
+    salaryVisible: true,
+    publishedAt: true,
+    area: { select: { name: true } },
+    region: { select: { name: true } },
+    company: { select: { setor: true, ...(authenticated ? { nomeFantasia: true } : {}) } },
+  } satisfies Prisma.JobSelect;
+}
 
 /**
  * Faixa salarial por **overlap** de intervalo (AD-5): a vaga "casa" se seu intervalo
@@ -108,7 +115,7 @@ export async function searchJobs(
     prisma.job.count({ where }),
     prisma.job.findMany({
       where,
-      select: jobListSelect,
+      select: jobListSelect(viewer !== null),
       orderBy: [{ publishedAt: 'desc' }, { lastStatusChangeAt: 'desc' }, { createdAt: 'desc' }],
       take: SEARCH_PAGE_SIZE,
       skip: (page - 1) * SEARCH_PAGE_SIZE,

@@ -50,3 +50,10 @@ export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/jo
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { JobForm, type JobFormProps } from './components/job-form';
+export {
+  JobSearchFilters,
+  type JobSearchFiltersProps,
+  type JobSearchFilterValues,
+} from './components/job-search-filters';
+export { JobCard } from './components/job-card';
+export { JobList } from './components/job-list';

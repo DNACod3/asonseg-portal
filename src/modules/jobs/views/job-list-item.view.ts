@@ -47,7 +47,9 @@ export interface JobListRow {
   publishedAt: Date | null;
   area: { name: string } | null;
   region: { name: string } | null;
-  company: { nomeFantasia: string; setor: string };
+  // `nomeFantasia` é opcional: a query NÃO o carrega para o anônimo (least privilege,
+  // P-004). `setor` é sempre presente (base da anonimização).
+  company: { setor: string; nomeFantasia?: string | null };
 }
 
 function decimalToNumber(value: Prisma.Decimal | null): number | null {
@@ -77,7 +79,11 @@ export function viewJobForVisitor(row: JobListRow, viewer: CurrentPerson | null)
       : null,
     publishedAt: row.publishedAt,
     company: {
-      displayName: isAnonymized ? `Empresa do setor de ${row.company.setor}` : row.company.nomeFantasia,
+      // Autenticado vê o nome real (E-005); anônimo, o rótulo por setor (E-004/P-001).
+      // Fallback defensivo ao setor caso `nomeFantasia` não tenha sido carregado.
+      displayName: isAnonymized
+        ? `Empresa do setor de ${row.company.setor}`
+        : row.company.nomeFantasia ?? `Empresa do setor de ${row.company.setor}`,
       isAnonymized,
     },
   };
