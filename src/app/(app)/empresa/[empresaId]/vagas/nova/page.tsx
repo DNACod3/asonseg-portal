@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
-import { JobForm, listApprovedJobAreas } from '@/modules/jobs';
+import { JobForm, listApprovedJobAreas, listActiveRegions } from '@/modules/jobs';
 import { prisma } from '@/shared/lib/prisma';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request (ADR-0030).
@@ -35,12 +35,13 @@ export default async function PublicarVagaPage({
   }
 
   // Leituras independentes após o gate — uma só ida ao banco (round-trips em paralelo).
-  const [company, jobAreas] = await Promise.all([
+  const [company, jobAreas, regions] = await Promise.all([
     prisma.company.findUnique({
       where: { id: empresaId },
       select: { nomeFantasia: true },
     }),
     listApprovedJobAreas(),
+    listActiveRegions(),
   ]);
   if (!company) {
     notFound();
@@ -57,7 +58,7 @@ export default async function PublicarVagaPage({
         </p>
       </header>
 
-      <JobForm companyId={empresaId} jobAreas={jobAreas} />
+      <JobForm companyId={empresaId} jobAreas={jobAreas} regions={regions} />
     </main>
   );
 }

@@ -9,6 +9,7 @@ import { publishJobSchema, type PublishJobInput } from '../schemas/publish-job.s
 import { submitJobForModeration } from '../actions/submit-job-for-moderation';
 import { createJobDraft } from '../actions/create-job-draft';
 import type { JobAreaOption } from '../queries/list-approved-job-areas';
+import type { RegionOption } from '../queries/list-active-regions';
 
 const inputClass =
   'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
@@ -20,6 +21,8 @@ export interface JobFormProps {
   companyId: string;
   /** Áreas aprovadas para o select (catálogo D-007). */
   jobAreas: JobAreaOption[];
+  /** Regiões ativas para o select (USP-021 / E-002). */
+  regions: RegionOption[];
 }
 
 /** yyyy-MM-dd deslocado `days` dias de hoje (limites min/max do date picker — UX). */
@@ -38,7 +41,7 @@ function isoDateOffset(days: number): string {
  * O servidor é a fonte da verdade das regras; o cliente só espelha a validação (UX).
  * Erros do `ActionResult` viram mensagens PT-BR inline (CONFLICT/FORBIDDEN/VALIDATION).
  */
-export function JobForm({ companyId, jobAreas }: JobFormProps) {
+export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -62,6 +65,12 @@ export function JobForm({ companyId, jobAreas }: JobFormProps) {
       location: '',
       benefits: '',
       salary: '',
+      contractType: '',
+      regionId: '',
+      educationLevelRequired: '',
+      salaryMin: '',
+      salaryMax: '',
+      salaryVisible: true,
       validUntil: '',
     },
   });
@@ -107,6 +116,13 @@ export function JobForm({ companyId, jobAreas }: JobFormProps) {
         location: blankToUndef(v.location),
         benefits: blankToUndef(v.benefits ?? ''),
         salary: blankToUndef(v.salary ?? ''),
+        contractType: blankToUndef(v.contractType ?? ''),
+        regionId: blankToUndef(v.regionId ?? ''),
+        educationLevelRequired: blankToUndef(v.educationLevelRequired ?? ''),
+        // salaryMin/Max chegam como string do input; o Zod (preprocess) trata '' → undefined.
+        salaryMin: v.salaryMin,
+        salaryMax: v.salaryMax,
+        salaryVisible: v.salaryVisible,
         validUntil: blankToUndef(v.validUntil ?? ''),
       });
       if (result.ok) {
@@ -189,6 +205,56 @@ export function JobForm({ companyId, jobAreas }: JobFormProps) {
         {errors.workRegime && <p className={errorClass}>{errors.workRegime.message}</p>}
       </div>
 
+      {/* Tipo de contrato (USP-021 / E-002) */}
+      <div>
+        <label className={labelClass} htmlFor="contractType">
+          Tipo de contrato
+        </label>
+        <input
+          id="contractType"
+          type="text"
+          placeholder="Ex.: CLT, PJ, MEI, temporário"
+          className={inputClass}
+          {...register('contractType')}
+        />
+        {errors.contractType && <p className={errorClass}>{errors.contractType.message}</p>}
+      </div>
+
+      {/* Região (USP-021 / E-002) */}
+      <div>
+        <label className={labelClass} htmlFor="regionId">
+          Região
+        </label>
+        <select id="regionId" className={inputClass} defaultValue="" {...register('regionId')}>
+          <option value="" disabled>
+            Selecione…
+          </option>
+          {regions.map((region) => (
+            <option key={region.id} value={region.id}>
+              {region.name}
+            </option>
+          ))}
+        </select>
+        {errors.regionId && <p className={errorClass}>{errors.regionId.message}</p>}
+      </div>
+
+      {/* Escolaridade exigida (opcional, USP-021 / E-002) */}
+      <div>
+        <label className={labelClass} htmlFor="educationLevelRequired">
+          Escolaridade exigida <span className="text-gray-400 font-normal">(opcional)</span>
+        </label>
+        <input
+          id="educationLevelRequired"
+          type="text"
+          placeholder="Ex.: Ensino médio completo"
+          className={inputClass}
+          {...register('educationLevelRequired')}
+        />
+        {errors.educationLevelRequired && (
+          <p className={errorClass}>{errors.educationLevelRequired.message}</p>
+        )}
+      </div>
+
       {/* Local */}
       <div>
         <label className={labelClass} htmlFor="location">
@@ -213,14 +279,48 @@ export function JobForm({ companyId, jobAreas }: JobFormProps) {
         {errors.benefits && <p className={errorClass}>{errors.benefits.message}</p>}
       </div>
 
-      {/* Salário (opcional) */}
-      <div>
-        <label className={labelClass} htmlFor="salary">
-          Salário <span className="text-gray-400 font-normal">(opcional)</span>
+      {/* Faixa salarial (opcional, USP-021 / E-002) */}
+      <fieldset className="flex flex-col gap-3">
+        <legend className={labelClass}>
+          Faixa salarial <span className="text-gray-400 font-normal">(opcional)</span>
+        </legend>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="sr-only" htmlFor="salaryMin">
+              Salário mínimo
+            </label>
+            <input
+              id="salaryMin"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Mínimo (R$)"
+              className={inputClass}
+              {...register('salaryMin')}
+            />
+            {errors.salaryMin && <p className={errorClass}>{errors.salaryMin.message}</p>}
+          </div>
+          <div className="flex-1">
+            <label className="sr-only" htmlFor="salaryMax">
+              Salário máximo
+            </label>
+            <input
+              id="salaryMax"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Máximo (R$)"
+              className={inputClass}
+              {...register('salaryMax')}
+            />
+            {errors.salaryMax && <p className={errorClass}>{errors.salaryMax.message}</p>}
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700" htmlFor="salaryVisible">
+          <input id="salaryVisible" type="checkbox" {...register('salaryVisible')} />
+          Exibir salário na vaga pública
         </label>
-        <input id="salary" type="text" className={inputClass} {...register('salary')} />
-        {errors.salary && <p className={errorClass}>{errors.salary.message}</p>}
-      </div>
+      </fieldset>
 
       {/* Validade */}
       <div>

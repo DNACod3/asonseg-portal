@@ -10,6 +10,8 @@ export const REGIME_MAX = 60;
 export const LOCAL_MAX = 200;
 export const BENEFICIOS_MAX = 2000;
 export const SALARIO_MAX = 120;
+export const CONTRATO_MAX = 60;
+export const ESCOLARIDADE_MAX = 120;
 
 // ── Campos compartilhados (rascunho e submissão) ───────────────────────────────
 const companyId = z.string().uuid('Empresa inválida.');
@@ -41,6 +43,25 @@ const location = z
   .max(LOCAL_MAX, `Local deve ter no máximo ${LOCAL_MAX} caracteres.`);
 const benefits = z.string().trim().max(BENEFICIOS_MAX).optional();
 const salary = z.string().trim().max(SALARIO_MAX).optional();
+// ── Campos de busca (USP-021 / TD §4.5 / E-002) ────────────────────────────────
+// Obrigatórios no SUBMIT (tornam os filtros possíveis); opcionais no rascunho.
+const contractType = z
+  .string()
+  .trim()
+  .min(1, 'Tipo de contrato é obrigatório.')
+  .max(CONTRATO_MAX, `Tipo de contrato deve ter no máximo ${CONTRATO_MAX} caracteres.`);
+const regionId = z.string().uuid('Selecione uma região válida.');
+const educationLevelRequired = z.string().trim().max(ESCOLARIDADE_MAX).optional();
+// Salário numérico (faixa): input do form chega como string; '' → undefined; senão ≥ 0.
+// (`salary` freetext legado é mantido por compat; a faixa é a fonte do filtro E-002.)
+const salaryAmount = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? undefined : v),
+  z.coerce
+    .number({ invalid_type_error: 'Informe um valor numérico.' })
+    .nonnegative('O salário não pode ser negativo.')
+    .optional(),
+);
+const salaryVisible = z.boolean().optional().default(true);
 // Validade como string `yyyy-MM-dd` validada (não convertida): mantém input = output
 // (evita o duplo-parse do RHF→Server Action). A conversão para Date acontece na borda
 // de persistência. A regra de futuro/teto roda no superRefine via {@link validadeStatus}.
@@ -69,9 +90,27 @@ export const publishJobSchema = z
     location,
     benefits,
     salary,
+    contractType,
+    regionId,
+    educationLevelRequired,
+    salaryMin: salaryAmount,
+    salaryMax: salaryAmount,
+    salaryVisible,
     validUntil: validUntilStr,
   })
   .superRefine((data, ctx) => {
+    // Faixa coerente: máximo não pode ser menor que o mínimo (AD-5).
+    if (
+      typeof data.salaryMin === 'number' &&
+      typeof data.salaryMax === 'number' &&
+      data.salaryMax < data.salaryMin
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['salaryMax'],
+        message: 'O salário máximo não pode ser menor que o mínimo.',
+      });
+    }
     const status = validadeStatus(new Date(data.validUntil), new Date());
     if (status === 'passado') {
       ctx.addIssue({
@@ -103,6 +142,12 @@ export const draftJobSchema = z.object({
   location: z.string().trim().max(LOCAL_MAX).optional(),
   benefits,
   salary,
+  contractType: contractType.optional(),
+  regionId: regionId.optional(),
+  educationLevelRequired,
+  salaryMin: salaryAmount,
+  salaryMax: salaryAmount,
+  salaryVisible,
   validUntil: validUntilStr.optional(),
 });
 

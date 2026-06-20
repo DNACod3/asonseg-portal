@@ -37,6 +37,23 @@ export { PrismaJobStatusRepository } from './adapters/prisma-job-status';
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 export { listApprovedJobAreas, type JobAreaOption } from './queries/list-approved-job-areas';
+export { listActiveRegions, type RegionOption } from './queries/list-active-regions';
+export {
+  searchJobs,
+  SEARCH_PAGE_SIZE,
+  type SearchJobsFilters,
+  type SearchJobsResult,
+} from './queries/search-jobs';
+
+// ── Views (View Models por papel) ───────────────────────────────────────────────
+export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { JobForm, type JobFormProps } from './components/job-form';
+export {
+  JobSearchFilters,
+  type JobSearchFiltersProps,
+  type JobSearchFilterValues,
+} from './components/job-search-filters';
+export { JobCard } from './components/job-card';
+export { JobList } from './components/job-list';
