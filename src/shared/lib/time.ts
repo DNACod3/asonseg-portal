@@ -26,6 +26,18 @@ export function formatSaoPaulo(
 }
 
 /**
+ * Data de hoje (sem hora) no fuso de São Paulo, como `Date` em meia-noite UTC do
+ * dia-calendário local. Usada no filtro on-read da busca de vagas (USP-021 / E-001 /
+ * P-003): `validUntil >= hojeSaoPaulo()`. Como `valid_until` é coluna `date` (Prisma
+ * lê/escreve em meia-noite UTC), comparar com este valor compara o dia-calendário —
+ * sem o deslocamento que `new Date()` causaria perto da virada do dia.
+ */
+export function hojeSaoPaulo(): Date {
+  const ymd = formatInTimeZone(new Date(), APP_TIME_ZONE, 'yyyy-MM-dd');
+  return new Date(`${ymd}T00:00:00.000Z`);
+}
+
+/**
  * Formata uma data "pura" (ex.: data de nascimento) sem aplicar fuso.
  * Strings são interpretadas como meia-noite local (parseISO), evitando o
  * deslocamento de dia que `new Date('yyyy-MM-dd')` causa (parse em UTC).
