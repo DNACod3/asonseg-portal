@@ -44,9 +44,17 @@ export {
   type SearchJobsFilters,
   type SearchJobsResult,
 } from './queries/search-jobs';
+export { getActiveJobDetail } from './queries/get-job-detail';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
+export {
+  viewJobDetail,
+  APPLICATION_COUNTER_THRESHOLD,
+  CANDIDATE_ROLE,
+  type JobDetail,
+  type JobDetailRow,
+} from './views/job-detail.view';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { JobForm, type JobFormProps } from './components/job-form';
