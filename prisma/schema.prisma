@@ -180,6 +180,7 @@ model Person {
   providerProfile      ProviderProfile?
   clientProfile        ClientProfile?
   authoredJobs         Job[]
+  applications         Application[]
 
   @@map("persons")
 }
@@ -446,6 +447,8 @@ model Job {
   author  Person   @relation(fields: [authorPersonId], references: [id])
   region  Region?  @relation(fields: [regionId], references: [id])
 
+  applications Application[]
+
   // Dedup EXATA (P-003 / ADR-0021): impede 2 vagas idênticas vivas da mesma Empresa.
   // UNIQUE parcial — só estados "vivos" contam — criada via SQL bruto na migration
   // (Prisma não expressa `@@unique` com WHERE). Ver migration `..._usp020_job`.
@@ -454,6 +457,29 @@ model Job {
   @@index([status, validUntil]) // USP-021: filtro on-read (E-001/P-003) — L-001/RP-009
   @@index([areaId, regionId, status]) // USP-021: filtros combinados (E-002)
   @@map("jobs")
+}
+
+// ── Candidaturas (USP-022 — AD-012) ──────────────────────────────────────────
+/// Candidatura de uma Pessoa (papel candidato) a uma Vaga. Introduzida pela USP-022
+/// na forma MÍNIMA capaz apenas de **contar** candidaturas ativas (contador E-003 do
+/// detalhe da vaga). O caminho de **escrita** (candidatar/cancelar) e o vínculo de
+/// encaminhamento são da USP-025/044 (AD-012). `cancelledAt = null` ⇒ candidatura ativa
+/// (soft-cancel); o índice parcial de contagem `(jobId, cancelledAt)` resolve o contador on-read.
+model Application {
+  id          String    @id @default(uuid()) @db.Uuid
+  candidatoId String    @map("candidato_id") @db.Uuid
+  jobId       String    @map("job_id") @db.Uuid
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6) // null = candidatura ativa (soft-cancel)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidato Person @relation(fields: [candidatoId], references: [id])
+  job       Job    @relation(fields: [jobId], references: [id])
+
+  // Deferido p/ USP-025/044 (escrita): `viaEncaminhamento Boolean` + `encaminhamentoId`
+  // FK `Referral` (model ainda inexistente) + índice ÚNICO parcial de unicidade da
+  // candidatura ativa por (candidato, vaga). Aqui só há leitura → só o índice de contagem.
+  @@index([jobId, cancelledAt]) // contagem on-read do contador (E-003)
+  @@map("applications")
 }
 
 // ── Moderação de conteúdo (USP-016 / ADR-0011) ───────────────────────────────
