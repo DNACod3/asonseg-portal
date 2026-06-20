@@ -50,6 +50,7 @@ export { getActiveJobDetail } from './queries/get-job-detail';
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
 export {
   viewJobDetail,
+  jobDetailJsonLd,
   APPLICATION_COUNTER_THRESHOLD,
   CANDIDATE_ROLE,
   type JobDetail,

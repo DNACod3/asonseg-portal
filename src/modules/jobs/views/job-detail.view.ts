@@ -136,3 +136,45 @@ export function viewJobDetail(row: JobDetailRow, viewer: CurrentPerson | null): 
     showActivateCandidateCta: viewer != null && !canApply,
   };
 }
+
+/**
+ * JSON-LD schema.org `JobPosting` do detalhe (USP-022 / T4 / P-002). Para SEO/social o
+ * conteúdo é **sempre anônimo**: passe SEMPRE uma projeção anonimizada
+ * (`viewJobDetail(row, null)`) — `hiringOrganization.name` usa o rótulo por setor, nunca o
+ * nome real da Empresa (P-002, em todos os canais). Chaves `undefined` são descartadas pelo
+ * `JSON.stringify`, mantendo o objeto enxuto.
+ */
+export function jobDetailJsonLd(job: JobDetail): Record<string, unknown> {
+  const salary =
+    job.salary && (job.salary.min != null || job.salary.max != null)
+      ? {
+          '@type': 'MonetaryAmount',
+          currency: 'BRL',
+          value: {
+            '@type': 'QuantitativeValue',
+            minValue: job.salary.min ?? undefined,
+            maxValue: job.salary.max ?? undefined,
+            unitText: 'MONTH',
+          },
+        }
+      : undefined;
+
+  return {
+    '@context': 'https://schema.org/',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: job.description ?? undefined,
+    datePosted: job.publishedAt?.toISOString(),
+    validThrough: job.validUntil?.toISOString(),
+    employmentType: job.contractType ?? undefined,
+    // Organização anonimizada por setor (P-002) — nunca o nome real.
+    hiringOrganization: { '@type': 'Organization', name: job.company.displayName },
+    jobLocation: job.location
+      ? {
+          '@type': 'Place',
+          address: { '@type': 'PostalAddress', addressLocality: job.location },
+        }
+      : undefined,
+    baseSalary: salary,
+  };
+}

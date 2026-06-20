@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { JobAreaOption } from '../queries/list-approved-job-areas';
 import type { RegionOption } from '../queries/list-active-regions';
 
@@ -171,12 +172,12 @@ export function JobSearchFilters({ areas, regions, values }: Readonly<JobSearchF
         >
           Filtrar
         </button>
-        <a
+        <Link
           href="/vagas"
           className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           Limpar
-        </a>
+        </Link>
       </div>
     </form>
   );
