@@ -7,6 +7,12 @@ import { viewJobForVisitor, type JobListItem, type JobListRow } from '../views/j
 /** Tamanho de página da busca pública (L-002 — `take` obrigatório). */
 export const SEARCH_PAGE_SIZE = 20;
 
+/**
+ * Teto de caracteres do termo de busca (RP-009 — endpoint público anônimo). Limita o
+ * custo do `LIKE` trgm e evita abuso por termo gigante. Generoso para uso legítimo.
+ */
+export const SEARCH_TERM_MAX = 100;
+
 /** Filtros da busca pública de vagas (USP-021 / E-002). Todos opcionais (AND lógico). */
 export interface SearchJobsFilters {
   q?: string; // busca textual sem acento (E-003)
@@ -51,81 +57,97 @@ function jobListSelect(authenticated: boolean) {
 }
 
 /**
- * Faixa salarial por **overlap** de intervalo (AD-5): a vaga "casa" se seu intervalo
- * [salaryMin, salaryMax] cruza o filtro. Vagas sem faixa (null) são excluídas quando
- * há filtro de salário (intervalo desconhecido não satisfaz a restrição).
+ * Monta as condições SQL da busca (on-read + filtros AND + texto), compartilhadas pela
+ * contagem e pela página. Tudo parametrizado via `Prisma.sql` (anti-injeção). Fonte
+ * única do `WHERE` — evita drift entre `count` e `findMany`.
+ *
+ * 1. On-read obrigatório (E-001/P-003/P-005): `ACTIVE` **AND** `valid_until >= hoje(SP)`
+ *    **AND** `companies.is_verified`. A expiração é resolvida aqui, não pelo job da USP-024.
+ * 2. Filtros em AND (E-002): área, escolaridade, contrato, regime, região, faixa por overlap.
+ * 3. Busca textual sem acento (E-003): `immutable_unaccent` sobre título+descrição+requisitos,
+ *    usando o índice GIN/trgm `job_search_trgm` (mesma função nos dois lados).
  */
-function salaryOverlapWhere(filters: SearchJobsFilters): Prisma.JobWhereInput {
-  const where: Prisma.JobWhereInput = {};
+function buildWhere(filters: SearchJobsFilters): Prisma.Sql {
+  const conds: Prisma.Sql[] = [
+    Prisma.sql`j.status = 'ACTIVE'`,
+    Prisma.sql`j.valid_until >= ${hojeSaoPaulo()}`,
+    Prisma.sql`c.is_verified = true`,
+  ];
+
+  if (filters.areaId) conds.push(Prisma.sql`j.area_id = ${filters.areaId}::uuid`);
+  if (filters.regionId) conds.push(Prisma.sql`j.region_id = ${filters.regionId}::uuid`);
+  if (filters.contractType) conds.push(Prisma.sql`j.contract_type = ${filters.contractType}`);
+  if (filters.workRegime) conds.push(Prisma.sql`j.work_regime = ${filters.workRegime}`);
+  if (filters.educationLevel) {
+    conds.push(Prisma.sql`j.education_level_required = ${filters.educationLevel}`);
+  }
+  // Faixa salarial por overlap (AD-5): a vaga casa se seu intervalo cruza o filtro.
+  // Vagas sem faixa (NULL) são excluídas quando há filtro (intervalo desconhecido não satisfaz).
   if (typeof filters.salaryMin === 'number') {
-    where.salaryMax = { gte: new Prisma.Decimal(filters.salaryMin) };
+    conds.push(Prisma.sql`j.salary_max >= ${filters.salaryMin}`);
   }
   if (typeof filters.salaryMax === 'number') {
-    where.salaryMin = { lte: new Prisma.Decimal(filters.salaryMax) };
+    conds.push(Prisma.sql`j.salary_min <= ${filters.salaryMax}`);
   }
-  return where;
+
+  const term = filters.q?.trim().slice(0, SEARCH_TERM_MAX);
+  if (term) {
+    const pattern = `%${term}%`;
+    conds.push(Prisma.sql`immutable_unaccent(
+      lower(coalesce(j.title, '') || ' ' || coalesce(j.description, '') || ' ' || coalesce(j.requirements, ''))
+    ) LIKE immutable_unaccent(lower(${pattern}))`);
+  }
+
+  return Prisma.join(conds, ' AND ');
 }
 
 /**
  * Busca pública de vagas (USP-021 / TD §4.4 `jobs.buscarVagas`). Read-only, sem
  * Server Action (leitura pública). Padrão runbook-search-pagination:
  *
- * 1. On-read obrigatório (E-001/P-003/P-005): `ACTIVE` **AND** `validUntil >= hoje(SP)`
- *    **AND** `company.isVerified`. A fonte da verdade da expiração é a query, não o job
- *    da USP-024 — uma vaga vencida some mesmo se o status persistido ainda for `ACTIVE`.
- * 2. Filtros em AND (E-002): área, escolaridade, contrato, regime, região, faixa salarial.
- * 3. Busca textual sem acento (E-003): `immutable_unaccent` sobre título+descrição+requisitos,
- *    via `$queryRaw` parametrizado (anti-injeção) que usa o índice GIN/trgm `job_search_trgm`.
- * 4. Ordenação `publishedAt DESC` (E-001), com fallback p/ vagas sem `publishedAt`.
- * 5. Paginação `take`/`skip` (L-002); `total` conta com o mesmo `where`.
- * 6. `select` explícito → View Model por papel (anonimização — P-001/E-004/E-005).
+ * - O `WHERE` (on-read + filtros + texto) é resolvido uma vez em SQL parametrizado
+ *   ({@link buildWhere}) e usado tanto pela contagem quanto pela seleção da página.
+ * - A página é resolvida no banco com `ORDER BY` + `LIMIT/OFFSET` (L-002) — só os ids
+ *   da página atual sobem para a aplicação, nunca todos os casados (RP-009/L-001).
+ * - Os ids da página são hidratados via `select` tipado → View Model por papel
+ *   (anonimização P-001/E-004/E-005), preservando a ordem do banco.
  */
 export async function searchJobs(
   filters: SearchJobsFilters,
   viewer: CurrentPerson | null,
 ): Promise<SearchJobsResult> {
   const page = Math.max(1, Math.trunc(filters.page ?? 1));
+  const offset = (page - 1) * SEARCH_PAGE_SIZE;
+  const whereSql = buildWhere(filters);
 
-  const where: Prisma.JobWhereInput = {
-    status: 'ACTIVE',
-    validUntil: { gte: hojeSaoPaulo() },
-    company: { isVerified: true },
-    ...(filters.areaId ? { areaId: filters.areaId } : {}),
-    ...(filters.regionId ? { regionId: filters.regionId } : {}),
-    ...(filters.contractType ? { contractType: filters.contractType } : {}),
-    ...(filters.workRegime ? { workRegime: filters.workRegime } : {}),
-    ...(filters.educationLevel ? { educationLevelRequired: filters.educationLevel } : {}),
-    ...salaryOverlapWhere(filters),
-  };
-
-  // Busca textual (E-003): resolve os ids casados pelo índice funcional unaccent e
-  // restringe o `where` tipado. Mantém os filtros estruturais no Prisma + a paginação.
-  const term = filters.q?.trim();
-  if (term) {
-    const pattern = `%${term}%`;
-    const matched = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
-      SELECT id FROM jobs
-      WHERE immutable_unaccent(
-              lower(coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(requirements, ''))
-            ) LIKE immutable_unaccent(lower(${pattern}))`);
-    where.id = { in: matched.map((row) => row.id) };
-  }
-
-  const [total, rows] = await Promise.all([
-    prisma.job.count({ where }),
-    prisma.job.findMany({
-      where,
-      select: jobListSelect(viewer !== null),
-      orderBy: [{ publishedAt: 'desc' }, { lastStatusChangeAt: 'desc' }, { createdAt: 'desc' }],
-      take: SEARCH_PAGE_SIZE,
-      skip: (page - 1) * SEARCH_PAGE_SIZE,
-    }),
+  // Resolve a página (ids ordenados + paginados no banco) e o total com o mesmo WHERE.
+  const [pageRows, countRows] = await Promise.all([
+    prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT j.id
+      FROM jobs j
+      JOIN companies c ON c.id = j.company_id
+      WHERE ${whereSql}
+      ORDER BY j.published_at DESC NULLS LAST, j.last_status_change_at DESC, j.created_at DESC
+      LIMIT ${SEARCH_PAGE_SIZE} OFFSET ${offset}`),
+    prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+      SELECT count(*)::bigint AS count
+      FROM jobs j
+      JOIN companies c ON c.id = j.company_id
+      WHERE ${whereSql}`),
   ]);
 
-  return {
-    items: rows.map((row) => viewJobForVisitor(row as JobListRow, viewer)),
-    page,
-    pageSize: SEARCH_PAGE_SIZE,
-    total,
-  };
+  const ids = pageRows.map((row) => row.id);
+  const total = Number(countRows[0]?.count ?? 0);
+
+  // Hidrata só os ids da página com o select por papel; reordena conforme a página do banco.
+  const rows = ids.length
+    ? await prisma.job.findMany({ where: { id: { in: ids } }, select: jobListSelect(viewer !== null) })
+    : [];
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const items = ids
+    .map((id) => byId.get(id))
+    .filter((row): row is NonNullable<typeof row> => row != null)
+    .map((row) => viewJobForVisitor(row as JobListRow, viewer));
+
+  return { items, page, pageSize: SEARCH_PAGE_SIZE, total };
 }
