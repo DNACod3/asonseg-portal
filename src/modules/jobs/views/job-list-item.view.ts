@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import type { CurrentPerson } from '@/modules/identity';
+import { decimalToNumber, companyDisplayName } from './company-display';
 
 /**
  * View Model da vaga na **lista pública** (USP-021 / ADR-0017 / ADR-0022).
@@ -52,10 +53,6 @@ export interface JobListRow {
   company: { setor: string; nomeFantasia?: string | null };
 }
 
-function decimalToNumber(value: Prisma.Decimal | null): number | null {
-  return value == null ? null : value.toNumber();
-}
-
 /**
  * Projeta uma linha de vaga para o item de lista, aplicando a anonimização por papel.
  *
@@ -79,11 +76,8 @@ export function viewJobForVisitor(row: JobListRow, viewer: CurrentPerson | null)
       : null,
     publishedAt: row.publishedAt,
     company: {
-      // Autenticado vê o nome real (E-005); anônimo, o rótulo por setor (E-004/P-001).
-      // Fallback defensivo ao setor caso `nomeFantasia` não tenha sido carregado.
-      displayName: isAnonymized
-        ? `Empresa do setor de ${row.company.setor}`
-        : row.company.nomeFantasia ?? `Empresa do setor de ${row.company.setor}`,
+      // Anonimização por papel na fonte única (E-004/E-005/P-001) — ver `company-display`.
+      displayName: companyDisplayName(row.company, isAnonymized),
       isAnonymized,
     },
   };

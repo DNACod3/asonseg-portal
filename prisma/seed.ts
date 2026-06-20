@@ -246,6 +246,66 @@ async function seedDemoJobs(): Promise<number> {
   return count;
 }
 
+// Backfill de candidaturas (USP-022 / AD-012 — só leitura/contagem). O detalhe da vaga
+// só mostra o contador a partir do limiar N ≥ 3 (E-003/P-001): por isso a vaga "Vendedor(a)"
+// recebe 4 candidaturas ATIVAS (contador visível, D-005) e ainda 1 cancelada (não conta);
+// "Atendente de padaria" fica com 0 (contador oculto). IDs fixos → upsert idempotente.
+
+const APPLICANT_IDS = [
+  '00000000-0000-0000-0000-0000000000e1',
+  '00000000-0000-0000-0000-0000000000e2',
+  '00000000-0000-0000-0000-0000000000e3',
+  '00000000-0000-0000-0000-0000000000e4',
+  '00000000-0000-0000-0000-0000000000e5',
+] as const;
+
+const JOB_VENDEDOR_ID = '00000000-0000-0000-0000-00000000d002'; // ≥ 3 candidaturas ativas (contador visível)
+
+interface DemoApplication {
+  id: string;
+  candidatoId: string;
+  jobId: string;
+  cancelled: boolean;
+}
+
+const DEMO_APPLICATIONS: ReadonlyArray<DemoApplication> = [
+  { id: '00000000-0000-0000-0000-00000000a001', candidatoId: APPLICANT_IDS[0], jobId: JOB_VENDEDOR_ID, cancelled: false },
+  { id: '00000000-0000-0000-0000-00000000a002', candidatoId: APPLICANT_IDS[1], jobId: JOB_VENDEDOR_ID, cancelled: false },
+  { id: '00000000-0000-0000-0000-00000000a003', candidatoId: APPLICANT_IDS[2], jobId: JOB_VENDEDOR_ID, cancelled: false },
+  { id: '00000000-0000-0000-0000-00000000a004', candidatoId: APPLICANT_IDS[3], jobId: JOB_VENDEDOR_ID, cancelled: false },
+  // Cancelada (cancelledAt != null) → NÃO entra na contagem do contador (E-003).
+  { id: '00000000-0000-0000-0000-00000000a005', candidatoId: APPLICANT_IDS[4], jobId: JOB_VENDEDOR_ID, cancelled: true },
+];
+
+async function seedDemoApplications(): Promise<number> {
+  // Pessoas candidatas demo (sem credencial — criadas pela AS; supabaseUserId nulo).
+  await Promise.all(
+    APPLICANT_IDS.map((id, i) =>
+      prisma.person.upsert({
+        where: { id },
+        update: { fullName: `Candidato(a) demo ${i + 1}` },
+        create: { id, fullName: `Candidato(a) demo ${i + 1}`, status: 'ATIVO' },
+      }),
+    ),
+  );
+
+  let count = 0;
+  for (const app of DEMO_APPLICATIONS) {
+    const data = {
+      candidatePersonId: app.candidatoId,
+      jobId: app.jobId,
+      cancelledAt: app.cancelled ? dateOffset(-1) : null,
+    };
+    await prisma.application.upsert({
+      where: { id: app.id },
+      update: data,
+      create: { id: app.id, ...data },
+    });
+    count += 1;
+  }
+  return count;
+}
+
 async function main(): Promise<void> {
   const [regions, jobAreas, serviceCategories] = await Promise.all([
     seedRegions(),
@@ -255,12 +315,15 @@ async function main(): Promise<void> {
 
   // Depende das taxonomias acima (área/região por nome).
   const demoJobs = await seedDemoJobs();
+  // Depende das vagas demo (FK job_id) — contador do detalhe (USP-022 / E-003).
+  const demoApplications = await seedDemoApplications();
 
   console.log('Seed de taxonomia concluído (idempotente):');
   console.log(`  regions:            ${regions}`);
   console.log(`  job_areas:          ${jobAreas}`);
   console.log(`  service_categories: ${serviceCategories}`);
   console.log(`  demo_jobs (ACTIVE): ${demoJobs}`);
+  console.log(`  demo_applications:  ${demoApplications}`);
 }
 
 main()
