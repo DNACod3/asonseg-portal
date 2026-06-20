@@ -37,6 +37,7 @@ export { PrismaJobStatusRepository } from './adapters/prisma-job-status';
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 export { listApprovedJobAreas, type JobAreaOption } from './queries/list-approved-job-areas';
+export { listActiveRegions, type RegionOption } from './queries/list-active-regions';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { JobForm, type JobFormProps } from './components/job-form';

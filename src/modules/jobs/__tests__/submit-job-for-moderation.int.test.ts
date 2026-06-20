@@ -45,6 +45,7 @@ skipIfNoDb('submitJobForModeration — integração', () => {
   let pendingId = '';
   let companyId = '';
   let areaId = '';
+  let regionId = '';
 
   function personFixture(id: string): CurrentPerson {
     return {
@@ -67,6 +68,8 @@ skipIfNoDb('submitJobForModeration — integração', () => {
       description: 'Atendimento ao cliente no balcão.',
       requirements: 'Ensino médio completo.',
       workRegime: 'CLT',
+      contractType: 'CLT',
+      regionId,
       location: 'São Paulo - SP',
       validUntil: dateStr(30),
       ...overrides,
@@ -91,6 +94,14 @@ skipIfNoDb('submitJobForModeration — integração', () => {
       select: { id: true },
     });
     areaId = area.id;
+
+    const region = await prisma.region.upsert({
+      where: { name: 'Centro Int Submit' },
+      update: {},
+      create: { name: 'Centro Int Submit', cityName: 'Florianópolis' },
+      select: { id: true },
+    });
+    regionId = region.id;
 
     const owner = await prisma.person.create({
       data: { fullName: 'Dono Submit Int', status: 'ATIVO' },

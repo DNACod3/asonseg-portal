@@ -65,6 +65,7 @@ model Region {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   providerProfiles ProviderProfile[]
+  jobs             Job[] // USP-021: vagas filtráveis por região
 
   @@map("regions")
 }
@@ -422,9 +423,17 @@ model Job {
   description        String?       @db.Text
   requirements       String?       @db.Text
   benefits           String?       @db.Text
-  salary             String?
-  workRegime         String?       @map("work_regime") // CLT, PJ, estágio… (string livre no MVP)
+  salary             String? // freetext legado (USP-020); substituído por salaryMin/Max no filtro de faixa (USP-021)
+  workRegime         String?       @map("work_regime") // regime (presencial/remoto/híbrido — string livre no MVP)
   location           String?
+  // USP-021 (AD-011): campos canônicos do TD §4.5 que faltavam, p/ os 6 filtros (E-002).
+  // Opcionais/com default p/ não quebrar vagas existentes; o JobForm exige no submit via Zod.
+  educationLevelRequired String?    @map("education_level_required") // freetext (espelha CandidateProfile.educationLevel)
+  contractType           String?    @map("contract_type") // CLT, PJ, MEI… (string livre; enum quando D-007 fechar)
+  salaryMin              Decimal?   @map("salary_min") @db.Decimal(10, 2)
+  salaryMax              Decimal?   @map("salary_max") @db.Decimal(10, 2)
+  salaryVisible          Boolean    @default(true) @map("salary_visible") // edge: false → salário oculto na busca
+  regionId               String?    @map("region_id") @db.Uuid // FK Region (opcional no DB; UI exige no submit)
   validUntil         DateTime?     @map("valid_until") @db.Date // validade (date); on-read >= hoje (USP-024)
   status             ContentStatus @default(DRAFT)
   publishedAt        DateTime?     @map("published_at") @db.Timestamptz(6) // preenchido na 1ª ativação (USP-016)
@@ -435,12 +444,15 @@ model Job {
   company Company  @relation(fields: [companyId], references: [id])
   area    JobArea? @relation(fields: [areaId], references: [id])
   author  Person   @relation(fields: [authorPersonId], references: [id])
+  region  Region?  @relation(fields: [regionId], references: [id])
 
   // Dedup EXATA (P-003 / ADR-0021): impede 2 vagas idênticas vivas da mesma Empresa.
   // UNIQUE parcial — só estados "vivos" contam — criada via SQL bruto na migration
   // (Prisma não expressa `@@unique` com WHERE). Ver migration `..._usp020_job`.
   @@index([status])
   @@index([companyId])
+  @@index([status, validUntil]) // USP-021: filtro on-read (E-001/P-003) — L-001/RP-009
+  @@index([areaId, regionId, status]) // USP-021: filtros combinados (E-002)
   @@map("jobs")
 }
 
