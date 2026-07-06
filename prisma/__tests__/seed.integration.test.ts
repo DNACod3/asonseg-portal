@@ -13,13 +13,59 @@ import { describe, it, expect } from 'vitest';
  * Não chama `seedDemo()` — este teste cobre só a taxonomia de referência
  * (prod-safe); dados de demo são fora do escopo de AC-111-1.
  *
- * Os nomes canônicos (`docs/operacao/taxonomia-inicial.md`) são pinados em
- * `it.todo` até T-B2 confirmar o alinhamento do dado do seed ao doc.
+ * Os nomes canônicos (`docs/operacao/taxonomia-inicial.md`) são pinados nos
+ * testes abaixo (T-B2) — confirmado que `prisma/seeds/reference.ts` já semeia
+ * exatamente as 3 listas do doc (10 regiões, 12 áreas, 10 categorias, nomes
+ * idênticos); nenhum ajuste de dado foi necessário.
  */
 const { prisma } = await import('@/shared/lib/prisma');
 const { seedReference } = await import('../seeds/reference');
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
+
+/** Nomes canônicos de `docs/operacao/taxonomia-inicial.md` §1 (Regiões). */
+const CANONICAL_REGIONS = [
+  'Canasvieiras',
+  'Jurerê',
+  'Ingleses',
+  'Cachoeira do Bom Jesus',
+  'Ponta das Canas',
+  'Praia Brava',
+  'Vargem do Bom Jesus',
+  'Santinho',
+  'Daniela',
+  'Toda Florianópolis',
+] as const;
+
+/** Nomes canônicos de `docs/operacao/taxonomia-inicial.md` §2 (Áreas de vaga). */
+const CANONICAL_JOB_AREAS = [
+  'Administrativa',
+  'Comércio e Vendas',
+  'Alimentação e Gastronomia',
+  'Turismo e Hotelaria',
+  'Saúde',
+  'Limpeza e Conservação',
+  'Construção e Reformas',
+  'Logística e Transporte',
+  'Beleza e Estética',
+  'Educação',
+  'Tecnologia',
+  'Serviços Gerais',
+] as const;
+
+/** Nomes canônicos de `docs/operacao/taxonomia-inicial.md` §3 (Categorias de serviço). */
+const CANONICAL_SERVICE_CATEGORIES = [
+  'Serviços Domésticos',
+  'Reparos e Manutenção',
+  'Área Externa e Jardinagem',
+  'Beleza e Bem-estar',
+  'Aulas e Reforço',
+  'Cuidados (idosos, crianças, pets)',
+  'Eventos e Buffet',
+  'Tecnologia e Informática',
+  'Costura e Confecção',
+  'Transporte e Fretes',
+] as const;
 
 skipIfNoDb('seed de taxonomia — integração (US-111 / AC-111-1 / F0-MN-01)', () => {
   it('popula-taxonomia: as 3 tabelas ficam não-vazias, is_suggestion=false e região ativa', async () => {
@@ -58,7 +104,29 @@ skipIfNoDb('seed de taxonomia — integração (US-111 / AC-111-1 / F0-MN-01)', 
     expect(after).toEqual(before);
   });
 
-  it.todo('a lista de regiões contém exatamente os nomes canônicos de taxonomia-inicial.md');
-  it.todo('a lista de áreas de vaga contém exatamente os nomes canônicos de taxonomia-inicial.md');
-  it.todo('a lista de categorias de serviço contém exatamente os nomes canônicos de taxonomia-inicial.md');
+  it('a lista de regiões contém exatamente os nomes canônicos de taxonomia-inicial.md', async () => {
+    await seedReference(prisma);
+    const names = (
+      await prisma.region.findMany({ where: { name: { in: [...CANONICAL_REGIONS] } } })
+    ).map((r) => r.name);
+    expect(new Set(names)).toEqual(new Set(CANONICAL_REGIONS));
+  });
+
+  it('a lista de áreas de vaga contém exatamente os nomes canônicos de taxonomia-inicial.md', async () => {
+    await seedReference(prisma);
+    const names = (
+      await prisma.jobArea.findMany({ where: { name: { in: [...CANONICAL_JOB_AREAS] } } })
+    ).map((a) => a.name);
+    expect(new Set(names)).toEqual(new Set(CANONICAL_JOB_AREAS));
+  });
+
+  it('a lista de categorias de serviço contém exatamente os nomes canônicos de taxonomia-inicial.md', async () => {
+    await seedReference(prisma);
+    const names = (
+      await prisma.serviceCategory.findMany({
+        where: { name: { in: [...CANONICAL_SERVICE_CATEGORIES] } },
+      })
+    ).map((c) => c.name);
+    expect(new Set(names)).toEqual(new Set(CANONICAL_SERVICE_CATEGORIES));
+  });
 });
