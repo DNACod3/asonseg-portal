@@ -18,6 +18,7 @@ async function main(): Promise<void> {
   console.log(`  regions:            ${reference.regions}`);
   console.log(`  job_areas:          ${reference.jobAreas}`);
   console.log(`  service_categories: ${reference.serviceCategories}`);
+  console.log(`  verification_checklist_items: ${reference.verificationChecklistItems}`);
 
   if (process.env.NODE_ENV !== 'production') {
     const demo = await seedDemo(prisma);

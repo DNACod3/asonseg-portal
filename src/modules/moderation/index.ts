@@ -64,6 +64,7 @@ export type {
 } from './schemas/decision';
 export { viewModerationQueue } from './queries/moderation-queue';
 export type { ModerationQueueItem } from './views/moderation-queue-item';
+export { listVerificationChecklistItems } from './queries/list-verification-checklist';
 export { canAccessModerationQueue } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
