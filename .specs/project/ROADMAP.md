@@ -3,7 +3,7 @@
 **Current Milestone:** Fase 2 — Empresas + Vagas + Moderação
 **Status:** In Progress · próxima unidade elegível: **USP-018** (Inativar conteúdo já publicado)
 
-Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) estão mapeados a features versionadas em `.specs/features/`.
+Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
 
 > **Formato executável (contrato lido por `spec-driven-execution`).** Cada unidade é uma linha-USP marcável. O loop pega a primeira `[ ]` cujas `deps` estejam todas `[x]` e cujo `gate` esteja livre.
 > ```
@@ -43,6 +43,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 - [x] USP-006 — Ativar papel adicional na Pessoa autenticada · epic: identity-acesso-papeis · dir: .specs/features/identity-acesso-papeis/usp-006-ativar-papel/ · deps: USP-004 · gate: —
 - [x] USP-007 — Inativar Pessoa · epic: identity-acesso-papeis · dir: .specs/features/identity-acesso-papeis/usp-007-inativar-pessoa/ · deps: USP-002 · gate: —
 - [x] USP-008 — Configurar permissões delegadas a voluntário · epic: identity-acesso-papeis · dir: .specs/features/identity-acesso-papeis/usp-008-permissoes-delegadas/ · deps: USP-004 · gate: —
+- [x] USP-045 — Reativar Pessoa (fluxo inverso da USP-007) · epic: identity-acesso-papeis · dir: .specs/features/identity-acesso-papeis/usp-045-reativar-pessoa/ · deps: USP-007 · gate: —
 - [x] USP-043 — Consentimentos por finalidade (LGPD) · epic: consentimentos-lgpd · dir: .specs/features/consentimentos-lgpd/usp-043-consentimentos/ · deps: USP-001 · gate: —
 
 > Transversal nesta fase: `audit` (`withAudit` + `audit_log` append-only) — habilita todas as fases seguintes.
