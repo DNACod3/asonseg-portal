@@ -20,7 +20,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['src/**/*.int.test.ts'],
+    // `prisma/__tests__/*.integration.test.ts` fica fora de `src/**` (não é
+    // código de módulo) — padrão de sufixo próprio (`.integration.test.ts`, não
+    // `.int.test.ts`) para o teste do seed, que testa `prisma/seeds/` e não um
+    // módulo de `src/modules/**` (F0B-01 / AC-111-1).
+    include: ['src/**/*.int.test.ts', 'prisma/**/*.integration.test.ts'],
     // Sem gate de cobertura aqui — a cobertura é medida no run unitário.
     testTimeout: 20_000,
     hookTimeout: 20_000,
