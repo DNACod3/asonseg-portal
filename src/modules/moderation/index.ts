@@ -55,6 +55,10 @@ export { approveContent, returnForAdjustments, rejectContent } from './actions/d
 export { inactivateContent } from './actions/inactivate';
 export { suggestTaxonomy } from './actions/suggest-taxonomy';
 export {
+  approveTaxonomySuggestion,
+  rejectTaxonomySuggestion,
+} from './actions/resolve-taxonomy-suggestion';
+export {
   approveSchema,
   returnForAdjustmentsSchema,
   rejectSchema,
