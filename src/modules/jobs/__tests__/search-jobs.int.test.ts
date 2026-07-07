@@ -45,6 +45,7 @@ skipIfNoDb('searchJobs — integração', () => {
   let jModeracao = ''; // IN_MODERATION (E-001)
   let jNaoVerificada = ''; // ACTIVE válida mas Empresa não verificada (P-005)
   let jOutra = ''; // ACTIVE verificada, Região B, PJ (p/ filtros AND)
+  let jInativada = ''; // INACTIVATED pelo coordenador (USP-018 / INACT-MN-04)
 
   async function cleanup() {
     await prisma.job.deleteMany({
@@ -123,7 +124,7 @@ skipIfNoDb('searchJobs — integração', () => {
       workRegime: 'Presencial',
     };
 
-    const [v, e, m, nv, o] = await Promise.all([
+    const [v, e, m, nv, o, ina] = await Promise.all([
       prisma.job.create({
         data: {
           ...base,
@@ -194,12 +195,26 @@ skipIfNoDb('searchJobs — integração', () => {
         },
         select: { id: true },
       }),
+      prisma.job.create({
+        data: {
+          ...base,
+          companyId: verifiedCompanyId,
+          regionId: regionAId,
+          title: 'Vaga Inativada Int',
+          contractType: 'CLT',
+          status: 'INACTIVATED', // USP-018 — inativada pelo coordenador
+          publishedAt: dateOffset(-1),
+          validUntil: dateOffset(30),
+        },
+        select: { id: true },
+      }),
     ]);
     jVisivel = v.id;
     jExpirada = e.id;
     jModeracao = m.id;
     jNaoVerificada = nv.id;
     jOutra = o.id;
+    jInativada = ina.id;
   });
 
   afterAll(async () => {
@@ -216,6 +231,13 @@ skipIfNoDb('searchJobs — integração', () => {
     expect(ids).not.toContain(jExpirada); // validade vencida apesar de status ACTIVE (P-003)
     expect(ids).not.toContain(jModeracao); // não-ACTIVE (E-001)
     expect(ids).not.toContain(jNaoVerificada); // Empresa não verificada (P-005)
+    expect(ids).not.toContain(jInativada); // INACTIVATED (USP-018 / INACT-MN-04)
+  });
+
+  it('@usp-018 @inact-mn-04 vaga INACTIVATED some da busca pública e não afeta o total', async () => {
+    const { items, total } = await searchJobs({ areaId }, anon);
+    expect(items.map((i) => i.id)).not.toContain(jInativada);
+    expect(total).toBe(2); // só jVisivel + jOutra — a inativada nunca conta
   });
 
   it('@e-002 combina filtros em AND (área + região + contrato)', async () => {
