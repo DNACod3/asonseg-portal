@@ -102,6 +102,9 @@ export const AuditEvent = {
   // ── Configuração global / taxonomia ───────────────────────────────────────
   CATEGORY_SUGGESTED: 'CATEGORY_SUGGESTED',
   CATEGORY_APPROVED: 'CATEGORY_APPROVED',
+  /** Rejeição de sugestão de taxonomia (USP-019) — a linha é removida (DELETE);
+   *  este evento preserva o before-state no audit_log (histórico da decisão). */
+  CATEGORY_SUGGESTION_REJECTED: 'CATEGORY_SUGGESTION_REJECTED',
   REGION_ADDED: 'REGION_ADDED',
   JOB_AREA_ADDED: 'JOB_AREA_ADDED',
 

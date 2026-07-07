@@ -61,4 +61,9 @@ describe('audit/events', () => {
     // Evento de tentativa/negação — não exige justificativa.
     expect(requiresJustification(AuditEvent.PERSON_ASSISTED_EXCEPTION_DENIED)).toBe(false);
   });
+
+  it('inclui CATEGORY_SUGGESTION_REJECTED (USP-019) e NÃO exige justificativa (motivo opcional)', () => {
+    expect(AuditEvent.CATEGORY_SUGGESTION_REJECTED).toBe('CATEGORY_SUGGESTION_REJECTED');
+    expect(requiresJustification(AuditEvent.CATEGORY_SUGGESTION_REJECTED)).toBe(false);
+  });
 });
