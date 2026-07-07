@@ -10,7 +10,7 @@ describe('Button', () => {
   it('variant=primary aplica bg-cta e hover:bg-cta-hover (CTA laranja)', () => {
     render(<Button variant="primary">Entrar</Button>);
     const btn = screen.getByRole('button', { name: 'Entrar' });
-    expect(btn.className).toContain('bg-cta');
+    expect(btn.className.split(/\s+/)).toContain('bg-cta');
     expect(btn.className).toContain('hover:bg-cta-hover');
   });
 
