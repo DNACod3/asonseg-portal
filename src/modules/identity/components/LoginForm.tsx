@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, Input, Label } from '@/shared/ui';
 import { signInSchema, type SignInInput } from '../schemas/signIn';
 import { loginAction } from '../actions/login';
 
@@ -12,6 +13,10 @@ import { loginAction } from '../actions/login';
  * formato) consumindo a Server Action `loginAction`. Qualquer falha do servidor
  * exibe a **mensagem única** vinda da action (anti-enumeração — D-G); o sucesso
  * navega para `redirectTo` (`/inicio` ou `/trocar-senha` no 1º acesso).
+ *
+ * Fundação de Design System da Fase 1 (T13, DS-18/DS-19/DS-20): restilizado
+ * com os primitivos (`Input`/`Label`/`Button`) e tokens — fluxos (RHF/Zod/
+ * loginAction/mensagem única/navegação) preservados sem alteração.
  */
 export function LoginForm() {
   const router = useRouter();
@@ -41,21 +46,18 @@ export function LoginForm() {
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
       {/* E-mail */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
-          E-mail
-        </label>
-        <input
+        <Label htmlFor="email">E-mail</Label>
+        <Input
           id="email"
           type="email"
           autoComplete="email"
           placeholder="seu@email.com"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.email ? 'email-error' : undefined}
           aria-invalid={!!errors.email}
           {...register('email')}
         />
         {errors.email && (
-          <p id="email-error" role="alert" className="text-xs text-red-600">
+          <p id="email-error" role="alert" className="text-xs text-danger">
             {errors.email.message}
           </p>
         )}
@@ -63,50 +65,43 @@ export function LoginForm() {
 
       {/* Senha */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="senha" className="text-sm font-medium text-gray-700">
-          Senha
-        </label>
-        <input
+        <Label htmlFor="senha">Senha</Label>
+        <Input
           id="senha"
           type="password"
           autoComplete="current-password"
           placeholder="Sua senha"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.senha ? 'senha-error' : undefined}
           aria-invalid={!!errors.senha}
           {...register('senha')}
         />
         {errors.senha && (
-          <p id="senha-error" role="alert" className="text-xs text-red-600">
+          <p id="senha-error" role="alert" className="text-xs text-danger">
             {errors.senha.message}
           </p>
         )}
-        <a
-          href="/recuperar-senha"
-          className="self-end text-xs font-medium text-blue-600 hover:underline"
-        >
+        <a href="/recuperar-senha" className="self-end text-xs font-medium text-primary hover:underline">
           Esqueci minha senha
         </a>
       </div>
 
       {/* Erro do servidor (mensagem única, anti-enumeração) */}
       {serverError && (
-        <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+        >
           {serverError}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" disabled={isPending}>
         {isPending ? 'Entrando…' : 'Entrar'}
-      </button>
+      </Button>
 
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-fg-muted">
         Ainda não tem conta?{' '}
-        <a href="/cadastro" className="font-medium text-blue-600 hover:underline">
+        <a href="/cadastro" className="font-medium text-primary hover:underline">
           Criar conta
         </a>
       </p>
