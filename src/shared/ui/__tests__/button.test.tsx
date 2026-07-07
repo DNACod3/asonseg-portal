@@ -58,7 +58,7 @@ describe('Button', () => {
     document.documentElement.dataset.theme = 'dark';
     render(<Button variant="primary">Entrar</Button>);
     const btn = screen.getByRole('button', { name: 'Entrar' });
-    expect(btn.className).toContain('bg-cta');
+    expect(btn.className.split(/\s+/)).toContain('bg-cta');
     delete document.documentElement.dataset.theme;
   });
 });
