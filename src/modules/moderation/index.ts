@@ -95,6 +95,8 @@ export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
 export { PublishedContentManager } from './components/published-content-manager';
 export type { PublishedContentRow } from './components/published-content-manager';
+export { TaxonomySuggestionsList } from './components/taxonomy-suggestions-list';
+export type { TaxonomySuggestionRow } from './components/taxonomy-suggestions-list';
 export { VerificationPanel } from './components/verification-panel';
 export type {
   VerificationPanelData,
