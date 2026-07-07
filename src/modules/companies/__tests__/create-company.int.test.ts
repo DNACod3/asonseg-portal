@@ -150,7 +150,7 @@ skipIfNoDb('createCompany — integração', () => {
     expect(result.error.code).toBe('VALIDATION');
   });
 
-  it('VALIDATION: hash do termo fabricado pelo cliente é rejeitado', async () => {
+  it('VALIDATION: hash do termo fabricado pelo cliente é rejeitado (U12-MN-02: zero Consent gravado)', async () => {
     const result = await createCompany({
       ...VALID_INPUT,
       cnpj: '45.997.418/0001-53',
@@ -159,6 +159,13 @@ skipIfNoDb('createCompany — integração', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('VALIDATION');
+
+    // U12-MN-02: hash divergente NÃO pode persistir Consent com hash/versão arbitrários.
+    const fabricatedConsent = await prisma.consent.findFirst({
+      where: { personId, purpose: 'COMPANY_REPRESENTATION', termContentHash: 'a'.repeat(64) },
+      select: { id: true },
+    });
+    expect(fabricatedConsent).toBeNull();
   });
 
   it('UNAUTHENTICATED: sem sessão', async () => {
@@ -195,12 +202,19 @@ skipIfNoDb('createCompany — integração', () => {
     }
   });
 
-  it('CONFLICT: CNPJ duplicado na pré-verificação', async () => {
+  it('CONFLICT: CNPJ duplicado na pré-verificação (U12-MN-03: sem 2ª Empresa)', async () => {
     // O happy path já cadastrou 11222333000181 — tenta cadastrar de novo.
     const result = await createCompany(VALID_INPUT);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('CONFLICT');
     expect(result.error.message).toContain('solicitar sua inclusão');
+
+    // U12-MN-03: continua existindo exatamente 1 Empresa com este CNPJ.
+    const duplicates = await prisma.company.findMany({
+      where: { cnpj: '11222333000181' },
+      select: { id: true },
+    });
+    expect(duplicates).toHaveLength(1);
   });
 });
