@@ -8,6 +8,7 @@ import {
   TERM_BODY_UNAVAILABLE,
   type ConsentsPanelItem,
 } from '@/modules/consents';
+import { Card } from '@/shared/ui';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
@@ -49,18 +50,16 @@ export default async function ConsentimentosPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-10">
       <header>
-        <h1 className="text-2xl font-bold text-gray-900">Meus consentimentos</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-fg">Meus consentimentos</h1>
+        <p className="mt-1 text-sm text-fg-muted">
           Gerencie as finalidades para as quais você autorizou o uso dos seus dados. Você pode abrir
-          cada termo aceito e revogar uma finalidade a qualquer momento — seus dados de perfil são
+          cada termo aceito e revogar uma finalidade a qualquer momento - seus dados de perfil são
           preservados e as demais finalidades não são afetadas (LGPD).
         </p>
       </header>
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm">
-          Você ainda não registrou nenhum consentimento.
-        </p>
+        <Card className="text-sm text-fg-muted">Você ainda não registrou nenhum consentimento.</Card>
       ) : (
         <ConsentsPanel items={items} />
       )}
