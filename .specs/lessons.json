@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 4,
+  "next_id": 5,
   "lessons": [
     {
       "id": "L-001",
@@ -58,6 +58,24 @@
       ],
       "created": "2026-07-07T14:00:34Z",
       "last_seen": "2026-07-07T14:00:34Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_precision_gap::when a zod required field also gets a runtime cryptographic authorization check document two distinct failure outcomes validation for absent malformed forbidden for well formed but invalid instead of one generic error code in the spec s edge cases",
+      "text": "When a Zod-required field also gets a runtime cryptographic/authorization check, document two distinct failure outcomes (VALIDATION for absent/malformed, FORBIDDEN for well-formed-but-invalid) instead of one generic error code in the spec's edge cases.",
+      "signal": "spec_precision_gap",
+      "scope": "identity",
+      "status": "candidate",
+      "features": [
+        "identity-acesso-papeis/usp-001-auto-cadastro"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md:113 (Edge Cases) vs acceptRoleConsent.int.test.ts:182-199 (identity)"
+      ],
+      "created": "2026-07-07T15:00:41Z",
+      "last_seen": "2026-07-07T15:00:41Z"
     }
   ]
 }
