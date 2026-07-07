@@ -2,28 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========== DESIGN SYSTEM TOKENS ==========
+ * Fundação de Design System da Fase 1 (DS-01/DS-02). Valores copiados
+ * verbatim de `docs/prototipo/index.html` (L12-58) — paridade auditável 1:1
+ * com o protótipo. Camada semântica (chaves Tailwind: `bg-cta`, `text-fg`,
+ * `border-border`…) mapeada em `tailwind.config.ts theme.extend`.
+ *
+ * Mecanismo de dark mode: `[data-theme="dark"]` no `<html>` (ver
+ * `ThemeScript`/`ThemeToggle` em `src/shared/ui/`). Este é o ÚNICO mecanismo
+ * de dark mode do app — não reintroduzir `@media (prefers-color-scheme)`
+ * sobre estes tokens (DS-MN-04).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --color-primary: #2563eb;
+  --color-secondary: #3b82f6;
+  --color-cta: #f97316;
+  --color-cta-hover: #ea580c;
+  --color-background: #f8fafc;
+  --color-text: #1e293b;
+  --color-text-light: #64748b;
+  --color-border: #e2e8f0;
+  --color-white: #ffffff;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md:
+    0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-lg:
+    0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.04);
+  --shadow-xl:
+    0 20px 25px rgba(0, 0, 0, 0.1), 0 8px 10px rgba(0, 0, 0, 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ========== DARK MODE ========== */
+[data-theme='dark'] {
+  --color-primary: #3b82f6;
+  --color-secondary: #60a5fa;
+  --color-cta: #fb923c;
+  --color-cta-hover: #f97316;
+  --color-background: #0f172a;
+  --color-text: #f1f5f9;
+  --color-text-light: #94a3b8;
+  --color-border: #334155;
+  --color-white: #1e293b;
+  --color-success: #34d399;
+  --color-danger: #f87171;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:
+    0 4px 6px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg:
+    0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-xl:
+    0 20px 25px rgba(0, 0, 0, 0.5), 0 8px 10px rgba(0, 0, 0, 0.3);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
 }
