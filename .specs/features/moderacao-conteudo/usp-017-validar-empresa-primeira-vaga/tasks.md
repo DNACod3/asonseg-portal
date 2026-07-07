@@ -70,6 +70,33 @@ USP-020 (jobs em moderação), USP-012 (Empresa não verificada). Entry gate de 
 
 ---
 
+> **Estado (Fase 2 — restyle):** T1 (#156 backend) e T2 (#157 UI) já estão **implementadas e merged em
+> `master`**. Nesta rodada são o **baseline de comportamento a preservar** (gate de não-regressão: suítes
+> `moderation/**/__tests__/` + `companies/**/__tests__/`). O trabalho novo é **T3** (adoção do Design System
+> no `VerificationPanel`), padrão AD-015.
+
+## T3 — refactor(moderation): restyle do VerificationPanel ao Design System (AD-014) · restyle · Ready
+
+- **What:** substituir paleta crua Tailwind e o `<input>` de texto nativo por tokens/`color-mix` e o
+  primitivo `<Input>` em `verification-panel.tsx`, **preservando 100% do comportamento** (gating da
+  checklist P-001, separação P-002, histórico P-003, diff D-006, estado verificado E-004,
+  `onReadinessChange`). Ver mapeamento em `design.md` §8.2.
+- **Where:**
+  - `src/modules/moderation/components/verification-panel.tsx` (banner, `<dl>`, histórico, checklist, input→`Input`, cores→tokens/`color-mix`).
+  - `src/shared/__tests__/ds-moderation-parity.test.ts` (**estender** o guard da USP-016 para incluir este arquivo; criar se ainda não existir).
+- **Depends on:** Fundação DS (AD-014 ✅) + baseline T1/T2 ✅. Idealmente após o T4 da USP-016 (guard já
+  existente). **Reuses:** `Input` de `@/shared/ui`; padrão de tint `color-mix` do `Badge`/`StepIcon`;
+  `accent-primary` do `LgpdCheck`.
+- **Done when:**
+  - [ ] DS-17-01: painel usa tokens/primitivos; paridade light/dark via `[data-theme]` (verificar nos dois temas: banner âmbar→`cta`, verde→`success`, vermelho→`danger`).
+  - [ ] DS-17-MN-1: guard `ds-moderation-parity` verde para `verification-panel.tsx` (zero paleta crua/hex).
+  - [ ] DS-17-MN-2: comportamento intacto — `components/__tests__/verification-panel.test.tsx` **verde sem alterar asserções de comportamento** (gating/diff/E-004/`onReadinessChange` preservados).
+  - [ ] DS-17-MN-3: sem `dark:`/`prefers-color-scheme`/lib de tema.
+  - [ ] Nenhum arquivo de backend (`adapters/`, `actions/`, `ports/`, `companies/**`, `schema.prisma`, `container.ts`) nem `domain/verification-checklist.ts`/`queries/list-verification-checklist.ts` tocado (invariante §8.1).
+- **Tests:** **guard estático** `ds-moderation-parity.test.ts` (DS-17-MN-1) · **RTL de regressão**
+  `verification-panel.test.tsx` verde (DS-17-MN-2). (skill-tdad materializa o guard RED antes do restyle.)
+- **TestGate:** `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run test` verde (guard + RTL) · 1 commit atômico.
+
 ## Notas de gate / riscos (do design)
 
 - **R1 (P-004):** snapshot DEVE ler a Company dentro do `tx` (não objeto pré-submit) — teste de integração simula edição USP-015 entre submit e moderação.

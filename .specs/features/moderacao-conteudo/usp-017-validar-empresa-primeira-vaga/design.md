@@ -104,3 +104,48 @@ moderador seja staff, manter o padrão (CLAUDE.md). Snapshot é dado de auditori
   se o hook só dispara em `ACTIVE`; #156 precisa estender para o caminho de rejeição (AD-5).
 - **R3 (D-001):** conteúdo da checklist é stub até a Fase 0; UI deve ler os itens de uma fonte
   configurável (seed `seed-taxonomia-checklists`), não hard-coded, para não exigir redeploy no go-live.
+
+## 8. Refactor deltas — adoção do Design System (AD-014/AD-015)
+
+> A US já está em `master`. O restyle toca **um** arquivo de apresentação; backend (hook, snapshot,
+> `rejectionCount`, guard P-005, queries, View Models) fica **intacto** (§8.1). Regra AD-015: *style-only*.
+
+### 8.1 Invariantes — o que NÃO muda
+
+`adapters/prisma-company-verify-hook.ts`, `actions/transition-content.ts`, `ports/company-verify-hook.port.ts`,
+`companies/**` (domain de snapshot, `views/`, `queries/rejection-history`, guard `no-external-verify`),
+`shared/container.ts`, `prisma/schema.prisma` (campos de verificação), `domain/verification-checklist.ts`
+e `queries/list-verification-checklist.ts` (seed B-004 + fallback). No próprio `verification-panel.tsx`, a
+**lógica** permanece byte-a-byte: `initialChecklist`, `isItemResolved`, `ready`/`effectiveReady`,
+`onReadinessChange`, `update`, o curto-circuito `if (data.isVerified)` (E-004) e o cálculo `reverification`.
+
+### 8.2 `components/verification-panel.tsx` → tokens + primitivos
+
+Padrão de tint dark-safe: usar `bg-[color-mix(in_srgb,var(--color-*)_NN%,transparent)]` — a mesma técnica
+já sancionada no `Badge`/`StepIcon` do DS (DS-MN-02 permite: é token, não hex). Semânticas: **atenção/1ª
+vaga** → `--color-cta` (laranja); **verificada** → `--color-success`; **rejeição** → `--color-danger`;
+texto neutro → `text-fg`/`text-fg-muted`; superfícies → `bg-surface`/`border-border`.
+
+| Elemento atual (paleta crua) | file:line | Alvo Design System |
+|---|---|---|
+| bloco "Empresa verificada" `border-green-200 bg-green-50 text-green-800` | `:98-104` | `border-success` + `bg-[color-mix(...success 12%...)]` + `text-success` (**ou** `<Badge variant="green">` com o texto). Mantém `aria-label`. |
+| painel "não verificada" `border-amber-300 bg-amber-50` + textos `text-amber-900/800` | `:115-126`, `:163-208` | `border-cta` + `bg-[color-mix(...cta 10%...)]`; textos `text-fg`/`text-cta`. |
+| `<dl>` dados da Empresa `text-gray-800`; realce de campo alterado `bg-amber-200` (D-006) | `:129-135`, `:213-219` | `text-fg`; realce `bg-[color-mix(...cta 22%...)]` (mantém a semântica de "alterado"). |
+| histórico de rejeições `border-red-200 bg-red-50 text-red-700/800` | `:145-160` | `border-danger` + `bg-[color-mix(...danger 10%...)]` + `text-danger`. Mantém `<details>/<summary>` (a11y). |
+| checkbox nativo (marcar / "não se aplica") | `:172-186` | manter `<input type="checkbox">` (o DS **não** tem primitivo Checkbox); adicionar `accent-primary` (padrão do `LgpdCheck`); label via tokens. |
+| input de motivo da dispensa `border-gray-300 … text-[11px]` | `:190-198` | `<Input>` de `@/shared/ui` (token + foco primário); mantém `aria-label`/`placeholder`/`value`/`onChange`. |
+| textos de ajuda `text-amber-800 / text-gray-600 / [11px]` | `:181`, `:203-207` | `text-fg-muted` / `text-cta`. |
+
+### 8.3 Decisões de consistência a documentar (sem mudança de comportamento)
+
+- **Sem primitivo `Alert`/`Callout` no DS** → os blocos de banner (verde/âmbar/vermelho) usam **classes-token
+  + `color-mix`** em vez de um primitivo. Registrar como candidato a incremento futuro do DS (fora de escopo).
+- **Sem primitivo `Checkbox` no DS** → manter `<input type="checkbox">` com `accent-primary` (mesma escolha
+  do `LgpdCheck` da Fundação). Documentado; não bloqueia.
+- Mapeamento **âmbar → `cta`** (não há token `warning` dedicado no DS): é a cor de atenção do sistema.
+
+### 8.4 Teste negativo do restyle
+
+Estender o guard **`src/shared/__tests__/ds-moderation-parity.test.ts`** (criado na USP-016) para incluir
+`moderation/components/verification-panel.tsx` no scan de paleta crua/hex — cobre DS-17-MN-1. Se a USP-016
+ainda não tiver criado o guard no momento da execução, esta US o cria.
