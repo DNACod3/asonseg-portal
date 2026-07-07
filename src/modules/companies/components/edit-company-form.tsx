@@ -4,15 +4,11 @@ import { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { Button, Input, Label, Textarea } from '@/shared/ui';
 import { normalizeCnpj } from '../domain/cnpj';
 import { identityFieldsChanged } from '../domain/company-edit';
 import { editCompanySchema, type EditCompanyInput } from '../schemas/edit-company.schema';
 import { editarEmpresa } from '../actions/edit-company';
-
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
-const errorClass = 'mt-1 text-xs text-red-600';
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
 export interface EditCompanyFormProps {
   /** Dados atuais da Empresa, usados para pré-preencher e detectar mudança identitária. */
@@ -37,6 +33,11 @@ export interface EditCompanyFormProps {
  * se sim — e a Empresa estava verificada — abre um diálogo de confirmação com o
  * aviso de re-verificação (D-015-E) **antes** de chamar `editarEmpresa`. O
  * servidor permanece a fonte da verdade do rebaixamento (P-001); o aviso é só UX.
+ *
+ * Fundação de Design System da Fase 2 (AD-014/AD-015): restilizado com os
+ * primitivos (`Input`/`Label`/`Textarea`/`Button`) e tokens, incl. o diálogo de
+ * re-verificação — fluxo (RHF/Zod/identityFieldsChanged/editarEmpresa/fronteira
+ * client-avisa-server-decide) preservado.
  */
 export function EditCompanyForm({ empresa }: EditCompanyFormProps) {
   const router = useRouter();
@@ -114,89 +115,103 @@ export function EditCompanyForm({ empresa }: EditCompanyFormProps) {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 max-w-lg">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <input type="hidden" {...register('empresaId')} />
 
         {/* CNPJ */}
         <div>
-          <label className={labelClass} htmlFor="cnpj">
-            CNPJ
-          </label>
-          <input
-            id="cnpj"
-            type="text"
-            placeholder="XX.XXX.XXX/XXXX-XX"
-            className={inputClass}
-            {...register('cnpj')}
-          />
-          {errors.cnpj && <p className={errorClass}>{errors.cnpj.message}</p>}
+          <Label htmlFor="cnpj">CNPJ</Label>
+          <Input id="cnpj" type="text" placeholder="XX.XXX.XXX/XXXX-XX" {...register('cnpj')} />
+          {errors.cnpj && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.cnpj.message}
+            </p>
+          )}
         </div>
 
         {/* Tipo */}
         <div>
-          <label className={labelClass}>Tipo</label>
+          <Label>Tipo</Label>
           <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="radio" value="SIMPLES_NACIONAL" {...register('type')} />
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
+              <input type="radio" value="SIMPLES_NACIONAL" className="accent-primary" {...register('type')} />
               CNPJ Regular (Simples Nacional, etc.)
             </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="radio" value="MEI" {...register('type')} />
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
+              <input type="radio" value="MEI" className="accent-primary" {...register('type')} />
               MEI
             </label>
           </div>
-          {errors.type && <p className={errorClass}>{errors.type.message}</p>}
+          {errors.type && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.type.message}
+            </p>
+          )}
         </div>
 
         {/* Razão Social */}
         <div>
-          <label className={labelClass} htmlFor="razaoSocial">
-            Razão social
-          </label>
-          <input id="razaoSocial" type="text" className={inputClass} {...register('razaoSocial')} />
-          {errors.razaoSocial && <p className={errorClass}>{errors.razaoSocial.message}</p>}
+          <Label htmlFor="razaoSocial">Razão social</Label>
+          <Input id="razaoSocial" type="text" {...register('razaoSocial')} />
+          {errors.razaoSocial && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.razaoSocial.message}
+            </p>
+          )}
         </div>
 
         {/* Nome Fantasia */}
         <div>
-          <label className={labelClass} htmlFor="nomeFantasia">
-            Nome fantasia
-          </label>
-          <input id="nomeFantasia" type="text" className={inputClass} {...register('nomeFantasia')} />
-          {errors.nomeFantasia && <p className={errorClass}>{errors.nomeFantasia.message}</p>}
+          <Label htmlFor="nomeFantasia">Nome fantasia</Label>
+          <Input id="nomeFantasia" type="text" {...register('nomeFantasia')} />
+          {errors.nomeFantasia && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.nomeFantasia.message}
+            </p>
+          )}
         </div>
 
         {/* Setor */}
         <div>
-          <label className={labelClass} htmlFor="setor">
-            Setor
-          </label>
-          <input id="setor" type="text" className={inputClass} {...register('setor')} />
-          {errors.setor && <p className={errorClass}>{errors.setor.message}</p>}
+          <Label htmlFor="setor">Setor</Label>
+          <Input id="setor" type="text" {...register('setor')} />
+          {errors.setor && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.setor.message}
+            </p>
+          )}
         </div>
 
         {/* Descrição (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="descricao">
-            Descrição <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <textarea id="descricao" rows={3} className={inputClass} {...register('descricao')} />
-          {errors.descricao && <p className={errorClass}>{errors.descricao.message}</p>}
+          <Label htmlFor="descricao">
+            Descrição <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <Textarea id="descricao" rows={3} {...register('descricao')} />
+          {errors.descricao && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.descricao.message}
+            </p>
+          )}
         </div>
 
         {/* Endereço (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="endereco">
-            Endereço <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <input id="endereco" type="text" className={inputClass} {...register('endereco')} />
-          {errors.endereco && <p className={errorClass}>{errors.endereco.message}</p>}
+          <Label htmlFor="endereco">
+            Endereço <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <Input id="endereco" type="text" {...register('endereco')} />
+          {errors.endereco && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {errors.endereco.message}
+            </p>
+          )}
         </div>
 
         {success && (
           <div
             role="status"
-            className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+            className="rounded-sm bg-[color-mix(in_srgb,var(--color-success)_10%,transparent)] p-3 text-sm text-success"
           >
             Dados atualizados com sucesso.
           </div>
@@ -205,19 +220,15 @@ export function EditCompanyForm({ empresa }: EditCompanyFormProps) {
         {serverError && (
           <div
             role="alert"
-            className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
           >
             {serverError}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
+        <Button type="submit" variant="primary" disabled={isPending}>
           {isPending ? 'Salvando…' : 'Salvar alterações'}
-        </button>
+        </Button>
       </form>
 
       {/* Diálogo de confirmação de re-verificação (D-015-E). */}
@@ -230,33 +241,23 @@ export function EditCompanyForm({ empresa }: EditCompanyFormProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="reverify-title"
-            className="flex w-full max-w-md flex-col gap-4 rounded-xl bg-white p-6 shadow-xl"
+            className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="reverify-title" className="text-lg font-bold text-gray-900">
+            <h2 id="reverify-title" className="text-lg font-bold text-fg">
               Confirmar alteração de dados de identidade?
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-fg-muted">
               Você alterou CNPJ, razão social ou nome fantasia. Esta alteração exigirá nova
               verificação manual da Empresa na próxima vaga publicada.
             </p>
             <div className="mt-1 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPendingConfirm(null)}
-                disabled={isPending}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
-              >
+              <Button type="button" variant="outline" onClick={() => setPendingConfirm(null)} disabled={isPending}>
                 Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => submit(pendingConfirm)}
-                disabled={isPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              </Button>
+              <Button type="button" variant="primary" onClick={() => submit(pendingConfirm)} disabled={isPending}>
                 {isPending ? 'Salvando…' : 'Confirmar e salvar'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
