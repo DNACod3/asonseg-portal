@@ -65,6 +65,20 @@ export type {
 } from './schemas/decision';
 export { inactivateSchema } from './schemas/inactivate';
 export type { InactivateContentInput } from './schemas/inactivate';
+export {
+  TAXONOMY_NAME_MIN,
+  TAXONOMY_NAME_MAX,
+  foldForDedup,
+} from './domain/taxonomy-suggestion';
+export type { TaxonomyKind } from './domain/taxonomy-suggestion';
+export {
+  suggestTaxonomySchema,
+  resolveTaxonomySuggestionSchema,
+} from './schemas/taxonomy-suggestion';
+export type {
+  SuggestTaxonomyInput,
+  ResolveTaxonomySuggestionInput,
+} from './schemas/taxonomy-suggestion';
 export { viewModerationQueue } from './queries/moderation-queue';
 export type { ModerationQueueItem } from './views/moderation-queue-item';
 export { listVerificationChecklistItems } from './queries/list-verification-checklist';
