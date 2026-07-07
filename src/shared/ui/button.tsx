@@ -27,6 +27,7 @@ const buttonVariants = cva(
           'border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-white',
         outline:
           'border-[1.5px] border-border bg-transparent text-fg hover:border-primary hover:text-primary',
+        danger: 'bg-danger text-white hover:shadow-md hover:brightness-95',
       },
       size: {
         sm: 'px-4 py-2 text-[0.85rem]',

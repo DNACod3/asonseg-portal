@@ -27,6 +27,13 @@ describe('Button', () => {
     expect(btn.className).toContain('border-border');
   });
 
+  it('variant=danger aplica bg-danger e text-white (ação destrutiva, USP-007)', () => {
+    render(<Button variant="danger">Inativar Pessoa</Button>);
+    const btn = screen.getByRole('button', { name: 'Inativar Pessoa' });
+    expect(btn.className.split(/\s+/)).toContain('bg-danger');
+    expect(btn.className).toContain('text-white');
+  });
+
   it('size sm/default/lg aplicam paddings distintos (.btn-sm/.btn-lg do protótipo)', () => {
     const { rerender } = render(<Button size="sm">A</Button>);
     expect(screen.getByRole('button', { name: 'A' }).className).toContain('px-4');
