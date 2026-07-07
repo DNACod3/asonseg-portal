@@ -16,7 +16,7 @@ export { StepIcon, type StepIconProps } from './step-icon';
 
 export { FormRow, type FormRowProps } from './form-row';
 
-export { LgpdBox, type LgpdBoxProps, LgpdCheck, type LgpdCheckProps } from './lgpd-box';
+export { LgpdBox, type LgpdBoxProps } from './lgpd-box';
 
 export { Badge, type BadgeProps } from './badge';
 

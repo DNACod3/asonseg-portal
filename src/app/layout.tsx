@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Nunito } from 'next/font/google';
-import { ThemeScript } from '@/shared/ui/theme-script';
+import { ThemeScript, ThemeToggle } from '@/shared/ui';
 import './globals.css';
 
 /**
@@ -39,7 +39,10 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <ThemeToggle className="fixed bottom-4 right-4 z-50 shadow-md" />
+      </body>
     </html>
   );
 }
