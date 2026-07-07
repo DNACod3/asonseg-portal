@@ -45,6 +45,12 @@ export {
   type SearchJobsResult,
 } from './queries/search-jobs';
 export { getActiveJobDetail } from './queries/get-job-detail';
+export {
+  listActivePublishedJobs,
+  PUBLISHED_JOBS_PAGE_SIZE,
+  type PublishedJobRow,
+  type ListActivePublishedJobsResult,
+} from './queries/list-active-published-jobs';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
