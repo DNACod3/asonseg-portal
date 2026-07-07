@@ -1,7 +1,9 @@
 # State
 
-**Last Updated:** 2026-06-20
-**Current Work:** USP-022 (Ver detalhe da vaga, #172) — **KICKOFF** (timer rodando, Status=In Progress, gate de entrada ICE ✅). Spec/design/tasks gerados em `.specs/features/vagas/usp-022-detalhe-vaga/` (4 tasks, ~20h, AD-012). Plano **aprovado** pelo Dev Sênior; board em 4 sub-issues (#276/#173/#277/#278). Próximo: Execute da T1 (#276). Branch `feat/usp-022-detalhe-vaga` (a partir do master, USP-021 já mergeada).
+**Last Updated:** 2026-07-07
+**Current Work:** **Fase 1 — refactor amplo (revisão + design system + consistência)** — rodada ad-hoc de reconciliação (não flip de checkbox no ROADMAP; Fase 1 segue 100% `[x]`). Branch `refactor/fase-1-design-system-e-consistencia` (a partir do master). Decisões do dono: (a) extrair o design system do protótipo p/ `src/shared/ui` e aplicar a TODAS as telas da Fase 1; (b) preservar os fluxos LGPD/arquitetura, aplicando só o estilo visual; (c) 1 PR único da fase, execução autônoma. **Unidade 0 (Fundação Design System) — PASS** (AD-014). Próximo: Grupo A (USP-001 + USP-043). Pipeline Planner→Implementer→Verifier por unidade.
+
+**Hist. anterior:** USP-022 (Ver detalhe da vaga, #172) — KICKOFF (Spec/design/tasks em `.specs/features/vagas/usp-022-detalhe-vaga/`, 4 tasks, AD-012).
 
 **Hist. anterior:** USP-017 (Validar Empresa na 1ª vaga, #155) — **DEV COMPLETO** (não commitado). #156 (backend) + #157 (UI) implementados. Gates verdes: typecheck ✓, lint ✓, 665 unit ✓, 192 integração ✓ (Postgres local). **Pendente:** branch/PR + protocolo OpenWolf de fechamento. ⚠️ Mudanças estão na working tree do branch `feat/usp-020-publicar-vaga` (USP-020 ainda NÃO mergeada em master) — USP-017 depende do model `Job` da USP-020, então a PR de USP-017 deve **empilhar** sobre a branch da USP-020 (ou ser desenvolvida após o merge da 020).
 
@@ -16,6 +18,13 @@
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-014: Convenção de Design System da Fase 1 — extração do protótipo p/ `src/shared/ui` (PASS 2026-07-07)
+
+**Decision:** Fundação de design system extraída do protótipo `docs/prototipo/index.html` (Unidade 0 do refactor da Fase 1), planejada→implementada→validada pelo pipeline Planner→Implementer→Verifier. Convenções fixadas: **(1) tokens** em `src/app/globals.css` (variáveis CSS light/dark) + `tailwind.config.ts` (chaves semânticas `primary`/`cta`/`surface`/`fg`/`border`/…, radius/shadow/font); paridade verbatim com o protótipo (cores, ex. `--color-primary #2563EB`, `--color-cta #F97316`). **(2) Primitivas** em `src/shared/ui/` (barrel `index.ts`): `cn`, `Button` (cva+Radix Slot), `Input`/`Label`/`Textarea`, `Card`/`FormCard`/`FormSectionTitle`, `FormHeader`/`StepIcon`, `FormRow`, `LgpdBox`/`LgpdCheck`, `Badge`, `ThemeToggle`/`ThemeScript`. **(3) Dark mode** via `data-theme="dark"` no `<html>` com cascata de variáveis CSS (sem `dark:` na maioria); `ThemeScript` anti-FOUC + `ThemeToggle` só com React state — **sem `next-themes`/lib de estado**. **(4) Fontes** auto-hospedadas via `next/font/google` (Nunito heading + DM Sans body) — **sem CDN externo** (prod sem host externo). **(5) Deps** allowlist: `class-variance-authority`, `clsx`, `tailwind-merge`, `@radix-ui/react-slot`, `@radix-ui/react-label`. Prova de paridade: login reestilizado preservando RHF/Zod/`loginAction`/anti-enumeração.
+**Reason:** O protótipo carrega um design system completo que o código nunca adotou (`src/shared/ui` estava vazio; `globals.css` só tinha tokens genéricos). O dono decidiu extrair e aplicar a TODAS as telas da Fase 1 (mesmo as ~10 sem contrapartida no protótipo), para consistência visual. Fundação primeiro destrava o restyle das demais unidades sem retrabalho.
+**Trade-off:** 5 must-nots (DS-MN-01..05) materializados com guarda negativa discriminante cada (fontes externas, hex cru em `shared/ui`, mecanismo duplo de dark, dep proibida, paridade do login). Tints de Badge/StepIcon usam `color-mix()` sobre tokens em vez do hex literal do protótipo (deriva ~3/canal no light) p/ respeitar DS-MN-02 — aprovado. Nenhuma tela real da Fase 1 (fora o login) foi reestilizada nesta unidade — é foundation-only.
+**Impact:** Verifier independente PASS — typecheck/lint verdes, 848/848 unit, build OK, 7/7 mutações mortas. Artefatos em `.specs/features/fundacao-ui-design-system/{spec,design,tasks,validation}.md`. Todas as unidades seguintes (Grupos A–E) reestilizam as telas consumindo estas primitivas.
 
 ### AD-013: Fase 0 — Fundação reconciliada aos docs canônicos (ad-hoc, fora do ROADMAP) — PASS 2026-07-06
 
