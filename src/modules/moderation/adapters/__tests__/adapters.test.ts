@@ -68,6 +68,35 @@ describe('NextCacheInvalidation', () => {
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
   });
 
+  it('USP-018/INACT-05: JOB→INACTIVATED revalida /vagas E /vagas/[id] (detalhe)', async () => {
+    await new NextCacheInvalidation().revalidateForContent({
+      contentKind: ContentKind.JOB,
+      contentId: 'job-7',
+      to: ContentStatus.INACTIVATED,
+    });
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas/job-7');
+    expect(cacheState.revalidatePath).toHaveBeenCalledTimes(2);
+  });
+
+  it('USP-018: JOB→ACTIVE também revalida o detalhe /vagas/[id]', async () => {
+    await new NextCacheInvalidation().revalidateForContent({
+      contentKind: ContentKind.JOB,
+      contentId: 'job-8',
+      to: ContentStatus.ACTIVE,
+    });
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas/job-8');
+  });
+
+  it('USP-018: transição sem mudança de visibilidade (PAUSED) não revalida o detalhe', async () => {
+    await new NextCacheInvalidation().revalidateForContent({
+      contentKind: ContentKind.JOB,
+      contentId: 'job-9',
+      to: ContentStatus.PAUSED,
+    });
+    expect(cacheState.revalidatePath).not.toHaveBeenCalledWith('/vagas/job-9');
+  });
+
   it('tipo de conteúdo desconhecido: nenhum path a revalidar (default vazio), sem lançar', async () => {
     await expect(
       new NextCacheInvalidation().revalidateForContent({
