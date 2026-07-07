@@ -75,6 +75,41 @@ describe('USP-016 #121 — máquina de estados (TRANSITIONS + regras puras)', ()
     });
   });
 
+  describe('USP-018 — INACT-MN-06: INACTIVATED é terminal (sem transição de saída)', () => {
+    const ALL_STATUSES = Object.values(S);
+    const ALL_TRIGGERS: readonly ('AUTHOR_ACTION' | 'MODERATOR_ACTION' | 'SYSTEM_JOB' | 'COORDINATOR_INACTIVATION')[] =
+      ['AUTHOR_ACTION', 'MODERATOR_ACTION', 'SYSTEM_JOB', 'COORDINATOR_INACTIVATION'];
+    const ALL_KINDS = [JOB, CV, SERVICE, ContentKind.CANDIDATE_PROFILE] as const;
+
+    it('nenhuma transição sai de INACTIVATED para nenhum destino/gatilho/tipo', () => {
+      for (const kind of ALL_KINDS) {
+        for (const to of ALL_STATUSES) {
+          for (const trigger of ALL_TRIGGERS) {
+            expect(isValidTransition(kind, S.INACTIVATED, to, trigger)).toBe(false);
+          }
+        }
+      }
+    });
+  });
+
+  describe('USP-018 — INACT-01/INACT-07: inativação só de ACTIVE, via COORDINATOR_INACTIVATION', () => {
+    it('ACTIVE→INACTIVATED é válida apenas com trigger COORDINATOR_INACTIVATION e exige motivo', () => {
+      expect(isValidTransition(JOB, S.ACTIVE, S.INACTIVATED, 'COORDINATOR_INACTIVATION')).toBe(true);
+      expect(requiresJustification(JOB, S.ACTIVE, S.INACTIVATED, 'COORDINATOR_INACTIVATION')).toBe(true);
+
+      for (const trigger of ['AUTHOR_ACTION', 'MODERATOR_ACTION', 'SYSTEM_JOB'] as const) {
+        expect(isValidTransition(JOB, S.ACTIVE, S.INACTIVATED, trigger)).toBe(false);
+      }
+    });
+
+    it('inativar a partir de qualquer estado não-ACTIVE é inválida (INACT-07)', () => {
+      const nonActive = Object.values(S).filter((s) => s !== S.ACTIVE);
+      for (const from of nonActive) {
+        expect(isValidTransition(JOB, from, S.INACTIVATED, 'COORDINATOR_INACTIVATION')).toBe(false);
+      }
+    });
+  });
+
   describe('coerência da tabela', () => {
     it('CV e SERVICE não declaram EXPIRED; JOB declara', () => {
       expect(TRANSITIONS[JOB].some((r) => r.to === S.EXPIRED)).toBe(true);
