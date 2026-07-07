@@ -4,16 +4,12 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
 import {
   createCompanySchema,
   type CreateCompanyInput,
 } from '../schemas/create-company.schema';
 import { createCompany } from '../actions/create-company';
-
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
-const errorClass = 'mt-1 text-xs text-red-600';
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
 export interface CreateCompanyFormProps {
   /** Dados do termo COMPANY_REPRESENTATION carregados server-side. */
@@ -31,6 +27,10 @@ export interface CreateCompanyFormProps {
  * (termo validado server-side — versão + hash íntegros). O aceite explícito do
  * termo é obrigatório antes do submit. O CNPJ é normalizado pelo Zod (remove
  * máscara) e validado pelos dígitos verificadores.
+ *
+ * Fundação de Design System da Fase 2 (AD-014/AD-015): restilizado com os
+ * primitivos (`Input`/`Label`/`Textarea`/`Button`/`LgpdBox`) e tokens — fluxo
+ * (RHF/Zod/gate do consentimento/`createCompany`) preservado sem alteração.
  */
 export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
   const router = useRouter();
@@ -57,7 +57,7 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
     startTransition(async () => {
       const result = await createCompany(data);
       if (result.ok) {
-        router.push(`/empresa/${result.data.companyId}`);
+        router.push(`/empresa/${result.data.companyId}/responsaveis`);
         router.refresh();
       } else {
         setServerError(result.error.message);
@@ -66,108 +66,126 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 max-w-lg">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       {/* CNPJ */}
       <div>
-        <label className={labelClass} htmlFor="cnpj">
-          CNPJ
-        </label>
-        <input
+        <Label htmlFor="cnpj">CNPJ</Label>
+        <Input
           id="cnpj"
           type="text"
           placeholder="XX.XXX.XXX/XXXX-XX"
-          className={inputClass}
+          aria-describedby={errors.cnpj ? 'cnpj-error' : undefined}
+          aria-invalid={!!errors.cnpj}
           {...register('cnpj')}
         />
-        {errors.cnpj && <p className={errorClass}>{errors.cnpj.message}</p>}
+        {errors.cnpj && (
+          <p id="cnpj-error" role="alert" className="mt-1 text-xs text-danger">
+            {errors.cnpj.message}
+          </p>
+        )}
       </div>
 
       {/* Tipo */}
       <div>
-        <label className={labelClass}>Tipo</label>
+        <Label>Tipo</Label>
         <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="radio" value="SIMPLES_NACIONAL" {...register('type')} />
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
+            <input type="radio" value="SIMPLES_NACIONAL" className="accent-primary" {...register('type')} />
             CNPJ Regular (Simples Nacional, etc.)
           </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="radio" value="MEI" {...register('type')} />
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
+            <input type="radio" value="MEI" className="accent-primary" {...register('type')} />
             MEI
           </label>
         </div>
-        {errors.type && <p className={errorClass}>{errors.type.message}</p>}
+        {errors.type && (
+          <p role="alert" className="mt-1 text-xs text-danger">
+            {errors.type.message}
+          </p>
+        )}
       </div>
 
       {/* Razão Social */}
       <div>
-        <label className={labelClass} htmlFor="razaoSocial">
-          Razão social
-        </label>
-        <input
+        <Label htmlFor="razaoSocial">Razão social</Label>
+        <Input
           id="razaoSocial"
           type="text"
-          className={inputClass}
+          aria-describedby={errors.razaoSocial ? 'razaoSocial-error' : undefined}
+          aria-invalid={!!errors.razaoSocial}
           {...register('razaoSocial')}
         />
-        {errors.razaoSocial && <p className={errorClass}>{errors.razaoSocial.message}</p>}
+        {errors.razaoSocial && (
+          <p id="razaoSocial-error" role="alert" className="mt-1 text-xs text-danger">
+            {errors.razaoSocial.message}
+          </p>
+        )}
       </div>
 
       {/* Nome Fantasia */}
       <div>
-        <label className={labelClass} htmlFor="nomeFantasia">
-          Nome fantasia
-        </label>
-        <input
+        <Label htmlFor="nomeFantasia">Nome fantasia</Label>
+        <Input
           id="nomeFantasia"
           type="text"
-          className={inputClass}
+          aria-describedby={errors.nomeFantasia ? 'nomeFantasia-error' : undefined}
+          aria-invalid={!!errors.nomeFantasia}
           {...register('nomeFantasia')}
         />
-        {errors.nomeFantasia && <p className={errorClass}>{errors.nomeFantasia.message}</p>}
+        {errors.nomeFantasia && (
+          <p id="nomeFantasia-error" role="alert" className="mt-1 text-xs text-danger">
+            {errors.nomeFantasia.message}
+          </p>
+        )}
       </div>
 
       {/* Setor */}
       <div>
-        <label className={labelClass} htmlFor="setor">
-          Setor
-        </label>
-        <input
+        <Label htmlFor="setor">Setor</Label>
+        <Input
           id="setor"
           type="text"
           placeholder="Ex.: Tecnologia, Saúde, Construção civil…"
-          className={inputClass}
+          aria-describedby={errors.setor ? 'setor-error' : undefined}
+          aria-invalid={!!errors.setor}
           {...register('setor')}
         />
-        {errors.setor && <p className={errorClass}>{errors.setor.message}</p>}
+        {errors.setor && (
+          <p id="setor-error" role="alert" className="mt-1 text-xs text-danger">
+            {errors.setor.message}
+          </p>
+        )}
       </div>
 
       {/* Descrição (opcional) */}
       <div>
-        <label className={labelClass} htmlFor="descricao">
-          Descrição <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-        <textarea
+        <Label htmlFor="descricao">
+          Descrição <span className="font-normal text-fg-muted">(opcional)</span>
+        </Label>
+        <Textarea
           id="descricao"
           rows={3}
-          className={inputClass}
           placeholder="Breve descrição das atividades da Empresa."
           {...register('descricao')}
         />
-        {errors.descricao && <p className={errorClass}>{errors.descricao.message}</p>}
+        {errors.descricao && (
+          <p role="alert" className="mt-1 text-xs text-danger">
+            {errors.descricao.message}
+          </p>
+        )}
       </div>
 
       {/* Endereço (opcional) */}
       <div>
-        <label className={labelClass} htmlFor="endereco">
-          Endereço <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-        <input
-          id="endereco"
-          type="text"
-          className={inputClass}
-          {...register('endereco')}
-        />
-        {errors.endereco && <p className={errorClass}>{errors.endereco.message}</p>}
+        <Label htmlFor="endereco">
+          Endereço <span className="font-normal text-fg-muted">(opcional)</span>
+        </Label>
+        <Input id="endereco" type="text" {...register('endereco')} />
+        {errors.endereco && (
+          <p role="alert" className="mt-1 text-xs text-danger">
+            {errors.endereco.message}
+          </p>
+        )}
       </div>
 
       {/* Campos ocultos para o termo */}
@@ -175,18 +193,17 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
       <input type="hidden" {...register('companyRepresentationTermHash')} />
 
       {/* Termo de representação empresarial */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-        <p className="font-medium mb-2">Termo de representação empresarial</p>
+      <LgpdBox title="Termo de representação empresarial">
         <div
-          className="max-h-40 overflow-y-auto text-xs text-gray-600 whitespace-pre-wrap mb-3 border border-gray-200 rounded p-2 bg-white"
+          className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
           aria-label="Conteúdo do termo de representação empresarial"
         >
           {term.body}
         </div>
-        <label className="flex items-start gap-2 cursor-pointer">
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
           <input
             type="checkbox"
-            className="mt-0.5 accent-blue-600"
+            className="mt-0.5 accent-primary"
             checked={consentChecked}
             onChange={(e) => setConsentChecked(e.target.checked)}
           />
@@ -195,25 +212,21 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
             {term.version}). Declaro que tenho poderes para representar a Empresa cadastrada.
           </span>
         </label>
-      </div>
+      </LgpdBox>
 
       {/* Erro do servidor */}
       {serverError && (
         <div
           role="alert"
-          className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
         >
           {serverError}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending || !consentChecked}
-        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
+      <Button type="submit" variant="primary" disabled={isPending || !consentChecked}>
         {isPending ? 'Cadastrando…' : 'Cadastrar Empresa'}
-      </button>
+      </Button>
     </form>
   );
 }
