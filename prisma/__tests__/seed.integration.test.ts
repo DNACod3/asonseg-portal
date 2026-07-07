@@ -19,7 +19,9 @@ import { describe, it, expect } from 'vitest';
  * idênticos); nenhum ajuste de dado foi necessário.
  */
 const { prisma } = await import('@/shared/lib/prisma');
-const { seedReference } = await import('../seeds/reference');
+const { seedReference, REGIONS, JOB_AREAS, SERVICE_CATEGORIES } = await import(
+  '../seeds/reference'
+);
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
@@ -104,12 +106,24 @@ skipIfNoDb('seed de taxonomia — integração (US-111 / AC-111-1 / F0-MN-01)', 
     expect(after).toEqual(before);
   });
 
+  // Exclusividade à prova de poluição do banco compartilhado (F0-MN-01 — teste
+  // negativo "taxonomia inflada"): o banco de integração é compartilhado e outros
+  // *.int.test.ts criam regiões/áreas não-canônicas (ex.: 'Busca Int Região A')
+  // que não removem — por isso o check no banco filtra por `name in [canônicos]`.
+  // Esse filtro sozinho NÃO pega uma linha EXTRA/typada que o próprio seed criasse
+  // (ela ficaria fora do `in`). Fechamos o gap na FONTE: as listas exportadas de
+  // `reference.ts` (o que o seed realmente semeia, por upsert-por-nome) têm de
+  // bater EXATAMENTE com as canônicas — comprimento + conjunto, sem depender do DB.
   it('a lista de regiões contém exatamente os nomes canônicos de taxonomia-inicial.md', async () => {
     await seedReference(prisma);
     const names = (
       await prisma.region.findMany({ where: { name: { in: [...CANONICAL_REGIONS] } } })
     ).map((r) => r.name);
     expect(new Set(names)).toEqual(new Set(CANONICAL_REGIONS));
+
+    // Fonte do seed sem extras/typos (exclusividade real, imune à poluição).
+    expect(REGIONS).toHaveLength(CANONICAL_REGIONS.length);
+    expect(new Set(REGIONS)).toEqual(new Set(CANONICAL_REGIONS));
   });
 
   it('a lista de áreas de vaga contém exatamente os nomes canônicos de taxonomia-inicial.md', async () => {
@@ -118,6 +132,9 @@ skipIfNoDb('seed de taxonomia — integração (US-111 / AC-111-1 / F0-MN-01)', 
       await prisma.jobArea.findMany({ where: { name: { in: [...CANONICAL_JOB_AREAS] } } })
     ).map((a) => a.name);
     expect(new Set(names)).toEqual(new Set(CANONICAL_JOB_AREAS));
+
+    expect(JOB_AREAS).toHaveLength(CANONICAL_JOB_AREAS.length);
+    expect(new Set(JOB_AREAS)).toEqual(new Set(CANONICAL_JOB_AREAS));
   });
 
   it('a lista de categorias de serviço contém exatamente os nomes canônicos de taxonomia-inicial.md', async () => {
@@ -128,5 +145,8 @@ skipIfNoDb('seed de taxonomia — integração (US-111 / AC-111-1 / F0-MN-01)', 
       })
     ).map((c) => c.name);
     expect(new Set(names)).toEqual(new Set(CANONICAL_SERVICE_CATEGORIES));
+
+    expect(SERVICE_CATEGORIES).toHaveLength(CANONICAL_SERVICE_CATEGORIES.length);
+    expect(new Set(SERVICE_CATEGORIES)).toEqual(new Set(CANONICAL_SERVICE_CATEGORIES));
   });
 });

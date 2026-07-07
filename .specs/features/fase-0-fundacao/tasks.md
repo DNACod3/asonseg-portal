@@ -335,7 +335,7 @@ Incluir os achados: Sentry SDK ausente (Fase 6), Anthropic/cv-extraction ausente
 **What**: Adicionar guarda estática que falha se algum arquivo **tracked** contiver credencial **real**,
 com **allowlist** dos valores legítimos que NÃO são segredo: `.env.example` (placeholders), o **JWT demo
 público do Supabase** (issuer `supabase-demo`, usado no CI e nos docs) e chaves fake de CI (`sk-ant-ci`,
-`ci-service`, `re_dummy`, test keys `1x0000…` do Turnstile). Confirmar que `.gitignore` cobre `.env*`
+`ci-service`, `re_dummy_key`, test keys `1x0000…` do Turnstile). Confirmar que `.gitignore` cobre `.env*`
 exceto `.env.example`.
 **Where**: `src/shared/__tests__/no-committed-secrets.test.ts` (novo); `.gitignore` (confirmar, já cobre).
 **Depends on**: None

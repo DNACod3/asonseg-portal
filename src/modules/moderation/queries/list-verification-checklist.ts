@@ -19,6 +19,7 @@ export async function listVerificationChecklistItems(): Promise<VerificationChec
     where: { isActive: true },
     orderBy: { order: 'asc' },
     select: { code: true, label: true },
+    take: 200, // Paginação defensiva (convenção Prisma) — tabela de referência pequena.
   });
 
   if (rows.length === 0) {

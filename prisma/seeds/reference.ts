@@ -21,7 +21,7 @@ import type { PrismaClient } from '@prisma/client';
  */
 
 /** Regiões (bairros do norte da Ilha de Florianópolis) + opção abrangente. */
-const REGIONS: ReadonlyArray<string> = [
+export const REGIONS: ReadonlyArray<string> = [
   'Canasvieiras',
   'Jurerê',
   'Ingleses',
@@ -35,7 +35,7 @@ const REGIONS: ReadonlyArray<string> = [
 ];
 
 /** Áreas de vaga iniciais (aprovadas). */
-const JOB_AREAS: ReadonlyArray<string> = [
+export const JOB_AREAS: ReadonlyArray<string> = [
   'Administrativa',
   'Comércio e Vendas',
   'Alimentação e Gastronomia',
@@ -51,7 +51,7 @@ const JOB_AREAS: ReadonlyArray<string> = [
 ];
 
 /** Categorias de serviço iniciais (aprovadas). */
-const SERVICE_CATEGORIES: ReadonlyArray<string> = [
+export const SERVICE_CATEGORIES: ReadonlyArray<string> = [
   'Serviços Domésticos',
   'Reparos e Manutenção',
   'Área Externa e Jardinagem',
