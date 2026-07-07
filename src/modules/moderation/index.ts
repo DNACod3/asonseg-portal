@@ -71,6 +71,8 @@ export { listVerificationChecklistItems } from './queries/list-verification-chec
 export { canAccessModerationQueue, canManagePublishedContent } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
+export { PublishedContentManager } from './components/published-content-manager';
+export type { PublishedContentRow } from './components/published-content-manager';
 export { VerificationPanel } from './components/verification-panel';
 export type {
   VerificationPanelData,
