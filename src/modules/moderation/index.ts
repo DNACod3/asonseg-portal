@@ -62,6 +62,8 @@ export type {
   ReturnForAdjustmentsInput,
   RejectInput,
 } from './schemas/decision';
+export { inactivateSchema } from './schemas/inactivate';
+export type { InactivateContentInput } from './schemas/inactivate';
 export { viewModerationQueue } from './queries/moderation-queue';
 export type { ModerationQueueItem } from './views/moderation-queue-item';
 export { listVerificationChecklistItems } from './queries/list-verification-checklist';
