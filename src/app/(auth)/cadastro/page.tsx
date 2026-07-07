@@ -3,6 +3,7 @@ import { env } from '@/shared/env';
 import { signConsentToken } from '@/shared/lib/consentToken';
 import { RegisterPersonForm } from '@/modules/identity';
 import type { RegisterPersonResult } from '@/modules/identity';
+import { FormCard, FormHeader, StepIcon } from '@/shared/ui';
 
 export const metadata = {
   title: 'Criar conta — Portal ASONSEG',
@@ -34,24 +35,36 @@ async function handleRegistrationSuccess(result: RegisterPersonResult): Promise<
   );
 }
 
+// SVG de usuário do protótipo (docs/prototipo/index.html L1228).
+const userIcon = (
+  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+    />
+  </svg>
+);
+
 export default function CadastroPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Criar conta no ASONSEG</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Preencha os dados abaixo para começar.
-        </p>
-      </div>
-
-      <RegisterPersonForm
-        siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-        onSuccess={handleRegistrationSuccess}
+      <StepIcon variant="blue">{userIcon}</StepIcon>
+      <FormHeader
+        title="Criar conta no ASONSEG"
+        description="Preencha os dados abaixo para começar."
       />
 
-      <p className="text-center text-sm text-gray-500">
+      <FormCard>
+        <RegisterPersonForm
+          siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          onSuccess={handleRegistrationSuccess}
+        />
+      </FormCard>
+
+      <p className="text-center text-sm text-fg-muted">
         Já tem conta?{' '}
-        <a href="/login" className="font-medium text-blue-600 hover:underline">
+        <a href="/login" className="font-medium text-primary hover:underline">
           Entrar
         </a>
       </p>
