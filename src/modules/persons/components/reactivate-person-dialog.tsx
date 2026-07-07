@@ -4,12 +4,10 @@ import { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { Button, Label, Textarea } from '@/shared/ui';
 import { reactivatePersonSchema } from '../schemas/reactivate-person.schema';
 import type { ReactivatePersonInput } from '../schemas/reactivate-person.schema';
 import { reactivatePerson } from '../actions/reactivate-person';
-
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
 
 interface ReactivatePersonDialogProps {
   personId: string;
@@ -75,13 +73,9 @@ export function ReactivatePersonDialog({ personId, personName }: ReactivatePerso
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="self-start rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-300"
-      >
+      <Button type="button" variant="primary" onClick={() => setOpen(true)} className="self-start">
         Reativar Pessoa
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -92,17 +86,17 @@ export function ReactivatePersonDialog({ personId, personName }: ReactivatePerso
             role="dialog"
             aria-modal="true"
             aria-labelledby="reactivate-dialog-title"
-            className="flex w-full max-w-md flex-col gap-4 rounded-xl bg-white p-6 shadow-xl"
+            className="flex w-full max-w-md flex-col gap-4 rounded-lg bg-surface p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="reactivate-dialog-title" className="text-lg font-bold text-gray-900">
+            <h2 id="reactivate-dialog-title" className="text-lg font-bold text-fg">
               Reativar {personName}?
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-fg-muted">
               O acesso ao portal será restabelecido na próxima requisição da Pessoa. O histórico
               permanece íntegro.
             </p>
-            <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            <div className="rounded-sm bg-[color-mix(in_srgb,var(--color-cta)_10%,transparent)] p-3 text-sm text-cta">
               <strong>Atenção:</strong> todos os papéis e permissões anteriores serão removidos. A
               Pessoa voltará sem privilégios — você precisará reconceder os papéis necessários
               manualmente após a reativação.
@@ -111,48 +105,41 @@ export function ReactivatePersonDialog({ personId, personName }: ReactivatePerso
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
               <input type="hidden" {...register('personId')} />
               <div className="flex flex-col gap-1">
-                <label htmlFor="reactivation-reason" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="reactivation-reason">
                   Motivo da reativação <span aria-hidden>*</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="reactivation-reason"
                   rows={3}
                   autoFocus
                   placeholder="Ex.: inativação por engano — voluntário permanece ativo no projeto."
-                  className={inputClass}
                   aria-describedby={errors.reason ? 'reactivation-reason-error' : undefined}
                   aria-invalid={!!errors.reason}
                   {...register('reason')}
                 />
                 {errors.reason && (
-                  <p id="reactivation-reason-error" role="alert" className="text-xs text-red-600">
+                  <p id="reactivation-reason-error" role="alert" className="text-xs text-danger">
                     {errors.reason.message}
                   </p>
                 )}
               </div>
 
               {serverError && (
-                <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                <div
+                  role="alert"
+                  className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+                >
                   {serverError}
                 </div>
               )}
 
               <div className="mt-1 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  disabled={isPending}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
-                >
+                <Button type="button" variant="outline" onClick={closeDialog} disabled={isPending}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:cursor-not-allowed disabled:opacity-60"
-                >
+                </Button>
+                <Button type="submit" variant="primary" disabled={isPending}>
                   {isPending ? 'Reativando…' : 'Confirmar reativação'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
