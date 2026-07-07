@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from 'react';
 import { ContentKind } from '../domain/content-status';
 import { MIN_JUSTIFICATION_LENGTH } from '../domain/justification';
 import { approveContent, rejectContent, returnForAdjustments } from '../actions/decide';
+import type { VerificationChecklistItem } from '../domain/verification-checklist';
 import { VerificationPanel, type VerificationPanelData } from './verification-panel';
 
 /** Item da fila já formatado pelo Server Component (data em fuso de SP). */
@@ -39,7 +40,14 @@ const btnBase =
  * significativos — P-003). O resultado da Server Action remove o item da fila
  * e exibe confirmação; erros aparecem inline por item.
  */
-export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
+export function ModerationQueue({
+  items,
+  checklistItems,
+}: {
+  items: ModerationQueueRow[];
+  /** Itens da checklist de verificação (F0B-01 — fonte seedável, carregada pelo Server Component). */
+  checklistItems?: readonly VerificationChecklistItem[];
+}) {
   const [rows, setRows] = useState(items);
   const [doneCount, setDoneCount] = useState(0);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -150,6 +158,7 @@ export function ModerationQueue({ items }: { items: ModerationQueueRow[] }) {
             {row.verification && (
               <VerificationPanel
                 data={row.verification}
+                checklistItems={checklistItems}
                 onReadinessChange={(ready) => setReady(row.contentId, ready)}
               />
             )}

@@ -70,6 +70,30 @@ model Region {
   @@map("regions")
 }
 
+/// Item da checklist de verificação de Empresa (USP-017 / F0B-01 / B-004).
+/// Dado de referência seedável — sem FK, mesmo padrão de JobArea/ServiceCategory.
+/// Substitui a constante TS embutida no bundle (F0-MN-04): trocar o conteúdo
+/// dos itens passa a ser um seed/UPDATE, não um redeploy. Conteúdo definitivo
+/// é gate de go-live (sponsor + coordenador + PO); o seed inicial usa
+/// docs/operacao/checklist-empresa-fantasma.md (critérios A/B).
+model VerificationChecklistItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// Código estável do critério ('A1', 'B2', ...) — chave de upsert idempotente.
+  code       String   @unique
+  /// Seção do checklist: 'A' eliminatório | 'B' presença | 'C' red-flag.
+  section    String
+  label      String
+  /// "Como verificar" (docs/operacao/checklist-empresa-fantasma.md).
+  guidance   String?
+  /// Eliminatório: qualquer item bloqueante reprovado → rejeitar.
+  isBlocking Boolean  @default(false) @map("is_blocking")
+  order      Int
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("verification_checklist_items")
+}
+
 // ── Identity / Auth (USP-001, USP-004) ───────────────────────────────────────
 // Pessoa = entidade fundamental (ADR-0011). Papéis compostos via PersonRoleGrant.
 // Credencial gerenciada pelo Supabase Auth (bcrypt cost 10); vínculo via

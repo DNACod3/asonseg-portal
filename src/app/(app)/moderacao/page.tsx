@@ -4,6 +4,7 @@ import {
   ModerationQueue,
   canAccessModerationQueue,
   viewModerationQueue,
+  listVerificationChecklistItems,
   type ModerationQueueRow,
   type VerificationPanelData,
 } from '@/modules/moderation';
@@ -33,7 +34,13 @@ export default async function ModeracaoPage() {
     notFound();
   }
 
-  const items = await viewModerationQueue({ viewerPersonId: person.id });
+  // Leituras independentes em paralelo (rota force-dynamic — cada request paga os
+  // round-trips; evita await sequencial). A checklist é a fonte seedável (F0B-01),
+  // não constante no bundle.
+  const [items, checklistItems] = await Promise.all([
+    viewModerationQueue({ viewerPersonId: person.id }),
+    listVerificationChecklistItems(),
+  ]);
 
   // Contexto de verificação das Empresas das vagas na fila (USP-017) — ambas as
   // leituras são em lote (uma consulta por leitura, não N+1). O histórico de
@@ -91,7 +98,7 @@ export default async function ModeracaoPage() {
         </p>
       </header>
 
-      <ModerationQueue items={rows} />
+      <ModerationQueue items={rows} checklistItems={checklistItems} />
     </main>
   );
 }

@@ -9,7 +9,9 @@ export default defineConfig({
     // então testes de componente precisam de DOM. Glue puro (node) roda igual aqui.
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // `tests/docs/**` fica fora de `src/**` (guardas estruturais de doc, não
+    // código de módulo) — T-B4/T-C1 (Fase 0 — Fundação).
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
     // Testes de integração (`*.int.test.ts`) precisam de Postgres local e rodam
     // num run separado (`npm run test:integration`, vitest.integration.config.ts).
     exclude: [...configDefaults.exclude, 'src/**/*.int.test.ts'],
