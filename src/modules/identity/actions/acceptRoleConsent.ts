@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
+import { verifyConsentToken } from '@/shared/lib/consentToken';
 import { acceptRoleConsentSchema, ROLE_PURPOSE_MAP, type AcceptRoleConsentInput } from '../schemas/registerPerson';
 
 export interface AcceptRoleConsentResult {
@@ -23,6 +24,12 @@ export interface AcceptRoleConsentResult {
  *
  * Invariante (ADR-0020 / P-002): o grant nunca chega a ACTIVE sem o consent
  * da finalidade estar persistido na MESMA transação.
+ *
+ * Defesa em profundidade (Fase 1 / U1-GUARD-01): não há sessão autenticada na
+ * TX2 (a TX1 `registerPerson` não estabelece cookie de sessão). O `sig`
+ * (token HMAC assinado na TX1) é re-validado aqui, antes de qualquer escrita,
+ * para que a ativação de papel/consentimento não dependa apenas da checagem
+ * feita na página — a action fica segura mesmo se invocada diretamente.
  */
 export async function acceptRoleConsent(
   rawInput: AcceptRoleConsentInput,
@@ -32,6 +39,10 @@ export async function acceptRoleConsent(
     return fail('VALIDATION', 'Dados inválidos', parsed.error.flatten().fieldErrors);
   }
   const input = parsed.data;
+
+  if (!verifyConsentToken(input.personId, input.role, input.sig)) {
+    return fail('FORBIDDEN', 'Autorização inválida para este aceite.');
+  }
 
   const hdrs = await headers();
   const ip = clientIp(hdrs);

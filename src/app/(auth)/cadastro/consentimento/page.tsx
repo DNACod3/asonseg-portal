@@ -65,12 +65,16 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
 
   // Verifica token HMAC: garante que apenas quem passou pela TX1 (registerPerson)
   // pode acionar a TX2 para este personId, prevenindo ativação por terceiros.
-  if (!verifyConsentToken(personId, typedRole, sig)) {
+  // A guarda também é re-validada dentro de `acceptRoleConsent` (defesa em
+  // profundidade, U1-GUARD-01) — esta checagem na página evita renderizar o
+  // formulário para um `sig` inválido.
+  if (!sig || !verifyConsentToken(personId, typedRole, sig)) {
     notFound();
   }
 
   // Captura após os guards para que a closure async preserve o tipo string.
   const verifiedPersonId = personId;
+  const verifiedSig = sig;
   const redirectTo = safeRedirect(next ? decodeURIComponent(next) : undefined, '/app/perfil');
 
   async function acceptConsent() {
@@ -80,6 +84,7 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
       role: typedRole,
       termVersion: ROLE_TERM_VERSION[typedRole],
       termContentHash: ROLE_TERM_HASH[typedRole],
+      sig: verifiedSig,
     });
 
     if (result.ok) {
