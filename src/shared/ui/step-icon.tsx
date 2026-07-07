@@ -7,12 +7,12 @@ import { cn } from './cn';
  * (+`-blue/-orange/-green`) do protótipo (L352-360, combinações dark
  * L102-104).
  *
- * O protótipo usa fundos pastel com hex cru distinto por tema
- * (`#DBEAFE`/`rgba(59,130,246,0.15)`…) — fora do conjunto de tokens da
- * fundação. Para manter DS-MN-02 (sem hex/paleta fixa) e ainda reagir ao
- * tema automaticamente (sem `dark:`), o tint é derivado via `color-mix()`
- * sobre o próprio token de cor (`--color-primary`/`--color-cta`/
- * `--color-success`) — nenhum valor hex/rgba cru no arquivo.
+ * O protótipo usa fundos pastel com hex/rgba cru distinto por tema — fora
+ * do conjunto de tokens da fundação. Para manter DS-MN-02 (sem hex/paleta
+ * fixa) e ainda reagir ao tema automaticamente (sem `dark:`), o tint é
+ * derivado via `color-mix()` sobre o próprio token de cor
+ * (`--color-primary`/`--color-cta`/`--color-success`) — nenhum valor
+ * hex/rgba cru no arquivo.
  */
 const stepIconVariants = cva(
   'mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg text-2xl',

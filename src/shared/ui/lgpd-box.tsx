@@ -7,9 +7,9 @@ import { cn } from './cn';
  * — só estilo; a semântica de consentimento é preservada pelo consumidor
  * (decisão de produto (b), design.md).
  *
- * Simplificação vs. protótipo: o fundo `#F8FAFC`/dark `#1A2332` mapeia para
- * o token `bg-background` (light coincide exatamente; dark fica próximo,
- * sem hex cru fora do token — DS-MN-02).
+ * Simplificação vs. protótipo: o fundo hex cru do protótipo (light e dark)
+ * mapeia para o token `bg-background` (light coincide exatamente; dark fica
+ * próximo, sem hex cru fora do token — DS-MN-02).
  */
 export interface LgpdBoxProps extends HTMLAttributes<HTMLDivElement> {
   title: string;

@@ -8,9 +8,9 @@ import { cn } from './cn';
  * `font-heading`, borda inferior.
  *
  * Simplificação vs. protótipo: a borda inferior do título usa o token
- * `border-border` (que já coincide com o valor dark `#334155`) em vez do hex
- * cru `#F1F5F9` do light do protótipo — evita hex fora de token (DS-MN-02)
- * com diferença visual desprezível.
+ * `border-border` (que já coincide com o valor dark do protótipo) em vez do
+ * hex cru do light do protótipo — evita hex fora de token (DS-MN-02) com
+ * diferença visual desprezível.
  */
 export const FormCard = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
