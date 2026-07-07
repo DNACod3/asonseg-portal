@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
 import { EditCompanyForm } from '@/modules/companies';
+import { FormHeader } from '@/shared/ui';
 import { prisma } from '@/shared/lib/prisma';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
@@ -54,13 +55,10 @@ export default async function EditarEmpresaPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-10">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Editar dados da empresa</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Mantenha os dados cadastrais atualizados. Alterar CNPJ, razão social ou nome fantasia
-          exigirá nova verificação manual na próxima vaga publicada.
-        </p>
-      </header>
+      <FormHeader
+        title="Editar dados da empresa"
+        description="Mantenha os dados cadastrais atualizados. Alterar CNPJ, razão social ou nome fantasia exigirá nova verificação manual na próxima vaga publicada."
+      />
 
       <EditCompanyForm empresa={empresa} />
     </main>
