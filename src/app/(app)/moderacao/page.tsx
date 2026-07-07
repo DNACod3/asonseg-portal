@@ -89,9 +89,15 @@ export default async function ModeracaoPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-10">
+      {/*
+        Decisão de consistência (design.md §8.3): o `FormHeader` do DS é
+        centralizado (pensado para telas de formulário) e destoaria do layout
+        de lista desta página; mantém-se o `<header>` alinhado à esquerda,
+        trocando só a paleta crua por tokens (`font-heading`/`text-fg`/`text-fg-muted`).
+      */}
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-gray-900">Fila de moderação</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="font-heading text-2xl font-bold text-fg">Fila de moderação</h1>
+        <p className="text-sm text-fg-muted">
           Revise os rascunhos enviados e decida: aprovar (fica visível no portal), devolver para
           ajustes ou rejeitar. Devolução e rejeição exigem um motivo descritivo, enviado ao autor.
           Toda decisão fica registrada na auditoria com o seu nome e a data/hora.
