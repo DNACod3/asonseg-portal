@@ -100,4 +100,10 @@ describe('AssistedRegisterForm', () => {
     expect(await screen.findByText('CPF já está cadastrado no portal.')).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
+
+  it('U2-MN-02: não expõe nenhum campo de credencial/login no form assistido', () => {
+    render(<AssistedRegisterForm />);
+    expect(screen.queryByLabelText(/senha|password/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/e-?mail/i)).not.toBeInTheDocument();
+  });
 });

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Input, Label } from '@/shared/ui';
 import { activateAdditionalRole } from '../actions/activate-additional-role';
 import { PROFILE_FIELD_META, type ProfileField } from '../domain/role-activation';
 import type { PublicRole } from '../schemas/registerPerson';
@@ -37,6 +38,10 @@ interface Props {
  * aceite explícito. Submete a `activateAdditionalRole` e redireciona ao próximo
  * passo do papel (E-004). Privacidade/segurança: a action opera sobre a Pessoa
  * autenticada (P-002) — o componente não envia nenhum identificador de Pessoa.
+ *
+ * Refactor da Fase 1 (AD-014): restilizado com os primitivos (`Input`/`Label`/
+ * `Button`) e tokens — fluxos (estado, validação, payload, redirect) preservados
+ * sem alteração.
  */
 export function ActivateRoleForm({ options }: Props) {
   const router = useRouter();
@@ -46,7 +51,7 @@ export function ActivateRoleForm({ options }: Props) {
 
   if (options.length === 0) {
     return (
-      <p className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm">
+      <p className="rounded-lg border border-border bg-surface p-5 text-sm text-fg-muted shadow-sm">
         Você já possui todos os papéis públicos disponíveis. Não há novos papéis para ativar.
       </p>
     );
@@ -57,13 +62,13 @@ export function ActivateRoleForm({ options }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium text-gray-700">
+        <legend className="mb-1 text-sm font-medium text-fg">
           Qual papel você quer ativar?
         </legend>
         {options.map((option) => (
           <label
             key={option.role}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-background has-[:checked]:border-primary has-[:checked]:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)]"
           >
             <input
               type="radio"
@@ -71,11 +76,11 @@ export function ActivateRoleForm({ options }: Props) {
               value={option.role}
               checked={selectedRole === option.role}
               onChange={() => setSelectedRole(option.role)}
-              className="mt-0.5 accent-blue-600"
+              className="mt-0.5 accent-primary"
             />
             <span className="flex flex-col">
-              <span className="text-sm font-medium text-gray-900">{option.label}</span>
-              <span className="text-xs text-gray-500">{option.purposeDescription}</span>
+              <span className="text-sm font-medium text-fg">{option.label}</span>
+              <span className="text-xs text-fg-muted">{option.purposeDescription}</span>
             </span>
           </label>
         ))}
@@ -149,10 +154,14 @@ function RoleActivation({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      className="flex flex-col gap-5 rounded-lg border border-border bg-surface p-8 shadow-sm"
+    >
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Ativar papel: {option.label}</h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <h2 className="text-lg font-semibold text-fg">Ativar papel: {option.label}</h2>
+        <p className="mt-1 text-sm text-fg-muted">
           Finalidade: <strong>{option.purposeHumanName}</strong>. {option.purposeDescription}
         </p>
       </div>
@@ -164,10 +173,10 @@ function RoleActivation({
             const errorId = `${field}-error`;
             return (
               <div key={field} className="flex flex-col gap-1">
-                <label htmlFor={field} className="text-sm font-medium text-gray-700">
+                <Label htmlFor={field}>
                   {meta.label} <span aria-hidden>*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id={field}
                   type={meta.type}
                   autoComplete={meta.autoComplete}
@@ -176,10 +185,9 @@ function RoleActivation({
                   onChange={(e) => setField(field, e.target.value)}
                   aria-describedby={fieldErrors[field] ? errorId : undefined}
                   aria-invalid={!!fieldErrors[field]}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
                 {fieldErrors[field] && (
-                  <p id={errorId} role="alert" className="text-xs text-red-600">
+                  <p id={errorId} role="alert" className="text-xs text-danger">
                     {fieldErrors[field]}
                   </p>
                 )}
@@ -188,24 +196,24 @@ function RoleActivation({
           })}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-fg-muted">
           Seu perfil já tem todos os dados necessários para este papel. Basta aceitar o termo.
         </p>
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-gray-700">Termo da finalidade</span>
-        <div className="max-h-72 overflow-auto rounded-lg bg-gray-50 p-4 text-xs leading-relaxed whitespace-pre-wrap text-gray-700">
+        <span className="text-sm font-medium text-fg">Termo da finalidade</span>
+        <div className="max-h-72 overflow-auto rounded-lg border border-border bg-background p-4 text-xs leading-relaxed whitespace-pre-wrap text-fg-muted">
           {option.term.body}
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+      <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
         <input
           type="checkbox"
           checked={accepted}
           onChange={(e) => setAccepted(e.target.checked)}
-          className="mt-0.5 accent-blue-600"
+          className="mt-0.5 accent-primary"
         />
         <span>
           Li e aceito o termo da finalidade <strong>{option.purposeHumanName}</strong>.
@@ -213,18 +221,17 @@ function RoleActivation({
       </label>
 
       {serverError && (
-        <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+        >
           {serverError}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={!accepted || isPending}
-        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" disabled={!accepted || isPending}>
         {isPending ? 'Ativando…' : 'Ativar papel'}
-      </button>
+      </Button>
     </form>
   );
 }

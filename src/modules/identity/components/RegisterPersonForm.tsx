@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { Button, Input, Label } from '@/shared/ui';
 import { registerPersonSchema } from '../schemas/registerPerson';
 import type { RegisterPersonInput, PublicRole } from '../schemas/registerPerson';
 import { registerPerson } from '../actions/registerPerson';
@@ -73,21 +74,20 @@ export function RegisterPersonForm({ siteKey, onSuccess }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
       {/* Nome completo */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+        <Label htmlFor="fullName">
           Nome completo <span aria-hidden>*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="fullName"
           type="text"
           autoComplete="name"
           placeholder="Maria da Silva"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.fullName ? 'fullName-error' : undefined}
           aria-invalid={!!errors.fullName}
           {...register('fullName')}
         />
         {errors.fullName && (
-          <p id="fullName-error" role="alert" className="text-xs text-red-600">
+          <p id="fullName-error" role="alert" className="text-xs text-danger">
             {errors.fullName.message}
           </p>
         )}
@@ -95,23 +95,22 @@ export function RegisterPersonForm({ siteKey, onSuccess }: Props) {
 
       {/* CPF */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="cpf" className="text-sm font-medium text-gray-700">
+        <Label htmlFor="cpf">
           CPF <span aria-hidden>*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="cpf"
           type="text"
           autoComplete="off"
           inputMode="numeric"
           placeholder="000.000.000-00"
           maxLength={14}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.cpf ? 'cpf-error' : undefined}
           aria-invalid={!!errors.cpf}
           {...register('cpf')}
         />
         {errors.cpf && (
-          <p id="cpf-error" role="alert" className="text-xs text-red-600">
+          <p id="cpf-error" role="alert" className="text-xs text-danger">
             {errors.cpf.message}
           </p>
         )}
@@ -119,21 +118,20 @@ export function RegisterPersonForm({ siteKey, onSuccess }: Props) {
 
       {/* E-mail */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+        <Label htmlFor="email">
           E-mail <span aria-hidden>*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="email"
           type="email"
           autoComplete="email"
           placeholder="seu@email.com"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.email ? 'email-error' : undefined}
           aria-invalid={!!errors.email}
           {...register('email')}
         />
         {errors.email && (
-          <p id="email-error" role="alert" className="text-xs text-red-600">
+          <p id="email-error" role="alert" className="text-xs text-danger">
             {errors.email.message}
           </p>
         )}
@@ -141,21 +139,20 @@ export function RegisterPersonForm({ siteKey, onSuccess }: Props) {
 
       {/* Senha */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-sm font-medium text-gray-700">
+        <Label htmlFor="password">
           Senha <span aria-hidden>*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="password"
           type="password"
           autoComplete="new-password"
           placeholder="Mínimo 8 caracteres"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.password ? 'password-error' : undefined}
           aria-invalid={!!errors.password}
           {...register('password')}
         />
         {errors.password && (
-          <p id="password-error" role="alert" className="text-xs text-red-600">
+          <p id="password-error" role="alert" className="text-xs text-danger">
             {errors.password.message}
           </p>
         )}
@@ -163,28 +160,28 @@ export function RegisterPersonForm({ siteKey, onSuccess }: Props) {
 
       {/* Papel */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium text-gray-700">
+        <legend className="mb-1 text-sm font-medium text-fg">
           Como você quer usar o portal? <span aria-hidden>*</span>
         </legend>
         {ROLE_OPTIONS.map(({ value, label, description }) => (
           <label
             key={value}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-background has-[:checked]:border-primary has-[:checked]:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)]"
           >
             <input
               type="radio"
               value={value}
-              className="mt-0.5 accent-blue-600"
+              className="mt-0.5 accent-primary"
               {...register('role')}
             />
             <span className="flex flex-col">
-              <span className="text-sm font-medium text-gray-900">{label}</span>
-              <span className="text-xs text-gray-500">{description}</span>
+              <span className="text-sm font-medium text-fg">{label}</span>
+              <span className="text-xs text-fg-muted">{description}</span>
             </span>
           </label>
         ))}
         {errors.role && (
-          <p role="alert" className="text-xs text-red-600">
+          <p role="alert" className="text-xs text-danger">
             {errors.role.message}
           </p>
         )}
@@ -200,33 +197,32 @@ export function RegisterPersonForm({ siteKey, onSuccess }: Props) {
         />
       </div>
       {errors.captchaToken && (
-        <p role="alert" className="text-center text-xs text-red-600">
+        <p role="alert" className="text-center text-xs text-danger">
           {errors.captchaToken.message}
         </p>
       )}
 
       {/* Erro do servidor */}
       {serverError && (
-        <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+        >
           {serverError}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isPending}>
         {isPending ? 'Cadastrando…' : 'Criar conta'}
-      </button>
+      </Button>
 
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-fg-muted">
         Ao cadastrar, você concorda com os{' '}
-        <a href="/termos" className="underline hover:text-gray-700">
+        <a href="/termos" className="underline hover:text-fg">
           termos de uso
         </a>{' '}
         e a{' '}
-        <a href="/privacidade" className="underline hover:text-gray-700">
+        <a href="/privacidade" className="underline hover:text-fg">
           política de privacidade
         </a>{' '}
         do portal ASONSEG.

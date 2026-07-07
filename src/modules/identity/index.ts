@@ -121,9 +121,17 @@ export { buildActivatableOptions } from './server/build-activatable-options';
 
 // ── Permissões delegadas a voluntários (USP-008) ──────────────────────────────
 export { grantDelegatedPermission } from './actions/grant-delegated-permission';
-export type { GrantDelegatedPermissionInput, GrantDelegatedPermissionResult } from './actions/grant-delegated-permission';
+export type { GrantDelegatedPermissionResult } from './actions/grant-delegated-permission';
 export { revokeDelegatedPermission } from './actions/revoke-delegated-permission';
-export type { RevokeDelegatedPermissionInput, RevokeDelegatedPermissionResult } from './actions/revoke-delegated-permission';
+export type { RevokeDelegatedPermissionResult } from './actions/revoke-delegated-permission';
+export {
+  grantDelegatedPermissionSchema,
+  revokeDelegatedPermissionSchema,
+} from './schemas/delegated-permission.schema';
+export type {
+  GrantDelegatedPermissionInput,
+  RevokeDelegatedPermissionInput,
+} from './schemas/delegated-permission.schema';
 export { requirePermission, requireCoordinator } from './server/require-permission';
 export { DELEGABLE_PERMISSIONS, checkPermission, isCoordinator } from './domain/permissions';
 export type { PermissionId, PermissionCheckResult, DelegatedGrant } from './domain/permissions';

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { Button, Input, Label } from '@/shared/ui';
 import type { ActionResult } from '@/shared/errors';
 import { requestCredentialClaim } from '../actions/request-credential-claim';
 import type { RequestCredentialClaimResult } from '../actions/request-credential-claim';
@@ -14,8 +15,8 @@ import {
   type RequestCredentialClaimInput,
 } from '../schemas/credential-claim.schema';
 
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
+const selectClass =
+  'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary';
 
 /**
  * Formulário público de solicitação de reivindicação de credencial (USP-003 /
@@ -64,17 +65,17 @@ export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
     return (
       <div
         role="status"
-        className="flex flex-col gap-3 rounded-xl border border-green-200 bg-green-50 p-5"
+        className="flex flex-col gap-3 rounded-sm border border-success bg-[color-mix(in_srgb,var(--color-success)_10%,transparent)] p-5"
       >
-        <p className="text-sm font-medium text-green-800">Solicitação enviada</p>
-        <p className="text-xs text-green-700">{successMessage}</p>
+        <p className="text-sm font-medium text-success">Solicitação enviada</p>
+        <p className="text-xs text-fg-muted">{successMessage}</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-fg-muted">
         Informe o CPF (ou um identificador alternativo) da Pessoa já cadastrada e o e-mail que deseja
         usar para acessar o portal. Nossa equipe fará a verificação de identidade antes de ativar a
         credencial.
@@ -82,22 +83,19 @@ export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
 
       {/* CPF */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="cpf" className="text-sm font-medium text-gray-700">
-          CPF
-        </label>
-        <input
+        <Label htmlFor="cpf">CPF</Label>
+        <Input
           id="cpf"
           type="text"
           inputMode="numeric"
           placeholder="000.000.000-00"
           maxLength={14}
-          className={inputClass}
           aria-describedby={errors.cpf ? 'cpf-error' : undefined}
           aria-invalid={!!errors.cpf}
           {...register('cpf')}
         />
         {errors.cpf && (
-          <p id="cpf-error" role="alert" className="text-xs text-red-600">
+          <p id="cpf-error" role="alert" className="text-xs text-danger">
             {errors.cpf.message}
           </p>
         )}
@@ -105,19 +103,18 @@ export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
 
       {/* Identificador alternativo */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="alternativeIdentifier" className="text-sm font-medium text-gray-700">
-          Identificador alternativo <span className="text-gray-400">(se não tiver CPF)</span>
-        </label>
-        <input
+        <Label htmlFor="alternativeIdentifier">
+          Identificador alternativo <span className="text-fg-muted">(se não tiver CPF)</span>
+        </Label>
+        <Input
           id="alternativeIdentifier"
           type="text"
           placeholder="Protocolo de atendimento, nome completo, etc."
-          className={inputClass}
           aria-invalid={!!errors.alternativeIdentifier}
           {...register('alternativeIdentifier')}
         />
         {errors.alternativeIdentifier && (
-          <p role="alert" className="text-xs text-red-600">
+          <p role="alert" className="text-xs text-danger">
             {errors.alternativeIdentifier.message}
           </p>
         )}
@@ -125,21 +122,20 @@ export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
 
       {/* E-mail desejado */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="requestedEmail" className="text-sm font-medium text-gray-700">
+        <Label htmlFor="requestedEmail">
           E-mail desejado <span aria-hidden>*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="requestedEmail"
           type="email"
           autoComplete="email"
           placeholder="voce@exemplo.com"
-          className={inputClass}
           aria-describedby={errors.requestedEmail ? 'requestedEmail-error' : undefined}
           aria-invalid={!!errors.requestedEmail}
           {...register('requestedEmail')}
         />
         {errors.requestedEmail && (
-          <p id="requestedEmail-error" role="alert" className="text-xs text-red-600">
+          <p id="requestedEmail-error" role="alert" className="text-xs text-danger">
             {errors.requestedEmail.message}
           </p>
         )}
@@ -147,10 +143,8 @@ export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
 
       {/* Meio de verificação */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="verificationMethod" className="text-sm font-medium text-gray-700">
-          Meio de verificação preferido
-        </label>
-        <select id="verificationMethod" className={inputClass} {...register('verificationMethod')}>
+        <Label htmlFor="verificationMethod">Meio de verificação preferido</Label>
+        <select id="verificationMethod" className={selectClass} {...register('verificationMethod')}>
           {CREDENTIAL_VERIFICATION_METHODS.map((method) => (
             <option key={method} value={method}>
               {VERIFICATION_METHOD_LABELS[method]}
@@ -165,24 +159,23 @@ export function CredentialClaimForm({ siteKey }: { siteKey: string }) {
         <Turnstile siteKey={siteKey} onSuccess={handleCaptchaSuccess} options={{ language: 'pt-BR' }} />
       </div>
       {errors.captchaToken && (
-        <p role="alert" className="text-center text-xs text-red-600">
+        <p role="alert" className="text-center text-xs text-danger">
           {errors.captchaToken.message}
         </p>
       )}
 
       {serverError && (
-        <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+        >
           {serverError}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isPending}>
         {isPending ? 'Enviando…' : 'Solicitar reivindicação'}
-      </button>
+      </Button>
     </form>
   );
 }

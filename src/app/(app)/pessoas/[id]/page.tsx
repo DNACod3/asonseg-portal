@@ -7,6 +7,7 @@ import {
   InactivatePersonDialog,
   ReactivatePersonDialog,
 } from '@/modules/persons';
+import { Badge, Card } from '@/shared/ui';
 import { formatSaoPaulo } from '@/shared/lib/time';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
@@ -52,56 +53,50 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{person.fullName}</h1>
-          <span
-            className={
-              person.status === 'ATIVO'
-                ? 'rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800'
-                : 'rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700'
-            }
-          >
+          <h1 className="font-heading text-2xl font-bold text-fg">{person.fullName}</h1>
+          <Badge variant={person.status === 'ATIVO' ? 'green' : 'gray'}>
             {person.status === 'ATIVO' ? 'Ativa' : 'Inativa'}
-          </span>
+          </Badge>
         </div>
         {roleLabels.length > 0 && (
-          <p className="text-sm text-gray-600">Papéis: {roleLabels.join(', ')}</p>
+          <p className="text-sm text-fg-muted">Papéis: {roleLabels.join(', ')}</p>
         )}
       </header>
 
       {person.status === 'ATIVO' ? (
-        <section className="flex flex-col gap-3 rounded-xl border border-gray-200 p-5">
-          <h2 className="text-base font-semibold text-gray-900">Inativar acesso</h2>
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-base font-semibold text-fg">Inativar acesso</h2>
           {isSelf ? (
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-cta">
               Você não pode inativar a si mesmo(a). Peça a outro responsável para fazê-lo.
             </p>
           ) : (
             <>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-fg-muted">
                 Bloqueia novos acessos preservando todo o histórico. Se a Pessoa for a única
                 responsável por uma Empresa, designe outro responsável antes de inativá-la.
               </p>
               <InactivatePersonDialog personId={person.id} personName={person.fullName} />
             </>
           )}
-        </section>
+        </Card>
       ) : (
-        <section className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
-          <h2 className="text-base font-semibold text-gray-900">Pessoa inativa</h2>
+        <Card className="flex flex-col gap-3 bg-background">
+          <h2 className="text-base font-semibold text-fg">Pessoa inativa</h2>
           {person.inactivatedAt && (
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-fg-muted">
               Inativada em {formatSaoPaulo(new Date(person.inactivatedAt), 'dd/MM/yyyy HH:mm')}.
             </p>
           )}
           {person.inactivationReason && (
-            <p className="text-sm text-gray-600">Motivo: {person.inactivationReason}</p>
+            <p className="text-sm text-fg-muted">Motivo: {person.inactivationReason}</p>
           )}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-fg-muted">
             O histórico operacional permanece preservado e visível para quem tem permissão.
           </p>
           {hasReactivationPrivilege(viewer.roles) && (
             <>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-fg-muted">
                 Para reverter a inativação, use o botão abaixo. Os papéis e permissões anteriores
                 não serão restaurados automaticamente — precisarão ser reconcedidos após a
                 reativação (USP-008).
@@ -109,7 +104,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
               <ReactivatePersonDialog personId={person.id} personName={person.fullName} />
             </>
           )}
-        </section>
+        </Card>
       )}
     </main>
   );

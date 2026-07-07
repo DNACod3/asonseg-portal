@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 5,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "surviving_mutant::when a cva variant s base class and its hover active sibling share a common substring e g bg cta and hover bg cta hover assert the base class as a standalone token split on whitespace or use a word boundary regex not via classname tocontain or a regression in the base class alone will not be caught",
+      "text": "When a cva variant's base class and its hover/active sibling share a common substring (e.g. bg-cta and hover:bg-cta-hover), assert the base class as a standalone token (split on whitespace or use a word-boundary regex), not via className.toContain, or a regression in the base class alone will not be caught.",
+      "signal": "surviving_mutant",
+      "scope": "ui-primitives",
+      "status": "candidate",
+      "features": [
+        "fundacao-ui-design-system"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/shared/ui/__tests__/button.test.tsx:13 (ui-primitives)"
+      ],
+      "created": "2026-07-07T14:00:34Z",
+      "last_seen": "2026-07-07T14:00:34Z"
+    },
+    {
+      "id": "L-002",
+      "key": "spec_precision_gap::when a spec requires pixel parity with a prototype s literal hardcoded tint colors while a must not simultaneously forbids raw hex fixed palette utilities in the same files resolve the tension explicitly in the spec e g approved formula or tolerance instead of leaving it for the implementer to invent a workaround",
+      "text": "When a spec requires pixel-parity with a prototype's literal hardcoded tint colors while a must-not simultaneously forbids raw hex/fixed-palette utilities in the same files, resolve the tension explicitly in the spec (e.g. approved formula or tolerance) instead of leaving it for the implementer to invent a workaround.",
+      "signal": "spec_precision_gap",
+      "scope": "design-tokens",
+      "status": "candidate",
+      "features": [
+        "fundacao-ui-design-system"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md P1 Primitivos AC5/AC7 (StepIcon/Badge) vs DS-MN-02 (design-tokens)"
+      ],
+      "created": "2026-07-07T14:00:34Z",
+      "last_seen": "2026-07-07T14:00:34Z"
+    },
+    {
+      "id": "L-003",
+      "key": "spec_precision_gap::when a spec ac claims a composed screen works correctly under a given state e g dark mode require an rtl test on the composed screen itself not just on each primitive in isolation composition can hide interaction bugs that per primitive tests cannot see",
+      "text": "When a spec AC claims a composed screen works correctly under a given state (e.g. dark mode), require an RTL test on the composed screen itself, not just on each primitive in isolation — composition can hide interaction bugs that per-primitive tests cannot see.",
+      "signal": "spec_precision_gap",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "fundacao-ui-design-system"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md P1 Prova de paridade AC3 (login dark mode) (testing)"
+      ],
+      "created": "2026-07-07T14:00:34Z",
+      "last_seen": "2026-07-07T14:00:34Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_precision_gap::when a zod required field also gets a runtime cryptographic authorization check document two distinct failure outcomes validation for absent malformed forbidden for well formed but invalid instead of one generic error code in the spec s edge cases",
+      "text": "When a Zod-required field also gets a runtime cryptographic/authorization check, document two distinct failure outcomes (VALIDATION for absent/malformed, FORBIDDEN for well-formed-but-invalid) instead of one generic error code in the spec's edge cases.",
+      "signal": "spec_precision_gap",
+      "scope": "identity",
+      "status": "candidate",
+      "features": [
+        "identity-acesso-papeis/usp-001-auto-cadastro"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md:113 (Edge Cases) vs acceptRoleConsent.int.test.ts:182-199 (identity)"
+      ],
+      "created": "2026-07-07T15:00:41Z",
+      "last_seen": "2026-07-07T15:00:41Z"
+    }
+  ]
+}

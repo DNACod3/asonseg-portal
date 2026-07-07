@@ -69,6 +69,7 @@ export const acceptRoleConsentSchema = z.object({
   role: z.enum(PUBLIC_ROLES, { message: 'Papel inválido' }),
   termVersion: z.string().min(1),
   termContentHash: z.string().min(1),
+  sig: z.string().min(1, 'Assinatura ausente'),
 });
 
 export type AcceptRoleConsentInput = z.infer<typeof acceptRoleConsentSchema>;

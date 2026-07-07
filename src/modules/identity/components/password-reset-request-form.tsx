@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { Button, Input, Label } from '@/shared/ui';
 import {
   requestPasswordResetSchema,
   type RequestPasswordResetInput,
@@ -15,6 +16,11 @@ import { requestPasswordReset } from '../actions/request-password-reset';
  * consumindo `requestPasswordReset`. Exige CAPTCHA (Turnstile — ADR-0014/USP-005)
  * antes de enviar. No sucesso, exibe sempre a MESMA mensagem genérica de
  * confirmação (anti-enumeração) — nunca revela se o e-mail existe.
+ *
+ * Refactor Fase 1 (AD-014, USP-005 delta): restilizado com os primitivos
+ * (`Input`/`Label`/`Button`) e tokens do Design System, seguindo o padrão do
+ * `LoginForm` — CAPTCHA, anti-enumeração e a mensagem genérica preservados sem
+ * alteração.
  */
 export function PasswordResetRequestForm({ siteKey }: { siteKey: string }) {
   const [isPending, startTransition] = useTransition();
@@ -54,11 +60,14 @@ export function PasswordResetRequestForm({ siteKey }: { siteKey: string }) {
   if (confirmacao) {
     return (
       <div className="flex flex-col gap-4">
-        <div role="status" className="rounded-lg bg-green-50 p-4 text-sm text-green-800">
+        <div
+          role="status"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-success)_10%,transparent)] p-4 text-sm text-success"
+        >
           {confirmacao}
         </div>
-        <p className="text-center text-xs text-gray-500">
-          <a href="/login" className="font-medium text-blue-600 hover:underline">
+        <p className="text-center text-xs text-fg-muted">
+          <a href="/login" className="font-medium text-primary hover:underline">
             Voltar para o login
           </a>
         </p>
@@ -69,21 +78,18 @@ export function PasswordResetRequestForm({ siteKey }: { siteKey: string }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
-          E-mail
-        </label>
-        <input
+        <Label htmlFor="email">E-mail</Label>
+        <Input
           id="email"
           type="email"
           autoComplete="email"
           placeholder="seu@email.com"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           aria-describedby={errors.email ? 'email-error' : undefined}
           aria-invalid={!!errors.email}
           {...register('email')}
         />
         {errors.email && (
-          <p id="email-error" role="alert" className="text-xs text-red-600">
+          <p id="email-error" role="alert" className="text-xs text-danger">
             {errors.email.message}
           </p>
         )}
@@ -95,28 +101,27 @@ export function PasswordResetRequestForm({ siteKey }: { siteKey: string }) {
         <Turnstile siteKey={siteKey} onSuccess={handleCaptchaSuccess} options={{ language: 'pt-BR' }} />
       </div>
       {errors.captchaToken && (
-        <p role="alert" className="text-center text-xs text-red-600">
+        <p role="alert" className="text-center text-xs text-danger">
           {errors.captchaToken.message}
         </p>
       )}
 
       {serverError && (
-        <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+        >
           {serverError}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" disabled={isPending}>
         {isPending ? 'Enviando…' : 'Enviar link de recuperação'}
-      </button>
+      </Button>
 
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-fg-muted">
         Lembrou a senha?{' '}
-        <a href="/login" className="font-medium text-blue-600 hover:underline">
+        <a href="/login" className="font-medium text-primary hover:underline">
           Voltar para o login
         </a>
       </p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { Button, Card } from '@/shared/ui';
 import { verifyCredentialClaim } from '../actions/verify-credential-claim';
 import {
   CREDENTIAL_VERIFICATION_METHODS,
@@ -19,7 +20,7 @@ export interface CredentialClaimReviewItem {
 }
 
 const selectClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
+  'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary';
 
 /**
  * Fila interna de verificação de reivindicações de credencial (USP-003 / D-004).
@@ -56,14 +57,11 @@ export function CredentialClaimReview({ items }: { items: CredentialClaimReviewI
 
   if (claims.length === 0) {
     return (
-      <div
-        role="status"
-        className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600"
-      >
+      <Card role="status" className="text-sm text-fg-muted">
         {doneCount > 0
           ? `Tudo certo — ${doneCount} solicitação(ões) processada(s). Não há mais reivindicações pendentes.`
           : 'Não há reivindicações de credencial pendentes no momento.'}
-      </div>
+      </Card>
     );
   }
 
@@ -74,12 +72,14 @@ export function CredentialClaimReview({ items }: { items: CredentialClaimReviewI
         return (
           <li
             key={claim.id}
-            className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            className="flex flex-col gap-3 rounded-md border border-border bg-surface p-5 shadow-sm"
           >
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-gray-900">{claim.fullName}</span>
-              <span className="text-xs text-gray-600">E-mail desejado: {claim.requestedEmail}</span>
-              <span className="text-xs text-gray-500">
+              <span className="text-sm font-semibold text-fg">{claim.fullName}</span>
+              <span className="text-xs text-fg-muted">
+                E-mail desejado: {claim.requestedEmail}
+              </span>
+              <span className="text-xs text-fg-muted">
                 Solicitado em {claim.requestedAtLabel} · preferência:{' '}
                 {VERIFICATION_METHOD_LABELS[claim.verificationMethod]}
               </span>
@@ -87,10 +87,7 @@ export function CredentialClaimReview({ items }: { items: CredentialClaimReviewI
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="flex flex-1 flex-col gap-1">
-                <label
-                  htmlFor={`method-${claim.id}`}
-                  className="text-xs font-medium text-gray-700"
-                >
+                <label htmlFor={`method-${claim.id}`} className="text-xs font-medium text-fg">
                   Meio de verificação utilizado
                 </label>
                 <select
@@ -112,18 +109,18 @@ export function CredentialClaimReview({ items }: { items: CredentialClaimReviewI
                 </select>
               </div>
 
-              <button
+              <Button
                 type="button"
+                variant="primary"
                 onClick={() => onConfirm(claim.id)}
                 disabled={claimPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {claimPending ? 'Ativando…' : 'Confirmar e ativar'}
-              </button>
+              </Button>
             </div>
 
             {errors[claim.id] && (
-              <p role="alert" className="text-xs text-red-600">
+              <p role="alert" className="text-xs text-danger">
                 {errors[claim.id]}
               </p>
             )}

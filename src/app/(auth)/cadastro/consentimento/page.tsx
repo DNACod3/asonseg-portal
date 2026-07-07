@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { acceptRoleConsent } from '@/modules/identity';
 import { verifyConsentToken } from '@/shared/lib/consentToken';
 import type { PublicRole } from '@/modules/identity';
+import { Button, FormHeader, LgpdBox, StepIcon } from '@/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,17 @@ interface Props {
   readonly searchParams: Promise<{ personId?: string; role?: string; next?: string; sig?: string }>;
 }
 
+// SVG de escudo-check do protótipo (docs/prototipo/index.html L1340).
+const shieldCheckIcon = (
+  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"
+    />
+  </svg>
+);
+
 export default async function ConsentimentoPage({ searchParams }: Props) {
   const params = await searchParams;
   const { personId, role, next, sig } = params;
@@ -65,12 +77,16 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
 
   // Verifica token HMAC: garante que apenas quem passou pela TX1 (registerPerson)
   // pode acionar a TX2 para este personId, prevenindo ativação por terceiros.
-  if (!verifyConsentToken(personId, typedRole, sig)) {
+  // A guarda também é re-validada dentro de `acceptRoleConsent` (defesa em
+  // profundidade, U1-GUARD-01) — esta checagem na página evita renderizar o
+  // formulário para um `sig` inválido.
+  if (!sig || !verifyConsentToken(personId, typedRole, sig)) {
     notFound();
   }
 
   // Captura após os guards para que a closure async preserve o tipo string.
   const verifiedPersonId = personId;
+  const verifiedSig = sig;
   const redirectTo = safeRedirect(next ? decodeURIComponent(next) : undefined, '/app/perfil');
 
   async function acceptConsent() {
@@ -80,6 +96,7 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
       role: typedRole,
       termVersion: ROLE_TERM_VERSION[typedRole],
       termContentHash: ROLE_TERM_HASH[typedRole],
+      sig: verifiedSig,
     });
 
     if (result.ok) {
@@ -92,42 +109,32 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Quase pronto!</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Para ativar o papel de <strong>{ROLE_LABEL[typedRole]}</strong>, precisamos do seu aceite.
-        </p>
-      </div>
+      <StepIcon variant="green">{shieldCheckIcon}</StepIcon>
+      <FormHeader
+        title="Quase pronto!"
+        description={`Para ativar o papel de ${ROLE_LABEL[typedRole]}, precisamos do seu aceite.`}
+      />
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">
-          Autorização de uso de dados — {ROLE_LABEL[typedRole]}
-        </h2>
-        <p className="mb-4 text-sm leading-relaxed text-gray-600">
+      <LgpdBox title={`Autorização de uso de dados - ${ROLE_LABEL[typedRole]}`}>
+        <p className="mb-4 text-sm leading-relaxed text-fg-muted">
           {ROLE_PURPOSE_DESCRIPTION[typedRole]}
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-fg-muted">
           Você pode revogar este consentimento a qualquer momento nas configurações da sua conta.
-          Base legal: Art. 7º, I da Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018).
+          Base legal: Art. 7º, I da Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018).
         </p>
-      </div>
+      </LgpdBox>
 
       <form action={acceptConsent} className="flex flex-col gap-3">
-        <button
-          type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
+        <Button type="submit" variant="primary" size="lg" className="w-full">
           Aceitar e ativar meu papel de {ROLE_LABEL[typedRole]}
-        </button>
-        <a
-          href="/app/perfil"
-          className="rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Aceitar depois
-        </a>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="w-full">
+          <a href="/app/perfil">Aceitar depois</a>
+        </Button>
       </form>
 
-      <p className="text-center text-xs text-gray-400">
+      <p className="text-center text-xs text-fg-muted">
         Sem aceitar, você já está cadastrado(a) no portal mas não poderá usar as
         funcionalidades de {ROLE_LABEL[typedRole].toLowerCase()} até confirmar.
       </p>

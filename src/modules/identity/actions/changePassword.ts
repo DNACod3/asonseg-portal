@@ -6,6 +6,7 @@ import { clientIp } from '@/shared/lib/clientIp';
 import { createSupabaseServerClient } from '@/shared/lib/supabase/server';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
+import { getCurrentPerson } from '../server/session';
 import {
   changePasswordFirstAccessSchema,
   type ChangePasswordFirstAccessInput,
@@ -29,23 +30,23 @@ export async function changePasswordFirstAccess(
   }
   const { senhaNova } = parsed.data;
 
-  // 2. Autenticação: precisa de sessão válida.
-  const supabase = await createSupabaseServerClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) {
+  // 2. Autenticação: resolve o ator via helper canônico de sessão (ADR-0030),
+  // que já resolve a Pessoa e revalida `status` no DB.
+  const person = await getCurrentPerson();
+  if (!person) {
     return fail('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.');
   }
 
-  const person = await prisma.person.findUnique({
-    where: { supabaseUserId: user.id },
-    select: { id: true, status: true, credential: { select: { id: true, primeiroAcesso: true } } },
+  const credential = await prisma.credential.findUnique({
+    where: { personId: person.id },
+    select: { id: true },
   });
-  if (!person || person.status !== 'ATIVO' || !person.credential) {
+  if (!credential) {
     return fail('FORBIDDEN', 'Operação não permitida.');
   }
 
   // 3. Atualiza a senha no provedor (bcrypt gerenciado pelo Supabase — P-003).
+  const supabase = await createSupabaseServerClient();
   const { error: updateError } = await supabase.auth.updateUser({ password: senhaNova });
   if (updateError) {
     return fail('INTERNAL', 'Não foi possível alterar a senha. Tente novamente.');
@@ -61,14 +62,20 @@ export async function changePasswordFirstAccess(
     AuditEvent.AUTH_PASSWORD_CHANGED_FIRST_ACCESS,
     async (tx, audit) => {
       await tx.credential.update({
-        where: { id: person.credential!.id },
+        where: { id: credential.id },
         data: { primeiroAcesso: false },
       });
       audit.entityType = 'credential';
-      audit.entityId = person.credential!.id;
+      audit.entityId = credential.id;
       audit.after = { primeiroAcesso: false };
     },
-    { actorUserId: user.id, actorPersonId: person.id, ip, userAgent, context: { route: '/trocar-senha' } },
+    {
+      actorUserId: person.supabaseUserId,
+      actorPersonId: person.id,
+      ip,
+      userAgent,
+      context: { route: '/trocar-senha' },
+    },
   );
 
   return ok({ redirectTo: '/inicio' });

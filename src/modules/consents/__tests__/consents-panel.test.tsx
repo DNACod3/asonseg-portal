@@ -74,4 +74,23 @@ describe('consents/ConsentsPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ver termo aceito' }));
     expect(screen.getByText('Conteúdo do termo X')).toBeInTheDocument();
   });
+
+  it('U43-STYLE-01: mapeia o status para a variante de Badge do Design System (AD-014)', () => {
+    render(
+      <ConsentsPanel
+        items={[
+          item({ consentId: 'a', status: 'vigente' }),
+          item({ consentId: 'b', status: 'desatualizado' }),
+          item({ consentId: 'c', status: 'revogado' }),
+        ]}
+      />,
+    );
+
+    // Badge do DS deriva a cor via tokens (color-mix sobre --color-success/
+    // --color-cta/--color-text-light), sem classes de paleta crua
+    // (bg-green-100/bg-amber-100/bg-gray-200).
+    expect(screen.getByText('Vigente')).toHaveClass('text-success');
+    expect(screen.getByText('Requer novo aceite')).toHaveClass('text-cta');
+    expect(screen.getByText('Revogado')).toHaveClass('text-fg-muted');
+  });
 });

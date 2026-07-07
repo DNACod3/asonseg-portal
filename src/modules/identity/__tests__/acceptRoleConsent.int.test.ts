@@ -17,6 +17,7 @@ vi.mock('next/headers', () => ({
 
 const { prisma } = await import('@/shared/lib/prisma');
 const { acceptRoleConsent } = await import('@/modules/identity');
+const { signConsentToken } = await import('@/shared/lib/consentToken');
 
 const TERM_VERSION = 'job-application@v1.0';
 const TERM_HASH = 'cba5ec9a519b6c5d2beab0adaf693252c87d95a9353877b9f3c43d41dfb064dd';
@@ -76,6 +77,7 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
       role: 'CANDIDATE',
       termVersion: TERM_VERSION,
       termContentHash: TERM_HASH,
+      sig: signConsentToken(personId, 'CANDIDATE'),
     });
 
     expect(result.ok).toBe(true);
@@ -102,6 +104,7 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
       role: 'CANDIDATE',
       termVersion: TERM_VERSION,
       termContentHash: TERM_HASH,
+      sig: signConsentToken('not-a-uuid', 'CANDIDATE'),
     });
 
     expect(result.ok).toBe(false);
@@ -110,11 +113,13 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
   });
 
   it('GRANT_NOT_FOUND: grant inexistente retorna NOT_FOUND', async () => {
+    const orphanId = crypto.randomUUID(); // UUID válido mas sem Person/grant
     const result = await acceptRoleConsent({
-      personId: crypto.randomUUID(), // UUID válido mas sem Person/grant
+      personId: orphanId,
       role: 'CANDIDATE',
       termVersion: TERM_VERSION,
       termContentHash: TERM_HASH,
+      sig: signConsentToken(orphanId, 'CANDIDATE'),
     });
 
     expect(result.ok).toBe(false);
@@ -123,11 +128,13 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
   });
 
   it('idempotência: segunda chamada retorna NOT_FOUND (grant já ACTIVE)', async () => {
+    const sig = signConsentToken(personId, 'CANDIDATE');
     const first = await acceptRoleConsent({
       personId,
       role: 'CANDIDATE',
       termVersion: TERM_VERSION,
       termContentHash: TERM_HASH,
+      sig,
     });
     expect(first.ok).toBe(true);
 
@@ -137,6 +144,7 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
       role: 'CANDIDATE',
       termVersion: TERM_VERSION,
       termContentHash: TERM_HASH,
+      sig,
     });
 
     expect(second.ok).toBe(false);
@@ -153,6 +161,7 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
       role: 'PROVIDER',
       termVersion: 'service-offering@v1.0',
       termContentHash: '9abdc14dbe425e0422987d5b5fc6002f942b90ac053c5d6a9b423640907a88a7',
+      sig: signConsentToken(pId, 'PROVIDER'),
     });
 
     expect(result.ok).toBe(true);
@@ -166,5 +175,54 @@ skipIfNoDb('acceptRoleConsent — integração TX2', () => {
     await prisma.consent.deleteMany({ where: { personId: pId } });
     await prisma.personRoleGrant.deleteMany({ where: { personId: pId } });
     await prisma.person.deleteMany({ where: { id: pId } });
+  });
+
+  // ── Guarda de defesa em profundidade (U1-GUARD-01 / U1-MN-01) ──────────────
+  // O schema (`acceptRoleConsentSchema`) delega a checagem de PRESENÇA do
+  // token ao Zod (`sig: z.string().min(1)`); a action delega a checagem de
+  // VALIDADE criptográfica ao `verifyConsentToken` (ver Assumptions,
+  // design.md). Por isso os dois casos abaixo retornam códigos diferentes,
+  // mas ambos satisfazem o must-not: nenhuma escrita ocorre.
+
+  it('U1-MN-01: sig ausente/vazio não ativa o grant nem cria consent (VALIDATION, sem escrita)', async () => {
+    const result = await acceptRoleConsent({
+      personId,
+      role: 'CANDIDATE',
+      termVersion: TERM_VERSION,
+      termContentHash: TERM_HASH,
+      sig: '',
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION');
+
+    const grant = await prisma.personRoleGrant.findUnique({ where: { id: grantId } });
+    expect(grant?.status).toBe('AWAITING_CONSENT');
+
+    const consent = await prisma.consent.findFirst({ where: { personId } });
+    expect(consent).toBeNull();
+  });
+
+  it('U1-MN-01: sig de outro personId/role não ativa o grant nem cria consent (FORBIDDEN, sem escrita)', async () => {
+    const foreignSig = signConsentToken(crypto.randomUUID(), 'CANDIDATE');
+
+    const result = await acceptRoleConsent({
+      personId,
+      role: 'CANDIDATE',
+      termVersion: TERM_VERSION,
+      termContentHash: TERM_HASH,
+      sig: foreignSig,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('FORBIDDEN');
+
+    const grant = await prisma.personRoleGrant.findUnique({ where: { id: grantId } });
+    expect(grant?.status).toBe('AWAITING_CONSENT');
+
+    const consent = await prisma.consent.findFirst({ where: { personId } });
+    expect(consent).toBeNull();
   });
 });
