@@ -86,6 +86,9 @@ export type {
 } from './schemas/taxonomy-suggestion';
 export { viewModerationQueue } from './queries/moderation-queue';
 export type { ModerationQueueItem } from './views/moderation-queue-item';
+export { listTaxonomySuggestions } from './queries/list-taxonomy-suggestions';
+export type { TaxonomySuggestionItem } from './views/taxonomy-suggestion-item';
+export { canApproveTaxonomySuggestions } from './server/taxonomy-suggestion-access';
 export { listVerificationChecklistItems } from './queries/list-verification-checklist';
 export { canAccessModerationQueue, canManagePublishedContent } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
