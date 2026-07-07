@@ -1,19 +1,13 @@
 'use server';
 
-import { z } from 'zod';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { childLogger } from '@/shared/lib/logger';
 import { requireCoordinator } from '../server/require-permission';
-import { DELEGABLE_PERMISSIONS } from '../domain/permissions';
-
-const grantSchema = z.object({
-  targetPersonId: z.string().uuid('ID de pessoa inválido'),
-  permission: z.enum(DELEGABLE_PERMISSIONS as [string, ...string[]]),
-  scopeArea: z.string().min(1).max(100).optional(),
-});
-
-export type GrantDelegatedPermissionInput = z.infer<typeof grantSchema>;
+import {
+  grantDelegatedPermissionSchema,
+  type GrantDelegatedPermissionInput,
+} from '../schemas/delegated-permission.schema';
 
 export interface GrantDelegatedPermissionResult {
   permissionId: string;
@@ -36,7 +30,7 @@ export async function grantDelegatedPermission(
 ): Promise<ActionResult<GrantDelegatedPermissionResult>> {
   const log = childLogger({ module: 'identity', action: 'grantDelegatedPermission' });
 
-  const parsed = grantSchema.safeParse(rawInput);
+  const parsed = grantDelegatedPermissionSchema.safeParse(rawInput);
   if (!parsed.success) {
     return fail('VALIDATION', 'Dados inválidos', parsed.error.flatten().fieldErrors);
   }

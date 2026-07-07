@@ -1,17 +1,13 @@
 'use server';
 
-import { z } from 'zod';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { childLogger } from '@/shared/lib/logger';
 import { requireCoordinator } from '../server/require-permission';
-
-const revokeSchema = z.object({
-  permissionGrantId: z.string().uuid('ID de concessão inválido'),
-  justification: z.string().min(10, 'Justificativa deve ter ao menos 10 caracteres'),
-});
-
-export type RevokeDelegatedPermissionInput = z.infer<typeof revokeSchema>;
+import {
+  revokeDelegatedPermissionSchema,
+  type RevokeDelegatedPermissionInput,
+} from '../schemas/delegated-permission.schema';
 
 export interface RevokeDelegatedPermissionResult {
   permissionGrantId: string;
@@ -28,7 +24,7 @@ export async function revokeDelegatedPermission(
 ): Promise<ActionResult<RevokeDelegatedPermissionResult>> {
   const log = childLogger({ module: 'identity', action: 'revokeDelegatedPermission' });
 
-  const parsed = revokeSchema.safeParse(rawInput);
+  const parsed = revokeDelegatedPermissionSchema.safeParse(rawInput);
   if (!parsed.success) {
     return fail('VALIDATION', 'Dados inválidos', parsed.error.flatten().fieldErrors);
   }
