@@ -39,7 +39,7 @@ describe('Button', () => {
   it('asChild renderiza o filho (<a>) via Slot, sem <button> extra', () => {
     render(
       <Button asChild variant="primary">
-        <a href="/vagas">Ver vagas</a>
+        <a href="https://example.com/vagas">Ver vagas</a>
       </Button>,
     );
     const link = screen.getByRole('link', { name: 'Ver vagas' });
