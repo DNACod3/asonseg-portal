@@ -16,10 +16,10 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
 
-// Nota: a rota `(app)/empresa/cadastrar/page.tsx` ainda não existe (T4 desta
-// USP a materializa) — esta lista é estendida para incluí-la no gate de T4,
-// que re-roda esta guarda (ver Diagram-Definition Cross-Check do tasks.md).
-const RESTYLED_FILES = ['src/modules/companies/components/create-company-form.tsx'];
+const RESTYLED_FILES = [
+  'src/modules/companies/components/create-company-form.tsx',
+  'src/app/(app)/empresa/cadastrar/page.tsx',
+];
 
 const RAW_PALETTE_PATTERNS: RegExp[] = [
   /bg-blue-\d/,
