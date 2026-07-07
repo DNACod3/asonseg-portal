@@ -10,6 +10,18 @@ import { submitJobForModeration } from '../actions/submit-job-for-moderation';
 import { createJobDraft } from '../actions/create-job-draft';
 import type { JobAreaOption } from '../queries/list-approved-job-areas';
 import type { RegionOption } from '../queries/list-active-regions';
+// Escape-hatch (padrão AD-013/T-A1, ver USP-018 next-cache-invalidation.ts):
+// o barrel `@/modules/moderation` arrasta adapters server-only (revalidatePath,
+// next/headers via o container) para o bundle client. Este é um Client
+// Component — importa a action `'use server'` direto pelo caminho, não pelo
+// barrel, exatamente como CLAUDE.md descreve a fronteira RSC (a action vira
+// referência serializada; nada do módulo é bundlado no cliente).
+// eslint-disable-next-line no-restricted-imports
+import { suggestTaxonomy } from '@/modules/moderation/actions/suggest-taxonomy';
+import { Button as DsButton, Input as DsInput } from '@/shared/ui';
+
+/** Opção sentinela do select de área — abre o sub-fluxo "sugerir nova" (USP-019 / SUGG-07). */
+const SUGGEST_AREA_VALUE = '__suggest__';
 
 const inputClass =
   'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
@@ -47,11 +59,21 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Sub-fluxo "Outro / sugerir nova área" (USP-019 / SUGG-07) — estado local,
+  // separado do RHF principal: sugerir NÃO seleciona a área (pendente até
+  // aprovação — SUGG-MN-01); o campo `areaId` continua exigido para publicar.
+  const [suggestName, setSuggestName] = useState('');
+  const [suggestPending, startSuggestTransition] = useTransition();
+  const [suggestFeedback, setSuggestFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(
+    null,
+  );
+
   const {
     register,
     handleSubmit,
     getValues,
     setError,
+    watch,
     formState: { errors },
   } = useForm<PublishJobInput>({
     resolver: zodResolver(publishJobSchema),
@@ -135,6 +157,27 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
     });
   }
 
+  // Submete a sugestão de nova área (USP-019 / SUGG-07) — sub-fluxo à parte do
+  // formulário de vaga; não altera `areaId` nem o submit de publicação.
+  function onSuggestArea() {
+    setSuggestFeedback(null);
+    startSuggestTransition(async () => {
+      const result = await suggestTaxonomy({ kind: 'JOB_AREA', name: suggestName });
+      if (result.ok) {
+        setSuggestName('');
+        setSuggestFeedback({ kind: 'success', message: 'Sugestão enviada para aprovação.' });
+      } else {
+        const message =
+          result.error.code === 'VALIDATION'
+            ? (result.error.fieldErrors?.name?.[0] ?? result.error.message)
+            : result.error.message;
+        setSuggestFeedback({ kind: 'error', message });
+      }
+    });
+  }
+
+  const areaValue = watch('areaId');
+
   return (
     <form onSubmit={handleSubmit(onPublish)} className="flex flex-col gap-5 max-w-lg">
       <input type="hidden" {...register('companyId')} />
@@ -168,8 +211,45 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
               {area.name}
             </option>
           ))}
+          <option value={SUGGEST_AREA_VALUE}>Outro / sugerir nova área</option>
         </select>
         {errors.areaId && <p className={errorClass}>{errors.areaId.message}</p>}
+
+        {/* Sub-fluxo de sugestão (USP-019 / SUGG-07) — não seleciona a área
+            para a vaga (pendente até aprovação, SUGG-MN-01); `areaId` continua
+            exigido acima para publicar. */}
+        {areaValue === SUGGEST_AREA_VALUE && (
+          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
+            <label className="sr-only" htmlFor="suggest-area-name">
+              Nome da nova área
+            </label>
+            <DsInput
+              id="suggest-area-name"
+              type="text"
+              placeholder="Ex.: Jardinagem"
+              value={suggestName}
+              onChange={(e) => setSuggestName(e.target.value)}
+            />
+            <DsButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onSuggestArea}
+              disabled={suggestPending || suggestName.trim().length < 2}
+              className="self-start"
+            >
+              {suggestPending ? 'Enviando…' : 'Sugerir área'}
+            </DsButton>
+            {suggestFeedback && (
+              <p
+                role={suggestFeedback.kind === 'error' ? 'alert' : 'status'}
+                className={suggestFeedback.kind === 'error' ? errorClass : 'text-xs text-green-700'}
+              >
+                {suggestFeedback.message}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Descrição */}
