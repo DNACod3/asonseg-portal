@@ -52,6 +52,7 @@ export { PrismaCompanyVerifyHook } from './adapters/prisma-company-verify-hook';
 
 // ── Actions de decisão + fila do coordenador (#123) ──────────────────────────
 export { approveContent, returnForAdjustments, rejectContent } from './actions/decide';
+export { inactivateContent } from './actions/inactivate';
 export {
   approveSchema,
   returnForAdjustmentsSchema,
