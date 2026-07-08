@@ -8,6 +8,7 @@ import {
   serializeJsonLd,
   JobDetailView,
 } from '@/modules/jobs';
+import { Button, Card } from '@/shared/ui';
 
 // ADR-0013/ADR-0019: detalhe público com ISR (alinhado a `/vagas` = 30min, L-002). A
 // revalidação fina de `/vagas/[id]` é débito (design §5) — a janela curta de ISR cobre
@@ -70,21 +71,18 @@ export async function generateMetadata({
  */
 function VagaIndisponivel() {
   return (
-    <section className="flex flex-col items-start gap-4 rounded-xl border border-gray-200 bg-white p-6">
+    <Card className="flex flex-col items-start gap-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Vaga encerrada</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-xl font-bold text-fg">Vaga encerrada</h1>
+        <p className="mt-2 text-sm text-fg-muted">
           Esta vaga não está mais disponível ou foi temporariamente removida. Veja outras
           oportunidades abertas na região.
         </p>
       </div>
-      <Link
-        href="/vagas"
-        className="inline-block rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-      >
-        Ver outras vagas
-      </Link>
-    </section>
+      <Button variant="primary" asChild>
+        <Link href="/vagas">Ver outras vagas</Link>
+      </Button>
+    </Card>
   );
 }
 
@@ -112,7 +110,7 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
         />
       )}
 
-      <Link href="/vagas" className="text-sm text-blue-600 hover:underline">
+      <Link href="/vagas" className="text-sm text-primary hover:underline">
         ← Voltar para as vagas
       </Link>
 
