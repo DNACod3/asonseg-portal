@@ -69,6 +69,7 @@ export {
   type SearchServicesFilters,
   type SearchServicesResult,
 } from './queries/search-services';
+export { getActiveServiceDetail } from './queries/get-service-detail';
 
 // ── Views ──────────────────────────────────────────────────────────────────
 export {
@@ -77,6 +78,15 @@ export {
   type ServiceListItemPrice,
   type ServiceListRow,
 } from './views/service-list-item.view';
+export {
+  viewServiceDetail,
+  serviceDetailJsonLd,
+  serializeJsonLd,
+  type ServiceDetail,
+  type ServiceDetailPrice,
+  type ServiceDetailPhoto,
+  type ServiceDetailRow,
+} from './views/service-detail.view';
 
 // ── Components ─────────────────────────────────────────────────────────────
 export { ServiceForm, type ServiceFormProps, type CompanyOption, type RegionOption } from './components/service-form';
@@ -84,3 +94,5 @@ export { ServiceSearchFilters, type ServiceSearchFilterValues } from './componen
 export { ServiceList } from './components/service-list';
 export { ServiceCard } from './components/service-card';
 export { AsonsegDisclaimer } from './components/asonseg-disclaimer';
+export { ServiceDetailView } from './components/service-detail';
+export { ServicoIndisponivel } from './components/servico-indisponivel';
