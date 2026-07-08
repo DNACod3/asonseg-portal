@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { SYSTEM_ACTOR_ID } from '../../src/shared/system-actor';
 
 /**
  * Seed de **referência** (US #111 / F0A-03 — Fase 0 — Fundação).
@@ -197,6 +198,23 @@ async function seedVerificationChecklistItems(prisma: PrismaClient): Promise<num
   return CHECKLIST_ITEMS.length;
 }
 
+/**
+ * Ator de sistema (USP-024 / T3): Pessoa mínima usada como `actorPersonId` pelo
+ * job de expiração automática (`SYSTEM_JOB`, sem operador humano). `id` fixo
+ * (`SYSTEM_ACTOR_ID`) via `upsert` por PK — idempotente, prod-safe.
+ */
+async function seedSystemActor(prisma: PrismaClient): Promise<void> {
+  await prisma.person.upsert({
+    where: { id: SYSTEM_ACTOR_ID },
+    update: {},
+    create: {
+      id: SYSTEM_ACTOR_ID,
+      fullName: 'Sistema (job automático)',
+      status: 'ATIVO',
+    },
+  });
+}
+
 export interface ReferenceSeedResult {
   regions: number;
   jobAreas: number;
@@ -212,5 +230,6 @@ export async function seedReference(prisma: PrismaClient): Promise<ReferenceSeed
     seedServiceCategories(prisma),
     seedVerificationChecklistItems(prisma),
   ]);
+  await seedSystemActor(prisma);
   return { regions, jobAreas, serviceCategories, verificationChecklistItems };
 }

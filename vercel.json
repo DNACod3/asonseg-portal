@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/auth-attempts-retention",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/expire-jobs",
+      "schedule": "0 * * * *"
     }
   ]
 }
