@@ -12,10 +12,11 @@ import { describe, expect, it } from 'vitest';
  * `src/modules/companies/__tests__/no-external-verify.test.ts`).
  *
  * **Exceção documentada (A-07 / nota de conformidade F0A-05):** os pontos em
- * `persons/components/{candidate-form,provider-form}.tsx` e
- * `jobs/components/job-form.tsx` são Client Components que precisam importar
- * uma Server Action diretamente do arquivo-fonte, não do barrel do módulo
- * alheio (`@/modules/identity` / `@/modules/moderation`): o barrel reexporta
+ * `persons/components/{candidate-form,provider-form}.tsx`,
+ * `jobs/components/job-form.tsx` e `services/components/service-form.tsx`
+ * são Client Components que precisam importar uma Server Action diretamente
+ * do arquivo-fonte, não do barrel do módulo alheio (`@/modules/identity` /
+ * `@/modules/moderation`): o barrel reexporta
  * código server-only (identity: `./server/session` → `supabase/server.ts` →
  * `next/headers`, e `./ports/captchaVerifier` → `container.ts` →
  * `next-cache-invalidation.ts` → `next/cache`; moderation: mesmo container via
@@ -66,7 +67,7 @@ describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', ()
     expect(offenders).toEqual([]);
   });
 
-  it('a exceção documentada continua restrita aos 3 arquivos conhecidos (client/server boundary)', () => {
+  it('a exceção documentada continua restrita aos 4 arquivos conhecidos (client/server boundary)', () => {
     const knownExceptionFiles = new Set<string>();
 
     for (const file of sourceFiles(MODULES_DIR)) {
@@ -83,6 +84,7 @@ describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', ()
         join(MODULES_DIR, 'persons/components/candidate-form.tsx'),
         join(MODULES_DIR, 'persons/components/provider-form.tsx'),
         join(MODULES_DIR, 'jobs/components/job-form.tsx'),
+        join(MODULES_DIR, 'services/components/service-form.tsx'),
       ].sort(),
     );
   });
