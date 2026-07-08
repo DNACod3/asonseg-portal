@@ -70,6 +70,7 @@ export {
   type SearchJobsResult,
 } from './queries/search-jobs';
 export { getActiveJobDetail } from './queries/get-job-detail';
+export { getPausedJobNotice, type PausedJobNotice } from './queries/get-paused-job-notice';
 export {
   listActivePublishedJobs,
   PUBLISHED_JOBS_PAGE_SIZE,

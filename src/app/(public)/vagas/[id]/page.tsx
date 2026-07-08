@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCurrentPerson } from '@/modules/identity';
 import {
   getActiveJobDetail,
+  getPausedJobNotice,
   viewJobDetail,
   jobDetailJsonLd,
   serializeJsonLd,
@@ -87,17 +88,42 @@ function VagaIndisponivel() {
 }
 
 /**
+ * Estado "vaga temporariamente pausada" (USP-023 / E-002 / P-003). Distinto de
+ * `VagaIndisponivel` ("encerrada"): mensagem específica, **sem** botão de
+ * candidatar-se ativo (a página não renderiza `JobDetailView`, então não há CTA
+ * algum aqui — P-003 fica garantido por construção, não por um botão desabilitado).
+ */
+function VagaPausada() {
+  return (
+    <Card className="flex flex-col items-start gap-4">
+      <div>
+        <h1 className="text-xl font-bold text-fg">Vaga temporariamente pausada</h1>
+        <p className="mt-2 text-sm text-fg-muted">
+          Esta vaga está temporariamente pausada pela Empresa e não está recebendo candidaturas
+          no momento. Veja outras oportunidades abertas na região.
+        </p>
+      </div>
+      <Button variant="primary" asChild>
+        <Link href="/vagas">Ver outras vagas</Link>
+      </Button>
+    </Card>
+  );
+}
+
+/**
  * Detalhe público de uma vaga (USP-022 / #277). Server Component: resolve a Pessoa
  * autenticada (decide anonimização e CTA por papel — E-001/E-002/E-004) e então o detalhe
  * on-read. O detalhe depende do viewer (o `select` do nome real é condicional ao papel,
  * P-002) ⇒ sequencial, não paralelo. Anônimo é o caso comum (rota pública); o nome real da
- * Empresa nunca chega ao HTML do anônimo. Vaga não-detalhável ⇒ "vaga encerrada" (E-005).
+ * Empresa nunca chega ao HTML do anônimo. Vaga não-detalhável ⇒ `getPausedJobNotice`
+ * distingue "temporariamente pausada" (USP-023/P-003) de "encerrada" (E-005).
  */
 export default async function VagaDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const viewer = await getCurrentPerson();
   const row = await getActiveJobDetail(id, viewer);
+  const pausedNotice = row == null ? await getPausedJobNotice(id) : null;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -114,7 +140,13 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
         ← Voltar para as vagas
       </Link>
 
-      {row == null ? <VagaIndisponivel /> : <JobDetailView job={viewJobDetail(row, viewer)} />}
+      {row != null ? (
+        <JobDetailView job={viewJobDetail(row, viewer)} />
+      ) : pausedNotice != null ? (
+        <VagaPausada />
+      ) : (
+        <VagaIndisponivel />
+      )}
     </main>
   );
 }
