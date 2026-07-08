@@ -15,3 +15,6 @@ export type {
 
 // ── Domínio: MIME real + tamanho (CVE-01) ──────────────────────────────────
 export { detectCvMime, isWithinCvSizeLimit, MAX_CV_BYTES } from './domain/mime';
+
+// ── Domínio: parse dos campos extraídos (CVE-02/CVE-05) ────────────────────
+export { parseExtractedFields } from './domain/extracted-fields';
