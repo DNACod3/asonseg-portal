@@ -161,9 +161,37 @@ export const submitJobSchema = z.union([
   publishJobSchema,
 ]);
 
+/**
+ * Schema de **edição** de uma vaga já `ACTIVE` (USP-023 / E-001 / AC-023-1). Subconjunto
+ * editável de `publishJobSchema`: os campos de conteúdo/busca (mesmas regras de
+ * completude do submit — a vaga volta a `DRAFT` e passa por nova moderação, então deve
+ * sair completa). **Exclui** `companyId` (imutável — resolvido a partir da vaga carregada,
+ * nunca do input do cliente) e `validUntil` (prorrogar é `extendJobValidity`, ação separada
+ * que não força re-moderação — E-004 vs E-001).
+ */
+export const editJobSchema = z.object({
+  jobId: z.string().uuid('Vaga inválida.'),
+  title,
+  areaId,
+  description,
+  requirements,
+  workRegime,
+  location,
+  benefits,
+  salary,
+  contractType,
+  regionId,
+  educationLevelRequired,
+  salaryMin: salaryAmount,
+  salaryMax: salaryAmount,
+  salaryVisible,
+});
+
 export type PublishJobInput = z.input<typeof publishJobSchema>;
 export type PublishJobData = z.output<typeof publishJobSchema>;
 export type DraftJobInput = z.input<typeof draftJobSchema>;
 export type DraftJobData = z.output<typeof draftJobSchema>;
 export type SubmitJobInput = z.input<typeof submitJobSchema>;
 export type SubmitJobData = z.output<typeof submitJobSchema>;
+export type EditJobInput = z.input<typeof editJobSchema>;
+export type EditJobData = z.output<typeof editJobSchema>;

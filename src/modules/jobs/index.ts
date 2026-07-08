@@ -26,7 +26,10 @@ export type {
   DraftJobData,
   SubmitJobInput,
   SubmitJobData,
+  EditJobInput,
+  EditJobData,
 } from './schemas/publish-job.schema';
+export { editJobSchema } from './schemas/publish-job.schema';
 export {
   jobIdSchema,
   pauseJobSchema,
@@ -49,6 +52,7 @@ export { pauseJob, type PauseJobResult } from './actions/pause-job';
 export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
 export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
 export { extendJobValidity, type ExtendJobValidityResult } from './actions/extend-job-validity';
+export { editJob, type EditJobResult } from './actions/edit-job';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
