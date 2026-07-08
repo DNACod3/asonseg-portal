@@ -12,3 +12,6 @@ export type {
   CvExtractionFailureReason,
   CvExtractionResult,
 } from './ports/cv-extractor.port';
+
+// ── Domínio: MIME real + tamanho (CVE-01) ──────────────────────────────────
+export { detectCvMime, isWithinCvSizeLimit, MAX_CV_BYTES } from './domain/mime';
