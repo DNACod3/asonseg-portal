@@ -128,8 +128,9 @@ allowed_mime_types = ["application/pdf", "image/jpeg", "image/png"]
 
 [storage.buckets.provider-photos]
 public = true
-file_size_limit = "2MiB"
-allowed_mime_types = ["image/jpeg", "image/png"]
+# USP-029: até 3 fotos por serviço, JPG/PNG/WEBP ≤5MB cada (AC-029-4).
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
