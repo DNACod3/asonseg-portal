@@ -16,6 +16,7 @@ export {
   MAX_SERVICE_PHOTOS,
   type ServicePhotoMimeType,
 } from './domain/photo-mime';
+export { buildServicePhotoUrl } from './domain/photo-url';
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 export {
@@ -61,6 +62,25 @@ export { requireActiveResponsible } from './server/require-active-responsible';
 
 // ── Queries ────────────────────────────────────────────────────────────────
 export { listServiceCategories, type ServiceCategoryOption } from './queries/list-service-categories';
+export {
+  searchServices,
+  SERVICE_SEARCH_PAGE_SIZE,
+  SERVICE_SEARCH_TERM_MAX,
+  type SearchServicesFilters,
+  type SearchServicesResult,
+} from './queries/search-services';
+
+// ── Views ──────────────────────────────────────────────────────────────────
+export {
+  viewServiceForVisitor,
+  type ServiceListItem,
+  type ServiceListItemPrice,
+  type ServiceListRow,
+} from './views/service-list-item.view';
 
 // ── Components ─────────────────────────────────────────────────────────────
 export { ServiceForm, type ServiceFormProps, type CompanyOption, type RegionOption } from './components/service-form';
+export { ServiceSearchFilters, type ServiceSearchFilterValues } from './components/service-search-filters';
+export { ServiceList } from './components/service-list';
+export { ServiceCard } from './components/service-card';
+export { AsonsegDisclaimer } from './components/asonseg-disclaimer';

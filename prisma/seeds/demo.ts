@@ -342,10 +342,114 @@ async function seedDemoCandidateProfiles(prisma: PrismaClient): Promise<number> 
   return count;
 }
 
+// ── Serviços de demonstração (USP-029/030) ────────────────────────────────────
+// A busca pública (`/servicos`) só tem o que mostrar se houver serviços ACTIVE
+// de um prestador ativo. Sem isso o E2E de descoberta (USP-030) e o dev local
+// ficam vazios. IDs fixos → idempotente (upsert). Autor sem credencial Supabase
+// (Pessoa criada pela AS, mesmo padrão de `DEMO_AUTHOR_ID`).
+
+const DEMO_PROVIDER_ID = '00000000-0000-0000-0000-00000000f001';
+
+interface DemoService {
+  id: string;
+  title: string;
+  categoryName: string;
+  regionName: string;
+  description: string;
+  priceMin: number | null;
+  priceMax: number | null;
+  priceUnit: string | null;
+  availabilityDescription: string;
+  /** Override do status padrão (`ACTIVE`) — fixture de estado p/ E2E do ciclo de vida (USP-032). */
+  status?: 'ACTIVE' | 'PAUSED';
+}
+
+const DEMO_SERVICES: ReadonlyArray<DemoService> = [
+  {
+    id: '00000000-0000-0000-0000-00000000d101',
+    title: 'Jardinagem residencial completa',
+    categoryName: 'Área Externa e Jardinagem',
+    regionName: 'Canasvieiras',
+    description: 'Poda, manutenção de grama e jardins residenciais na região norte da Ilha.',
+    priceMin: 80,
+    priceMax: 150,
+    priceUnit: 'por serviço',
+    availabilityDescription: 'Segunda a sexta, 8h às 17h.',
+  },
+  {
+    id: '00000000-0000-0000-0000-00000000d102',
+    title: 'Aulas de reforço escolar (fundamental)',
+    categoryName: 'Aulas e Reforço',
+    regionName: 'Ingleses',
+    description: 'Aulas particulares de reforço escolar para ensino fundamental, presenciais.',
+    priceMin: 50,
+    priceMax: 50,
+    priceUnit: 'por hora',
+    availabilityDescription: 'Tardes, seg. a qui.',
+  },
+  {
+    // Serviço PAUSED de demonstração — fixture pública p/ o E2E do ciclo de vida
+    // (USP-032): some da busca (`/servicos`), sem depender de uma ação real
+    // durante o teste.
+    id: '00000000-0000-0000-0000-00000000d103',
+    title: 'Encanador (serviço pausado — demo)',
+    categoryName: 'Reparos e Manutenção',
+    regionName: 'Toda Florianópolis',
+    description: 'Serviço de demonstração pausado pelo prestador (fixture de teste E2E).',
+    priceMin: null,
+    priceMax: null,
+    priceUnit: null,
+    availabilityDescription: 'N/A (fixture de teste).',
+    status: 'PAUSED',
+  },
+];
+
+async function seedDemoServices(prisma: PrismaClient): Promise<number> {
+  // Prestador sem credencial (Pessoa criada pela AS — supabaseUserId nulo).
+  await prisma.person.upsert({
+    where: { id: DEMO_PROVIDER_ID },
+    update: { fullName: 'Prestador ASONSEG (demo)' },
+    create: { id: DEMO_PROVIDER_ID, fullName: 'Prestador ASONSEG (demo)', status: 'ATIVO' },
+  });
+
+  const [categories, regions] = await Promise.all([
+    prisma.serviceCategory.findMany({ select: { id: true, name: true } }),
+    prisma.region.findMany({ select: { id: true, name: true } }),
+  ]);
+  const categoryByName = new Map(categories.map((c) => [c.name, c.id]));
+  const regionByName = new Map(regions.map((r) => [r.name, r.id]));
+
+  const publishedAt = dateOffset(-2); // publicado há 2 dias (mesmo padrão de DEMO_JOBS)
+
+  let count = 0;
+  for (const service of DEMO_SERVICES) {
+    const data = {
+      authorPersonId: DEMO_PROVIDER_ID,
+      companyId: null,
+      title: service.title,
+      categoryId: categoryByName.get(service.categoryName) ?? null,
+      regionId: regionByName.get(service.regionName) ?? null,
+      description: service.description,
+      priceMin: service.priceMin,
+      priceMax: service.priceMax,
+      priceUnit: service.priceUnit,
+      availabilityDescription: service.availabilityDescription,
+      publishedAt,
+      status: service.status ?? 'ACTIVE',
+    };
+    await prisma.service.upsert({ where: { id: service.id }, update: data, create: { id: service.id, ...data } });
+    // O log de conclusão (`prisma/seed.ts`) rotula esta contagem "(ACTIVE)" — só os
+    // serviços ACTIVE entram (a fixture PAUSED de d103 não conta aqui).
+    if ((service.status ?? 'ACTIVE') === 'ACTIVE') count += 1;
+  }
+  return count;
+}
+
 export interface DemoSeedResult {
   demoJobs: number;
   demoApplications: number;
   demoCandidateProfiles: number;
+  demoServices: number;
 }
 
 /** Semeia os dados fictícios de demo (dev-only — nunca chamar em produção). */
@@ -356,5 +460,7 @@ export async function seedDemo(prisma: PrismaClient): Promise<DemoSeedResult> {
   const demoApplications = await seedDemoApplications(prisma);
   // seedDemoCandidateProfiles depende das Pessoas candidatas (APPLICANT_IDS) acima.
   const demoCandidateProfiles = await seedDemoCandidateProfiles(prisma);
-  return { demoJobs, demoApplications, demoCandidateProfiles };
+  // seedDemoServices depende das taxonomias de referência (categoria/região por nome).
+  const demoServices = await seedDemoServices(prisma);
+  return { demoJobs, demoApplications, demoCandidateProfiles, demoServices };
 }
