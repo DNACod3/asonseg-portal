@@ -275,9 +275,77 @@ async function seedDemoApplications(prisma: PrismaClient): Promise<number> {
   return count;
 }
 
+// Perfis de candidato ACTIVE com região (USP-028 / T6): a busca ativa de
+// candidatos só tem o que mostrar se houver `CandidateProfile.publicationStatus
+// ACTIVE` + `Person.status ATIVO` — e `regionId` populado, já que a coleta de
+// região no formulário de cadastro (USP-009) é follow-up fora do escopo (AD-018).
+// Reusa 2 das Pessoas candidatas de `APPLICANT_IDS` (já semeadas ATIVO acima) —
+// não cria Pessoa nova, só adiciona/atualiza o CandidateProfile.
+
+interface DemoCandidateProfile {
+  personId: string;
+  headline: string;
+  skillsText: string;
+  educationLevel: string;
+  availability: string;
+  areaName: string;
+  regionName: string;
+}
+
+const DEMO_CANDIDATE_PROFILES: ReadonlyArray<DemoCandidateProfile> = [
+  {
+    personId: APPLICANT_IDS[0],
+    headline: 'Atendente com experiência em vendas e caixa',
+    skillsText: 'Atendimento ao público, Excel, Caixa',
+    educationLevel: 'ENSINO_MEDIO',
+    availability: 'Período integral',
+    areaName: 'Comércio e Vendas',
+    regionName: 'Ingleses',
+  },
+  {
+    personId: APPLICANT_IDS[1],
+    headline: 'Auxiliar de limpeza com disponibilidade imediata',
+    skillsText: 'Limpeza e conservação de áreas comuns',
+    educationLevel: 'ENSINO_FUNDAMENTAL',
+    availability: 'Meio período',
+    areaName: 'Limpeza e Conservação',
+    regionName: 'Canasvieiras',
+  },
+];
+
+async function seedDemoCandidateProfiles(prisma: PrismaClient): Promise<number> {
+  const [areas, regions] = await Promise.all([
+    prisma.jobArea.findMany({ select: { id: true, name: true } }),
+    prisma.region.findMany({ select: { id: true, name: true } }),
+  ]);
+  const areaByName = new Map(areas.map((a) => [a.name, a.id]));
+  const regionByName = new Map(regions.map((r) => [r.name, r.id]));
+
+  let count = 0;
+  for (const profile of DEMO_CANDIDATE_PROFILES) {
+    const data = {
+      publicationStatus: 'ACTIVE' as const,
+      headline: profile.headline,
+      skillsText: profile.skillsText,
+      educationLevel: profile.educationLevel,
+      availability: profile.availability,
+      primaryAreaOfInterestId: areaByName.get(profile.areaName) ?? null,
+      regionId: regionByName.get(profile.regionName) ?? null,
+    };
+    await prisma.candidateProfile.upsert({
+      where: { personId: profile.personId },
+      update: data,
+      create: { personId: profile.personId, ...data },
+    });
+    count += 1;
+  }
+  return count;
+}
+
 export interface DemoSeedResult {
   demoJobs: number;
   demoApplications: number;
+  demoCandidateProfiles: number;
 }
 
 /** Semeia os dados fictícios de demo (dev-only — nunca chamar em produção). */
@@ -286,5 +354,7 @@ export async function seedDemo(prisma: PrismaClient): Promise<DemoSeedResult> {
   const demoJobs = await seedDemoJobs(prisma);
   // seedDemoApplications depende das vagas demo (FK job_id) — contador do detalhe (USP-022 / E-003).
   const demoApplications = await seedDemoApplications(prisma);
-  return { demoJobs, demoApplications };
+  // seedDemoCandidateProfiles depende das Pessoas candidatas (APPLICANT_IDS) acima.
+  const demoCandidateProfiles = await seedDemoCandidateProfiles(prisma);
+  return { demoJobs, demoApplications, demoCandidateProfiles };
 }
