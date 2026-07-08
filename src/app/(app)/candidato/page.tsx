@@ -1,8 +1,9 @@
 import { requireActivePerson } from '@/modules/identity';
 import { loadTerm, stripTermFrontMatter, TermLoaderError } from '@/modules/consents';
 import { CandidateForm } from '@/modules/persons';
+import { CvUploadForm } from '@/modules/cv-extraction';
 import { prisma } from '@/shared/lib/prisma';
-import { FormCard, FormHeader, StepIcon } from '@/shared/ui';
+import { FormCard, FormHeader, FormSectionTitle, StepIcon } from '@/shared/ui';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
@@ -83,6 +84,15 @@ export default async function CandidatoPage() {
         >
           O termo de consentimento está indisponível no momento. Tente novamente mais tarde.
         </div>
+      )}
+
+      {/* USP-040 — upload/extração de CV por IA: exige perfil de candidato já
+          criado (precondição de `uploadCv`). */}
+      {profile && (
+        <FormCard className="mt-6">
+          <FormSectionTitle>Extrair dados do currículo (opcional)</FormSectionTitle>
+          <CvUploadForm />
+        </FormCard>
       )}
     </main>
   );

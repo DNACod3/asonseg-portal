@@ -43,3 +43,7 @@ export type { ExtractCvResult } from './actions/extract-cv';
 // ── Server Action: confirmação humana (CVE-04) ──────────────────────────────
 export { confirmCvFields } from './actions/confirm-cv-fields';
 export type { ConfirmCvFieldsResult } from './actions/confirm-cv-fields';
+
+// ── UI: upload/extração/confirmação de CV ───────────────────────────────────
+export { CvUploadForm } from './components/CvUploadForm';
+export type { CvUploadFormProps } from './components/CvUploadForm';
