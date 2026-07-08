@@ -54,6 +54,10 @@ export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
 export { extendJobValidity, type ExtendJobValidityResult } from './actions/extend-job-validity';
 export { editJob, type EditJobResult } from './actions/edit-job';
 export { runJobExpiration, type RunJobExpirationResult } from './actions/run-job-expiration';
+export {
+  enqueueExpiryReminder,
+  type JobExpiryReminderPayload,
+} from './actions/enqueue-expiry-reminder';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
