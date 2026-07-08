@@ -97,6 +97,17 @@ describe('NextCacheInvalidation', () => {
     expect(cacheState.revalidatePath).not.toHaveBeenCalledWith('/vagas/job-9');
   });
 
+  it('USP-029/T029-2: SERVICE→ACTIVE revalida /servicos E /servicos/[id] (detalhe, espelha JOB)', async () => {
+    await new NextCacheInvalidation().revalidateForContent({
+      contentKind: ContentKind.SERVICE,
+      contentId: 'service-1',
+      to: ContentStatus.ACTIVE,
+    });
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/servicos');
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/servicos/service-1');
+    expect(cacheState.revalidatePath).toHaveBeenCalledTimes(2);
+  });
+
   it('tipo de conteúdo desconhecido: nenhum path a revalidar (default vazio), sem lançar', async () => {
     await expect(
       new NextCacheInvalidation().revalidateForContent({

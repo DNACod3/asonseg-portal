@@ -240,11 +240,28 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(await statusOf(id)).toBe('ARCHIVED');
   });
 
-  it('USP-023/T1 (preservação): SERVICE ACTIVE→PAUSED continua sem evento mapeado (kind fora do ramo JOB) — sem regressão', async () => {
+  it('USP-029/T029-2: SERVICE ACTIVE→PAUSED (AUTHOR_ACTION) grava SERVICE_PAUSED (eventTypeFor estendido)', async () => {
     const id = await seedContent(ContentKind.SERVICE, ContentStatus.ACTIVE);
 
     const res = await transitionContent({
       contentKind: ContentKind.SERVICE,
+      contentId: id,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res).toMatchObject({ ok: true, data: { from: ContentStatus.ACTIVE, to: ContentStatus.PAUSED } });
+    expect(await statusOf(id)).toBe('PAUSED');
+    const rows = await auditRows(id);
+    expect(rows[0]).toMatchObject({ action: 'SERVICE_PAUSED' });
+  });
+
+  it('USP-029/T029-2: CV ACTIVE→PAUSED continua sem evento mapeado (kind fora do ramo JOB/SERVICE) — sem regressão', async () => {
+    const id = await seedContent(ContentKind.CV, ContentStatus.ACTIVE);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.CV,
       contentId: id,
       to: ContentStatus.PAUSED,
       trigger: 'AUTHOR_ACTION',
