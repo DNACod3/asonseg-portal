@@ -39,3 +39,7 @@ export type { UploadCvResult } from './actions/upload-cv';
 // ── Server Action: extração (CVE-02) ────────────────────────────────────────
 export { extractCvFromUpload } from './actions/extract-cv';
 export type { ExtractCvResult } from './actions/extract-cv';
+
+// ── Server Action: confirmação humana (CVE-04) ──────────────────────────────
+export { confirmCvFields } from './actions/confirm-cv-fields';
+export type { ConfirmCvFieldsResult } from './actions/confirm-cv-fields';
