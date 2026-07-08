@@ -32,3 +32,19 @@ export function validadeStatus(validUntil: Date, hojeSP: Date): ValidadeStatus {
   if (diffDias > MAX_VALIDADE_DIAS) return 'excede_teto';
   return 'ok';
 }
+
+/**
+ * Dias de calendário até a expiração de uma vaga (USP-024 / E-004 / P-002/P-003), para o
+ * badge "expira em N dias" do painel de gestão (USP-023). Mesma regra de fronteira de
+ * {@link validadeStatus} — dia-calendário de `validUntil` (coluna `@db.Date`, lida em UTC)
+ * menos o dia-calendário de "hoje" em `America/Sao_Paulo` — para que o cálculo do badge e a
+ * decisão de expirar (`runJobExpiration`) usem exatamente a mesma fronteira temporal.
+ *
+ * Pode retornar negativo (vaga já vencida, ainda não materializada pelo job) ou zero
+ * (vence hoje) — quem consome decide o que exibir; a função só calcula a diferença.
+ */
+export function diasAteExpiracao(validUntil: Date, hojeSP: Date): number {
+  const vDate = parseISO(formatInTimeZone(validUntil, 'UTC', 'yyyy-MM-dd'));
+  const hojeDate = parseISO(formatInTimeZone(hojeSP, APP_TIME_ZONE, 'yyyy-MM-dd'));
+  return differenceInCalendarDays(vDate, hojeDate);
+}

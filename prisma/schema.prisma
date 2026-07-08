@@ -462,6 +462,9 @@ model Job {
   validUntil         DateTime?     @map("valid_until") @db.Date // validade (date); on-read >= hoje (USP-024)
   status             ContentStatus @default(DRAFT)
   publishedAt        DateTime?     @map("published_at") @db.Timestamptz(6) // preenchido na 1ª ativação (USP-016)
+  // Idempotência do lembrete D-3 (USP-024 / E-003 / U24-MN-07): marcado na 1ª vez que o cron
+  // enfileira o aviso de expiração próxima na Outbox; nulo até lá. Sem backfill.
+  expiryReminderSentAt DateTime?   @map("expiry_reminder_sent_at") @db.Timestamptz(6)
   lastStatusChangeAt DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)

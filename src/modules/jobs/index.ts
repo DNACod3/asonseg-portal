@@ -2,7 +2,7 @@
 // Todos os imports externos devem passar por este arquivo (nunca deep paths).
 
 // ── Domínio ───────────────────────────────────────────────────────────────────
-export { MAX_VALIDADE_DIAS, validadeStatus } from './domain/validade';
+export { MAX_VALIDADE_DIAS, validadeStatus, diasAteExpiracao } from './domain/validade';
 export type { ValidadeStatus } from './domain/validade';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
