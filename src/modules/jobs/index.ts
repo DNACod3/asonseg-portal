@@ -32,6 +32,9 @@ export type {
 export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-draft';
 export { submitJobForModeration, type SubmitJobResult } from './actions/submit-job-for-moderation';
 
+// ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
+export { requireActiveResponsible } from './server/require-active-responsible';
+
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaJobStatusRepository } from './adapters/prisma-job-status';
 
