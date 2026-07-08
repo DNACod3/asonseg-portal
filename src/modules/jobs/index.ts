@@ -48,6 +48,7 @@ export { submitJobForModeration, type SubmitJobResult } from './actions/submit-j
 export { pauseJob, type PauseJobResult } from './actions/pause-job';
 export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
 export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
+export { extendJobValidity, type ExtendJobValidityResult } from './actions/extend-job-validity';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
