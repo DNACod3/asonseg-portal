@@ -111,37 +111,43 @@ export const submitServiceSchema = z.union([
 ]);
 
 /**
+ * Forma-objeto de **edição** (sem `superRefine`) — exportada à parte para que o
+ * cliente (`ServiceEditForm`) possa `.omit({ serviceId: true })` antes de aplicar
+ * a validação de faixa (um `ZodEffects`, como `editServiceSchema` abaixo, não
+ * expõe `.omit()`). Mesmos campos editáveis de `publishServiceSchema`. **Exclui**
+ * `companyId` (imutável — resolvido a partir do serviço carregado, nunca do
+ * input do cliente).
+ */
+export const editServiceObjectSchema = z.object({
+  serviceId: z.string().uuid('Serviço inválido.'),
+  title,
+  categoryId,
+  description,
+  priceMin: priceAmount,
+  priceMax: priceAmount,
+  priceUnit,
+  regionId,
+  availabilityDescription,
+});
+
+/**
  * Schema de **edição** de um serviço já `ACTIVE` (USP-032 / AC-032-1). Subconjunto
  * editável de `publishServiceSchema`: os campos de conteúdo (mesmas regras de
  * completude do submit — o serviço volta a `DRAFT` e passa por nova moderação).
- * **Exclui** `companyId` (imutável — resolvido a partir do serviço carregado,
- * nunca do input do cliente).
  */
-export const editServiceSchema = z
-  .object({
-    serviceId: z.string().uuid('Serviço inválido.'),
-    title,
-    categoryId,
-    description,
-    priceMin: priceAmount,
-    priceMax: priceAmount,
-    priceUnit,
-    regionId,
-    availabilityDescription,
-  })
-  .superRefine((data, ctx) => {
-    if (
-      typeof data.priceMin === 'number' &&
-      typeof data.priceMax === 'number' &&
-      data.priceMax < data.priceMin
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['priceMax'],
-        message: 'O valor máximo não pode ser menor que o mínimo.',
-      });
-    }
-  });
+export const editServiceSchema = editServiceObjectSchema.superRefine((data, ctx) => {
+  if (
+    typeof data.priceMin === 'number' &&
+    typeof data.priceMax === 'number' &&
+    data.priceMax < data.priceMin
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['priceMax'],
+      message: 'O valor máximo não pode ser menor que o mínimo.',
+    });
+  }
+});
 
 export type PublishServiceInput = z.input<typeof publishServiceSchema>;
 export type PublishServiceData = z.output<typeof publishServiceSchema>;

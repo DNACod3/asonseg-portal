@@ -51,6 +51,10 @@ export {
   type SubmitServiceResult,
 } from './actions/submit-service-for-moderation';
 export { uploadServicePhoto, type UploadServicePhotoResult } from './actions/upload-service-photo';
+export { editService, type EditServiceResult } from './actions/edit-service';
+export { pauseService, type PauseServiceResult } from './actions/pause-service';
+export { resumeService, type ResumeServiceResult } from './actions/resume-service';
+export { archiveService, type ArchiveServiceResult } from './actions/archive-service';
 
 // ── Adapters ───────────────────────────────────────────────────────────────
 export { PrismaServiceStatusRepository } from './adapters/prisma-service-status';
@@ -70,6 +74,11 @@ export {
   type SearchServicesResult,
 } from './queries/search-services';
 export { getActiveServiceDetail } from './queries/get-service-detail';
+export {
+  listProviderServices,
+  PROVIDER_SERVICES_PAGE_SIZE,
+  type ProviderServiceRow,
+} from './queries/list-provider-services';
 
 // ── Views ──────────────────────────────────────────────────────────────────
 export {
@@ -87,6 +96,11 @@ export {
   type ServiceDetailPhoto,
   type ServiceDetailRow,
 } from './views/service-detail.view';
+export {
+  viewProviderServiceRow,
+  type ProviderServiceRowActions,
+  type ProviderServiceRowView,
+} from './views/provider-service-row.view';
 
 // ── Components ─────────────────────────────────────────────────────────────
 export { ServiceForm, type ServiceFormProps, type CompanyOption, type RegionOption } from './components/service-form';
@@ -96,3 +110,6 @@ export { ServiceCard } from './components/service-card';
 export { AsonsegDisclaimer } from './components/asonseg-disclaimer';
 export { ServiceDetailView } from './components/service-detail';
 export { ServicoIndisponivel } from './components/servico-indisponivel';
+export { ServiceManagementList } from './components/service-management-list';
+export { ServiceActions } from './components/service-actions';
+export { ServiceEditForm } from './components/service-edit-form';
