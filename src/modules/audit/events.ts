@@ -68,7 +68,11 @@ export const AuditEvent = {
   JOB_EXPIRED: 'JOB_EXPIRED',
   JOB_PAUSED: 'JOB_PAUSED',
   JOB_ARCHIVED: 'JOB_ARCHIVED',
+  /** Despausar (`PAUSED→ACTIVE`, `AUTHOR_ACTION`) — distingue de aprovação (USP-023 / E-002). */
+  JOB_UNPAUSED: 'JOB_UNPAUSED',
   JOB_EDITED_AFTER_APPROVAL: 'JOB_EDITED_AFTER_APPROVAL',
+  /** Prorrogação de `validUntil` sem transição de status (USP-023 / E-004). */
+  JOB_VALIDITY_EXTENDED: 'JOB_VALIDITY_EXTENDED',
 
   // ── Candidaturas ──────────────────────────────────────────────────────────
   APPLICATION_CREATED: 'APPLICATION_CREATED',
@@ -116,7 +120,11 @@ export type AuditEventName = (typeof AuditEvent)[keyof typeof AuditEvent];
 
 /**
  * Eventos cuja `justification` é obrigatória (ADR-0004 §extensão):
- * toda revogação, rejeição, inativação ou edição retroativa exige texto do operador.
+ * toda revogação, rejeição ou inativação exige texto do operador.
+ *
+ * `JOB_EDITED_AFTER_APPROVAL` (editar vaga → rascunho) NÃO exige motivo — intent F4
+ * (sem atrito), E-001 da USP-023 pede só o log antes/depois; `withAudit` bloquearia a
+ * edição se o evento estivesse aqui.
  */
 export const JUSTIFICATION_REQUIRED_EVENTS: ReadonlySet<AuditEventName> = new Set([
   AuditEvent.CONSENT_REVOKED,
@@ -127,7 +135,6 @@ export const JUSTIFICATION_REQUIRED_EVENTS: ReadonlySet<AuditEventName> = new Se
   AuditEvent.CONTENT_RETURNED_FOR_ADJUSTMENTS,
   AuditEvent.CONTENT_REJECTED,
   AuditEvent.CONTENT_INACTIVATED_BY_COORDINATOR,
-  AuditEvent.JOB_EDITED_AFTER_APPROVAL,
   AuditEvent.COMPANY_RESPONSIBLE_REMOVED,
 ]);
 

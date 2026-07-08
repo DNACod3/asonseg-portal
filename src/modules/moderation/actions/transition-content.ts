@@ -2,7 +2,7 @@ import { AuditEvent, type AuditEventName, withAudit } from '@/modules/audit';
 import { container } from '@/shared/container';
 import { fail, ok, type ActionResult } from '@/shared/errors';
 import { childLogger } from '@/shared/lib/logger';
-import { ContentStatus, type ContentKind, type TransitionTrigger } from '../domain/content-status';
+import { ContentKind, ContentStatus, type TransitionTrigger } from '../domain/content-status';
 import { isMeaningfulJustification } from '../domain/justification';
 import { isValidTransition, requiresJustification } from '../domain/transition-rules';
 import { CONTENT_STATUS_REPOSITORY_TOKEN } from '../ports/content-status.port';
@@ -64,7 +64,7 @@ export async function transitionContent(
     return fail('JUSTIFICATION_REQUIRED', 'Informe um motivo descritivo para esta decisão.');
   }
 
-  const event = eventTypeFor(to, trigger);
+  const event = eventTypeFor(contentKind, from, to, trigger);
   if (!event) {
     log.error({ contentKind, from, to, trigger }, 'moderation:transition:no-audit-event');
     return fail('INTERNAL', 'Não foi possível registrar a decisão.');
@@ -137,14 +137,26 @@ export async function transitionContent(
 }
 
 /**
- * Mapeia o destino + gatilho para o evento de auditoria do catálogo
- * (`@/modules/audit/events`). Retorna `null` para transições sem evento mapeado
- * nesta US (pausar/arquivar/expirar — pertencem às USPs de conteúdo).
+ * Mapeia (tipo de conteúdo + origem + destino + gatilho) para o evento de auditoria
+ * do catálogo (`@/modules/audit/events`). Kind-aware (USP-023/T1): o ramo comum
+ * (moderação) vale para qualquer `ContentKind`; o ramo `JOB` cobre o ciclo de vida
+ * pós-publicação (pausar/despausar/arquivar/expirar), que só a vaga usa hoje. Kinds
+ * sem ramo próprio (CV/SERVICE/CANDIDATE_PROFILE) preservam o comportamento anterior
+ * — `null` para os destinos fora do ramo comum (sem regressão).
  */
-function eventTypeFor(to: ContentStatus, trigger: TransitionTrigger): AuditEventName | null {
+function eventTypeFor(
+  contentKind: ContentKind,
+  from: ContentStatus,
+  to: ContentStatus,
+  trigger: TransitionTrigger,
+): AuditEventName | null {
   switch (to) {
     case ContentStatus.ACTIVE:
-      return trigger === 'MODERATOR_ACTION' ? AuditEvent.CONTENT_APPROVED : null;
+      if (trigger === 'MODERATOR_ACTION') return AuditEvent.CONTENT_APPROVED;
+      if (contentKind === ContentKind.JOB && from === ContentStatus.PAUSED && trigger === 'AUTHOR_ACTION') {
+        return AuditEvent.JOB_UNPAUSED;
+      }
+      return null;
     case ContentStatus.AWAITING_ADJUSTMENTS:
       return AuditEvent.CONTENT_RETURNED_FOR_ADJUSTMENTS;
     case ContentStatus.REJECTED:
@@ -153,6 +165,12 @@ function eventTypeFor(to: ContentStatus, trigger: TransitionTrigger): AuditEvent
       return AuditEvent.CONTENT_SUBMITTED_TO_MODERATION;
     case ContentStatus.INACTIVATED:
       return AuditEvent.CONTENT_INACTIVATED_BY_COORDINATOR;
+    case ContentStatus.PAUSED:
+      return contentKind === ContentKind.JOB && trigger === 'AUTHOR_ACTION' ? AuditEvent.JOB_PAUSED : null;
+    case ContentStatus.ARCHIVED:
+      return contentKind === ContentKind.JOB && trigger === 'AUTHOR_ACTION' ? AuditEvent.JOB_ARCHIVED : null;
+    case ContentStatus.EXPIRED:
+      return contentKind === ContentKind.JOB && trigger === 'SYSTEM_JOB' ? AuditEvent.JOB_EXPIRED : null;
     default:
       return null;
   }

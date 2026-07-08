@@ -161,6 +161,101 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(await auditRows(id)).toHaveLength(0);
   });
 
+  it('USP-023/T1: JOB ACTIVE→PAUSED (AUTHOR_ACTION) grava JOB_PAUSED', async () => {
+    const id = await seedContent(ContentKind.JOB, ContentStatus.ACTIVE);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.JOB,
+      contentId: id,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res).toMatchObject({ ok: true, data: { from: ContentStatus.ACTIVE, to: ContentStatus.PAUSED } });
+    const rows = await auditRows(id);
+    expect(rows[0]).toMatchObject({ action: 'JOB_PAUSED' });
+  });
+
+  it('USP-023/T1: JOB PAUSED→ACTIVE (AUTHOR_ACTION) grava JOB_UNPAUSED (distingue de CONTENT_APPROVED)', async () => {
+    const id = await seedContent(ContentKind.JOB, ContentStatus.PAUSED);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.JOB,
+      contentId: id,
+      to: ContentStatus.ACTIVE,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res.ok).toBe(true);
+    const rows = await auditRows(id);
+    expect(rows[0]).toMatchObject({ action: 'JOB_UNPAUSED' });
+  });
+
+  it('USP-023/T1: JOB ACTIVE→ARCHIVED (AUTHOR_ACTION) grava JOB_ARCHIVED', async () => {
+    const id = await seedContent(ContentKind.JOB, ContentStatus.ACTIVE);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.JOB,
+      contentId: id,
+      to: ContentStatus.ARCHIVED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res.ok).toBe(true);
+    const rows = await auditRows(id);
+    expect(rows[0]).toMatchObject({ action: 'JOB_ARCHIVED' });
+  });
+
+  it('USP-024/T1 (infra compartilhada): JOB ACTIVE→EXPIRED (SYSTEM_JOB) grava JOB_EXPIRED', async () => {
+    const id = await seedContent(ContentKind.JOB, ContentStatus.ACTIVE);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.JOB,
+      contentId: id,
+      to: ContentStatus.EXPIRED,
+      trigger: 'SYSTEM_JOB',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res.ok).toBe(true);
+    const rows = await auditRows(id);
+    expect(rows[0]).toMatchObject({ action: 'JOB_EXPIRED' });
+  });
+
+  it('P-006: ARCHIVED→ACTIVE não é uma transição declarada — INVALID_TRANSITION (a FSM não tem aresta a partir de ARCHIVED)', async () => {
+    const id = await seedContent(ContentKind.JOB, ContentStatus.ARCHIVED);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.JOB,
+      contentId: id,
+      to: ContentStatus.ACTIVE,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res).toMatchObject({ ok: false, error: { code: 'INVALID_TRANSITION' } });
+    expect(await statusOf(id)).toBe('ARCHIVED');
+  });
+
+  it('USP-023/T1 (preservação): SERVICE ACTIVE→PAUSED continua sem evento mapeado (kind fora do ramo JOB) — sem regressão', async () => {
+    const id = await seedContent(ContentKind.SERVICE, ContentStatus.ACTIVE);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.SERVICE,
+      contentId: id,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+
+    expect(res).toMatchObject({ ok: false, error: { code: 'INTERNAL' } });
+    expect(await statusOf(id)).toBe('ACTIVE');
+    expect(await auditRows(id)).toHaveLength(0);
+  });
+
   it('R3/concorrência: 2ª decisão (status já mudou no DB) falha e faz rollback do audit', async () => {
     // DB já está ACTIVE, mas o repo informa IN_MODERATION (stale) — simula a corrida:
     // valida ok, mas o UPDATE ... WHERE status = IN_MODERATION casa 0 linhas → conflito.
