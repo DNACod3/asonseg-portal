@@ -143,3 +143,7 @@ export {
   CancelApplicationButton,
   type CancelApplicationButtonProps,
 } from './components/cancel-application-button';
+export {
+  JobApplicantsList,
+  type JobApplicantsListProps,
+} from './components/job-applicants-list';
