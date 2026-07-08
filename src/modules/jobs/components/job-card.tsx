@@ -1,4 +1,5 @@
 import { formatDate } from '@/shared/lib/time';
+import { Badge, Card } from '@/shared/ui';
 import type { JobListItem } from '../views/job-list-item.view';
 
 const brl = new Intl.NumberFormat('pt-BR', {
@@ -30,33 +31,30 @@ export function JobCard({ job }: Readonly<{ job: JobListItem }>) {
   const meta = [job.area, job.region, job.workRegime, job.contractType].filter(Boolean);
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md">
-      <a href={`/vagas/${job.id}`} className="block focus:outline-none focus:ring-2 focus:ring-blue-200">
-        <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-        <p className="mt-1 text-sm text-gray-600">{job.company.displayName}</p>
+    <Card className="p-5">
+      <a href={`/vagas/${job.id}`} className="block focus:outline-none focus:ring-2 focus:ring-primary">
+        <h3 className="text-lg font-semibold text-fg">{job.title}</h3>
+        <p className="mt-1 text-sm text-fg-muted">{job.company.displayName}</p>
 
         {meta.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-2">
             {meta.map((tag) => (
-              <li
-                key={tag}
-                className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700"
-              >
-                {tag}
+              <li key={tag}>
+                <Badge variant="gray">{tag}</Badge>
               </li>
             ))}
           </ul>
         )}
 
         <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-900">{salary ?? 'Salário a combinar'}</span>
+          <span className="font-medium text-fg">{salary ?? 'Salário a combinar'}</span>
           {job.publishedAt && (
-            <time dateTime={job.publishedAt.toISOString()} className="text-gray-400">
+            <time dateTime={job.publishedAt.toISOString()} className="text-fg-muted">
               {formatDate(job.publishedAt)}
             </time>
           )}
         </div>
       </a>
-    </article>
+    </Card>
   );
 }

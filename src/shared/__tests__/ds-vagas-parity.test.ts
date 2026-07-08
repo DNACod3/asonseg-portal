@@ -29,6 +29,8 @@ interface FileGuard {
   requiredPrimitives?: RegExp[];
   /** Regexes de tags cruas proibidas (vazio/omitido = sem verificação de tag). */
   forbiddenRawTags?: RegExp[];
+  /** Regexes de padrões proibidos além de tag/paleta (ex.: `nomeFantasia` — U21-MN-01). */
+  forbiddenPatterns?: RegExp[];
 }
 
 const FILES: FileGuard[] = [
@@ -44,6 +46,19 @@ const FILES: FileGuard[] = [
     label: 'Página publicar vaga (USP-020)',
     path: 'src/app/(app)/empresa/[empresaId]/vagas/nova/page.tsx',
     requiredPrimitives: [/<StepIcon\b/, /<FormHeader\b/, /<FormCard\b/],
+  },
+  {
+    label: 'JobCard (USP-021)',
+    path: 'src/modules/jobs/components/job-card.tsx',
+    requiredPrimitives: [/<Card\b/, /<Badge\b/],
+    // U21-MN-01: a Empresa exibida é sempre `company.displayName` (já anonimizado
+    // pelo View Model) — o componente de apresentação NUNCA acessa `nomeFantasia`.
+    forbiddenPatterns: [/nomeFantasia/],
+  },
+  {
+    label: 'JobList (USP-021)',
+    path: 'src/modules/jobs/components/job-list.tsx',
+    requiredPrimitives: [/<Card\b/],
   },
 ];
 
@@ -62,6 +77,14 @@ describe('DS parity — vagas (USP-020/021/022, Fase 2)', () => {
       expect(content).toMatch(re);
     }
     for (const re of forbiddenRawTags ?? []) {
+      expect(content).not.toMatch(re);
+    }
+  });
+
+  const withForbiddenPatterns = FILES.filter((f) => (f.forbiddenPatterns?.length ?? 0) > 0);
+  it.each(withForbiddenPatterns)('$label ($path) não referencia padrões proibidos', ({ path, forbiddenPatterns }) => {
+    const content = readFileSync(join(process.cwd(), path), 'utf-8');
+    for (const re of forbiddenPatterns ?? []) {
       expect(content).not.toMatch(re);
     }
   });

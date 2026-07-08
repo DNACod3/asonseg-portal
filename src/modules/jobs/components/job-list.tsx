@@ -1,3 +1,4 @@
+import { Card } from '@/shared/ui';
 import type { JobListItem } from '../views/job-list-item.view';
 import { JobCard } from './job-card';
 
@@ -8,12 +9,12 @@ import { JobCard } from './job-card';
 export function JobList({ jobs }: Readonly<{ jobs: JobListItem[] }>) {
   if (jobs.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
-        <p className="text-base font-medium text-gray-900">Nenhuma vaga encontrada</p>
-        <p className="mt-1 text-sm text-gray-600">
+      <Card className="border-dashed p-10 text-center">
+        <p className="text-base font-medium text-fg">Nenhuma vaga encontrada</p>
+        <p className="mt-1 text-sm text-fg-muted">
           Tente ajustar os filtros ou limpar a busca para ver todas as vagas.
         </p>
-      </div>
+      </Card>
     );
   }
 
