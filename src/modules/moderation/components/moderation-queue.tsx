@@ -6,6 +6,7 @@ import { MIN_JUSTIFICATION_LENGTH } from '../domain/justification';
 import { approveContent, rejectContent, returnForAdjustments } from '../actions/decide';
 import type { VerificationChecklistItem } from '../domain/verification-checklist';
 import { VerificationPanel, type VerificationPanelData } from './verification-panel';
+import { Badge, Button, Label, Textarea } from '@/shared/ui';
 
 /** Item da fila já formatado pelo Server Component (data em fuso de SP). */
 export interface ModerationQueueRow {
@@ -27,12 +28,6 @@ const KIND_LABELS: Record<ContentKind, string> = {
 };
 
 type ReasonMode = 'return' | 'reject';
-
-const textareaClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
-
-const btnBase =
-  'rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60';
 
 /**
  * Fila do coordenador (E-001..E-004). Para cada rascunho `IN_MODERATION`:
@@ -113,7 +108,7 @@ export function ModerationQueue({
 
   if (rows.length === 0) {
     return (
-      <div role="status" className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+      <div role="status" className="rounded-xl border border-border bg-surface p-6 text-sm text-fg-muted">
         {doneCount > 0
           ? `Tudo certo — ${doneCount} rascunho(s) processado(s). Não há mais itens na fila.`
           : 'Não há rascunhos aguardando moderação no momento.'}
@@ -132,26 +127,24 @@ export function ModerationQueue({
         return (
           <li
             key={row.contentId}
-            className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                {KIND_LABELS[row.contentKind]}
-              </span>
+              <Badge variant="blue">{KIND_LABELS[row.contentKind]}</Badge>
               {row.companyUnverified && (
-                <span
-                  className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700"
+                <Badge
+                  variant="orange"
                   title="Verifique os dados da Empresa no painel abaixo antes de aprovar."
                 >
                   Empresa não verificada
-                </span>
+                </Badge>
               )}
             </div>
 
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-gray-900">{row.title}</span>
-              <span className="text-xs text-gray-600">Autor: {row.authorName ?? '—'}</span>
-              <span className="text-xs text-gray-500">Enviado em {row.submittedAtLabel}</span>
+              <span className="text-sm font-semibold text-fg">{row.title}</span>
+              <span className="text-xs text-fg-muted">Autor: {row.authorName ?? '—'}</span>
+              <span className="text-xs text-fg-muted">Enviado em {row.submittedAtLabel}</span>
             </div>
 
             {/* Bloco "Verificação da Empresa", separado da decisão da vaga (P-002/AD-6). */}
@@ -165,15 +158,14 @@ export function ModerationQueue({
 
             {reasonEntry ? (
               <div className="flex flex-col gap-2">
-                <label htmlFor={`reason-${row.contentId}`} className="text-xs font-medium text-gray-700">
+                <Label htmlFor={`reason-${row.contentId}`} className="text-xs font-medium text-fg-muted">
                   {reasonEntry.mode === 'return'
                     ? 'Motivo da devolução (enviado ao autor)'
                     : 'Motivo da rejeição (enviado ao autor)'}
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id={`reason-${row.contentId}`}
                   rows={3}
-                  className={textareaClass}
                   value={reasonEntry.text}
                   onChange={(e) =>
                     setReason((prev) => ({
@@ -184,16 +176,19 @@ export function ModerationQueue({
                   placeholder="Descreva de forma clara o que precisa ser ajustado ou o motivo da rejeição."
                 />
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={() => onSubmitReason(row)}
                     disabled={rowPending}
-                    className={`${btnBase} bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-300`}
                   >
                     {rowPending ? 'Enviando…' : 'Confirmar'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() =>
                       setReason((prev) => {
                         const next = { ...prev };
@@ -202,16 +197,17 @@ export function ModerationQueue({
                       })
                     }
                     disabled={rowPending}
-                    className={`${btnBase} bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-300`}
                   >
                     Cancelar
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={() => onApprove(row)}
                   disabled={rowPending || (needsChecklist && !verifyReady[row.contentId])}
                   title={
@@ -219,31 +215,32 @@ export function ModerationQueue({
                       ? 'Conclua a checklist de verificação da Empresa para aprovar (P-001).'
                       : undefined
                   }
-                  className={`${btnBase} bg-green-600 text-white hover:bg-green-700 focus:ring-green-300`}
                 >
                   {rowPending ? 'Processando…' : 'Aprovar'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => openReason(row.contentId, 'return')}
                   disabled={rowPending}
-                  className={`${btnBase} bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-300`}
                 >
                   Devolver para ajustes
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => openReason(row.contentId, 'reject')}
                   disabled={rowPending}
-                  className={`${btnBase} bg-red-600 text-white hover:bg-red-700 focus:ring-red-300`}
                 >
                   Rejeitar
-                </button>
+                </Button>
               </div>
             )}
 
             {error && (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm text-danger">
                 {error}
               </p>
             )}

@@ -150,11 +150,18 @@ skipIfNoDb('removerResponsavel — integração', () => {
     expect(res).toMatchObject({ ok: false, error: { code: 'NOT_FOUND' } });
   });
 
-  it('@permissao — nega quando o ator não é responsável ativo da Empresa', async () => {
+  it('@permissao — nega quando o ator não é responsável ativo da Empresa (U14-MN-03: grant intacto)', async () => {
     mockPerson = asPerson(outsiderId);
     const target = await grantOf(coRespId);
     const res = await removerResponsavel({ grantId: target.id });
     expect(res).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+
+    // U14-MN-03: o grant do alvo permanece intacto (não-responsável não revoga ninguém).
+    const stillActive = await prisma.personCompanyGrant.findUnique({
+      where: { id: target.id },
+      select: { revokedAt: true },
+    });
+    expect(stillActive?.revokedAt).toBeNull();
   });
 
   it('@ac-014-1 — happy (2→1): revoga grant, audita e enfileira e-mail (sem delete)', async () => {

@@ -4,11 +4,9 @@ import { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { Button, Label, Textarea } from '@/shared/ui';
 import { removeResponsibleSchema, type RemoveResponsibleInput } from '../schemas/remove-responsible.schema';
 import { removerResponsavel } from '../actions/remove-responsible';
-
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
 
 export interface RemoveResponsibleDialogProps {
   grantId: string;
@@ -26,6 +24,10 @@ export interface RemoveResponsibleDialogProps {
  * responsável ativo — instrui a designar outro antes), FORBIDDEN e demais são
  * exibidos com a mensagem da action. No sucesso recarrega a rota; na auto-remoção
  * o ator perde o acesso de gestão (ADR-0030) e a própria página passa a dar 404.
+ *
+ * Fundação de Design System da Fase 2 (AD-014/AD-015): restilizado com os
+ * primitivos (`Button`/`Label`/`Textarea`) e tokens — fluxo (RHF/Zod/Esc/
+ * removerResponsavel/tratamento de selfRemoved e erros) preservado.
  */
 export function RemoveResponsibleDialog({ grantId, nome, isSelf }: RemoveResponsibleDialogProps) {
   const router = useRouter();
@@ -76,13 +78,9 @@ export function RemoveResponsibleDialog({ grantId, nome, isSelf }: RemoveRespons
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200"
-      >
+      <Button type="button" variant="danger" size="sm" onClick={() => setOpen(true)}>
         Remover
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -93,13 +91,13 @@ export function RemoveResponsibleDialog({ grantId, nome, isSelf }: RemoveRespons
             role="dialog"
             aria-modal="true"
             aria-labelledby="remove-responsible-title"
-            className="flex w-full max-w-md flex-col gap-4 rounded-xl bg-white p-6 shadow-xl"
+            className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="remove-responsible-title" className="text-lg font-bold text-gray-900">
+            <h2 id="remove-responsible-title" className="text-lg font-bold text-fg">
               Remover {isSelf ? 'você mesmo' : nome} da gestão?
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-fg-muted">
               {isSelf
                 ? 'Você deixará de operar vagas e serviços em nome desta Empresa. O histórico do vínculo é preservado.'
                 : `${nome} deixará de operar vagas e serviços em nome desta Empresa. O histórico do vínculo é preservado.`}
@@ -108,41 +106,32 @@ export function RemoveResponsibleDialog({ grantId, nome, isSelf }: RemoveRespons
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
               <input type="hidden" {...register('grantId')} />
               <div className="flex flex-col gap-1">
-                <label htmlFor="motivo" className="text-sm font-medium text-gray-700">
-                  Motivo (opcional)
-                </label>
-                <textarea
+                <Label htmlFor="motivo">Motivo (opcional)</Label>
+                <Textarea
                   id="motivo"
                   rows={3}
                   autoFocus
                   placeholder="Ex.: saiu da empresa."
-                  className={inputClass}
                   {...register('motivo')}
                 />
               </div>
 
               {serverError && (
-                <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                <div
+                  role="alert"
+                  className="rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+                >
                   {serverError}
                 </div>
               )}
 
               <div className="mt-1 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  disabled={isPending}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
-                >
+                <Button type="button" variant="outline" onClick={closeDialog} disabled={isPending}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60"
-                >
+                </Button>
+                <Button type="submit" variant="danger" disabled={isPending}>
                   {isPending ? 'Removendo…' : 'Confirmar remoção'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

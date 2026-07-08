@@ -10,6 +10,7 @@ import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
 import { isJobDedupViolation } from '../domain/dedup';
 import { submitJobSchema, type SubmitJobInput } from '../schemas/publish-job.schema';
+import { requireActiveResponsible } from '../server/require-active-responsible';
 
 export interface SubmitJobResult {
   jobId: string;
@@ -62,13 +63,13 @@ export async function submitJobForModeration(
       return fail('NOT_FOUND', 'Vaga não encontrada.');
     }
     // 3. Gate P-006 sobre a Empresa da vaga.
-    if (!(await isActiveResponsible(person.id, job.companyId))) {
+    if (!(await requireActiveResponsible(person.id, job.companyId))) {
       return fail('FORBIDDEN', 'Você não é responsável ativo desta Empresa.');
     }
     jobId = job.id;
   } else {
     // 3. Gate P-006 ANTES de persistir (anti-bypass D-005).
-    if (!(await isActiveResponsible(person.id, data.companyId))) {
+    if (!(await requireActiveResponsible(person.id, data.companyId))) {
       return fail('FORBIDDEN', 'Você não é responsável ativo desta Empresa.');
     }
     // 4b. Form direto: cria a vaga em DRAFT auditando a criação (JOB_DRAFT_SAVED,
@@ -144,19 +145,4 @@ export async function submitJobForModeration(
 
   log.info({ actorPersonId: person.id, jobId }, 'jobs:submitted_to_moderation');
   return ok({ jobId, status: transition.data.to });
-}
-
-/** Gate P-006: a Pessoa é responsável ATIVO (não revogado) da Empresa? */
-async function isActiveResponsible(personId: string, companyId: string): Promise<boolean> {
-  const grant = await prisma.personCompanyGrant.findFirst({
-    where: {
-      personId,
-      companyId,
-      grantType: 'RESPONSIBLE',
-      status: 'ACTIVE',
-      revokedAt: null,
-    },
-    select: { id: true },
-  });
-  return grant != null;
 }

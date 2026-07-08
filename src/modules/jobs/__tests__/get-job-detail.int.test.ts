@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { CurrentPerson } from '@/modules/identity';
+import { hojeSaoPaulo } from '@/shared/lib/time';
 
 /**
  * Testes de integração da query de detalhe `getActiveJobDetail` (USP-022 / #173).
@@ -21,9 +22,15 @@ const CNPJ_UNVERIFIED = '11444777000211';
 const SETOR = 'Detalhe Int';
 const REAL_NAME = 'Verificada Detalhe Int';
 
+/**
+ * `days` a partir do dia-calendário de São Paulo (não do relógio local do processo).
+ * `hojeSaoPaulo()` já normaliza "hoje" para meia-noite UTC do dia-calendário em SP; a
+ * partir daí a aritmética usa `setUTCDate` para permanecer imune ao fuso do runner —
+ * evita a janela 21h-00h BRT em que dia-calendário local e UTC divergem (L-006).
+ */
 function dateOffset(days: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
+  const d = hojeSaoPaulo();
+  d.setUTCDate(d.getUTCDate() + days);
   return d;
 }
 
@@ -48,6 +55,7 @@ skipIfNoDb('getActiveJobDetail — integração', () => {
   let jExpirada = ''; // ACTIVE mas validUntil no passado (P-004)
   let jModeracao = ''; // IN_MODERATION (E-005)
   let jNaoVerificada = ''; // ACTIVE válida mas Empresa não verificada (P-005)
+  let jInativada = ''; // INACTIVATED pelo coordenador (USP-018 / INACT-MN-04)
 
   async function cleanup() {
     await prisma.application.deleteMany({
@@ -109,7 +117,7 @@ skipIfNoDb('getActiveJobDetail — integração', () => {
       salaryVisible: true,
     };
 
-    const [a, e, m, nv] = await Promise.all([
+    const [a, e, m, nv, ina] = await Promise.all([
       prisma.job.create({
         data: { ...base, companyId: verifiedCompanyId, title: 'Vaga Ativa Detalhe', status: 'ACTIVE', publishedAt: dateOffset(-1), validUntil: dateOffset(30) },
         select: { id: true },
@@ -126,11 +134,16 @@ skipIfNoDb('getActiveJobDetail — integração', () => {
         data: { ...base, companyId: unverifiedCompanyId, title: 'Vaga Não Verificada Detalhe', status: 'ACTIVE', publishedAt: dateOffset(-1), validUntil: dateOffset(30) },
         select: { id: true },
       }),
+      prisma.job.create({
+        data: { ...base, companyId: verifiedCompanyId, title: 'Vaga Inativada Detalhe', status: 'INACTIVATED', publishedAt: dateOffset(-1), validUntil: dateOffset(30) },
+        select: { id: true },
+      }),
     ]);
     jAtiva = a.id;
     jExpirada = e.id;
     jModeracao = m.id;
     jNaoVerificada = nv.id;
+    jInativada = ina.id;
 
     // 3 candidaturas ativas + 1 cancelada na vaga ativa.
     const candidatos = await Promise.all(
@@ -161,6 +174,11 @@ skipIfNoDb('getActiveJobDetail — integração', () => {
     expect(await getActiveJobDetail(jModeracao, anon)).toBeNull();
     expect(await getActiveJobDetail(jNaoVerificada, anon)).toBeNull();
     expect(await getActiveJobDetail('00000000-0000-0000-0000-0000000000ff', anon)).toBeNull();
+  });
+
+  it('@usp-018 @inact-mn-04 vaga INACTIVATED retorna null (nunca detalhável)', async () => {
+    expect(await getActiveJobDetail(jInativada, anon)).toBeNull();
+    expect(await getActiveJobDetail(jInativada, authenticated)).toBeNull();
   });
 
   it('@e-003 conta candidaturas ativas ignorando as canceladas', async () => {

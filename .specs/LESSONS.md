@@ -8,7 +8,11 @@
 
 Corroborated across multiple features. Safe to apply as guidance.
 
-_none_
+### L-007 — When a task's Done-when requires an e2e spec file and skill-tdad only produced a test.fixme skeleton under .specs/.../tests/e2e/, the Execute phase must promote it into the real e2e/ directory with live assertions before the task is marked done — a skeleton left in .specs/ is invisible to npm run test:e2e in CI, so 'Gate: build' passing does not prove e2e coverage exists.
+- signal: `ac_gap` · recurrence: 2 feature(s) · scope: `jobs/e2e` · harmful: 0
+- features: vagas/usp-023-editar-vaga, vagas/usp-024-expiracao-automatica
+- evidence: tasks.md T7/T8/T9 Done-when (e2e required, Gate: build) (jobs/e2e) (+1 more)
+- last seen: 2026-07-08T02:17:56Z
 
 ## Candidates (under observation — do NOT load as guidance yet)
 
@@ -37,6 +41,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - features: identity-acesso-papeis/usp-001-auto-cadastro
 - evidence: spec.md:113 (Edge Cases) vs acceptRoleConsent.int.test.ts:182-199 (identity)
 - last seen: 2026-07-07T15:00:41Z
+
+### L-005 — A dark-mode/token-parity AC is not proven by a static absence-of-raw-palette guard alone; pair it with an actual rendered or visual-regression check, or explicitly scope the AC down to 'no raw-palette utilities' in the spec.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `companies,design-system` · harmful: 0
+- features: vinculos-pessoa-empresa/usp-015-editar-empresa
+- evidence: ds-empresa-editar-parity.test.ts:28-34 (AC4, recurs identically at ds-empresa-cadastro-parity, ds-empresa-responsaveis-parity, ds-empresa-remover-parity) (companies,design-system)
+- last seen: 2026-07-07T22:23:49Z
+
+### L-006 — Int-test dateOffset() helpers using local Date.setDate() flake near the 21:00-00:00 America/Sao_Paulo window because hojeSaoPaulo() compares UTC-normalized calendar days against a @db.Date column — make date-offset test helpers UTC-safe (formatInTimeZone/Date.UTC), not local wall-clock arithmetic.
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `src/modules/jobs/__tests__/*.int.test.ts` · harmful: 0
+- features: vagas/usp-021-buscar-vagas-publica
+- evidence: src/modules/jobs/__tests__/search-jobs.int.test.ts:26-30 (src/modules/jobs/__tests__/*.int.test.ts)
+- last seen: 2026-07-08T00:52:02Z
+
+### L-008 — This repo has an established cheap pattern for testing a page-level P-005 notFound() guard (mocked next/navigation + requireActivePerson + prisma, testing-library render, no Playwright needed, see empresa/[empresaId]/editar/page.test.tsx) — any new (app) route with the same requireActivePerson+personCompanyGrant+notFound shape should get an equivalent page.test.tsx; do not defer the 404 assertion to e2e alone.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `app-routes/authz-guard` · harmful: 0
+- features: vagas/usp-023-editar-vaga
+- evidence: src/app/(app)/empresa/[empresaId]/vagas/page.tsx notFound() guard vs. sibling src/app/(app)/empresa/[empresaId]/editar/page.test.tsx (app-routes/authz-guard)
+- last seen: 2026-07-08T02:18:35Z
 
 ## Quarantined (failed when applied — ignore)
 

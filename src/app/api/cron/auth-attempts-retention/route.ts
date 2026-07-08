@@ -1,20 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createHash, timingSafeEqual } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { env } from '@/shared/env';
 import { prisma } from '@/shared/lib/prisma';
 import { childLogger } from '@/shared/lib/logger';
-
-/**
- * Compara dois segredos em tempo constante. Faz hash de ambos com SHA-256 antes
- * do `timingSafeEqual` para que os buffers tenham sempre o mesmo tamanho — assim
- * não se vaza nem o tamanho nem o prefixo coincidente do segredo por timing.
- */
-function secretsMatch(provided: string, expected: string): boolean {
-  const a = createHash('sha256').update(provided).digest();
-  const b = createHash('sha256').update(expected).digest();
-  return timingSafeEqual(a, b);
-}
+import { verifyCronSecret } from '@/shared/lib/cron-secret';
 
 /**
  * Job de retenção de `auth_attempts` (USP-004 — T-11, L-006).
@@ -32,18 +21,12 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const log = childLogger({ module: 'cron', job: 'auth-attempts-retention' });
 
-  const secret = env.CRON_SECRET;
-  if (!secret) {
+  const auth = verifyCronSecret(request, env.CRON_SECRET);
+  if (auth === 'missing_secret') {
     log.error('CRON_SECRET ausente — job desabilitado (fail-closed)');
     return NextResponse.json({ ok: false, error: 'CRON_SECRET não configurado' }, { status: 503 });
   }
-
-  const provided =
-    request.headers.get('x-cron-secret') ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ??
-    null;
-
-  if (!provided || !secretsMatch(provided, secret)) {
+  if (auth === 'unauthorized') {
     return NextResponse.json({ ok: false, error: 'Não autorizado' }, { status: 401 });
   }
 

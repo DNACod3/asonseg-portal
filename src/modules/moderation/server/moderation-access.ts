@@ -19,3 +19,19 @@ export async function canAccessModerationQueue(person: CurrentPerson): Promise<b
   });
   return grant !== null;
 }
+
+/**
+ * `true` se a Pessoa pode gerir conteúdo publicado (superfície de inativação —
+ * USP-018 / `(app)/moderacao/publicados`) — coordenador (permissão inerente) ou
+ * voluntário com delegação ativa de `INACTIVATE_PUBLISHED_CONTENT` (INACT-06).
+ * Espelha {@link canAccessModerationQueue}. A decisão de inativar ainda re-checa
+ * a permissão na Server Action (defesa em profundidade — INACT-MN-03).
+ */
+export async function canManagePublishedContent(person: CurrentPerson): Promise<boolean> {
+  if (isCoordinator(person)) return true;
+  const grant = await prisma.delegatedPermission.findFirst({
+    where: { personId: person.id, permission: 'INACTIVATE_PUBLISHED_CONTENT', revokedAt: null },
+    select: { id: true },
+  });
+  return grant !== null;
+}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { formatDate } from '@/shared/lib/time';
+import { Badge, Button, FormCard, FormSectionTitle } from '@/shared/ui';
 import type { JobDetail } from '../views/job-detail.view';
 
 const brl = new Intl.NumberFormat('pt-BR', {
@@ -25,8 +26,8 @@ function Section({ title, content }: Readonly<{ title: string; content: string |
   if (!content) return null;
   return (
     <section>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{title}</h2>
-      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-gray-700">{content}</p>
+      <FormSectionTitle>{title}</FormSectionTitle>
+      <p className="whitespace-pre-line text-sm leading-relaxed text-fg-muted">{content}</p>
     </section>
   );
 }
@@ -39,32 +40,23 @@ function Section({ title, content }: Readonly<{ title: string; content: string |
 function ApplyCta({ job }: Readonly<{ job: JobDetail }>) {
   if (job.canApply) {
     return (
-      <button
-        type="button"
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto"
-      >
+      <Button type="button" variant="primary" className="w-full sm:w-auto">
         Candidatar-se
-      </button>
+      </Button>
     );
   }
   if (job.showActivateCandidateCta) {
     return (
-      <Link
-        href="/candidato"
-        className="inline-block rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-      >
-        Ative seu perfil candidato para se candidatar
-      </Link>
+      <Button variant="primary" asChild>
+        <Link href="/candidato">Ative seu perfil candidato para se candidatar</Link>
+      </Button>
     );
   }
   // Anônimo: caminho claro para criar conta (USP-001).
   return (
-    <Link
-      href="/cadastro"
-      className="inline-block rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-    >
-      Criar conta para candidatar-se
-    </Link>
+    <Button variant="outline" asChild>
+      <Link href="/cadastro">Criar conta para candidatar-se</Link>
+    </Button>
   );
 }
 
@@ -81,30 +73,25 @@ export function JobDetailView({ job }: Readonly<{ job: JobDetail }>) {
   );
 
   return (
-    <article className="flex flex-col gap-6">
+    <FormCard className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-        <p className="text-sm text-gray-600">{job.company.displayName}</p>
+        <h1 className="font-heading text-2xl font-bold text-fg">{job.title}</h1>
+        <p className="text-sm text-fg-muted">{job.company.displayName}</p>
 
         {meta.length > 0 && (
           <ul className="mt-1 flex flex-wrap gap-2">
             {meta.map((tag) => (
-              <li
-                key={tag}
-                className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700"
-              >
-                {tag}
+              <li key={tag}>
+                <Badge variant="gray">{tag}</Badge>
               </li>
             ))}
           </ul>
         )}
 
-        <p className="mt-1 text-base font-semibold text-gray-900">
-          {salary ?? 'Salário a combinar'}
-        </p>
+        <p className="mt-1 text-base font-semibold text-fg">{salary ?? 'Salário a combinar'}</p>
 
         {job.applicationCount != null && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-fg-muted">
             {job.applicationCount} {job.applicationCount === 1 ? 'pessoa se candidatou' : 'pessoas se candidataram'}
           </p>
         )}
@@ -115,17 +102,17 @@ export function JobDetailView({ job }: Readonly<{ job: JobDetail }>) {
       <Section title="Benefícios" content={job.benefits} />
 
       {(job.location || job.validUntil) && (
-        <dl className="grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 text-sm sm:grid-cols-2">
+        <dl className="grid grid-cols-1 gap-3 border-t border-border pt-4 text-sm sm:grid-cols-2">
           {job.location && (
             <div>
-              <dt className="font-medium text-gray-500">Local</dt>
-              <dd className="text-gray-700">{job.location}</dd>
+              <dt className="font-medium text-fg-muted">Local</dt>
+              <dd className="text-fg">{job.location}</dd>
             </div>
           )}
           {job.validUntil && (
             <div>
-              <dt className="font-medium text-gray-500">Válida até</dt>
-              <dd className="text-gray-700">
+              <dt className="font-medium text-fg-muted">Válida até</dt>
+              <dd className="text-fg">
                 <time dateTime={job.validUntil.toISOString()}>{formatDate(job.validUntil)}</time>
               </dd>
             </div>
@@ -133,9 +120,9 @@ export function JobDetailView({ job }: Readonly<{ job: JobDetail }>) {
         </dl>
       )}
 
-      <div className="border-t border-gray-100 pt-5">
+      <div className="border-t border-border pt-5">
         <ApplyCta job={job} />
       </div>
-    </article>
+    </FormCard>
   );
 }

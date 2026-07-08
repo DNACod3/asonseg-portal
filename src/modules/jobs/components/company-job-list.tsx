@@ -1,0 +1,72 @@
+import Link from 'next/link';
+import { formatDate } from '@/shared/lib/time';
+import { Badge, Button, Card } from '@/shared/ui';
+import { CompanyJobActions } from './company-job-actions';
+import type { CompanyJobRowView } from '../views/company-job-row.view';
+
+export interface CompanyJobListProps {
+  empresaId: string;
+  rows: CompanyJobRowView[];
+}
+
+/**
+ * Lista de gestão de vagas da Empresa (USP-023 / T8-T9 — painel). Cada vaga mostra
+ * status (`Badge`) e ações contextuais por status (spec.md — Painel de gestão):
+ * "Editar"/"Enviar para moderação" são navegação (rotas reais); pausar/despausar/
+ * prorrogar/arquivar são cabeadas aos Server Actions via `CompanyJobActions`
+ * (componente cliente, T9) com confirmação hand-rolled para arquivar.
+ */
+export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
+  if (rows.length === 0) {
+    return (
+      <Card className="flex flex-col items-start gap-3">
+        <p className="text-sm text-fg-muted">Sua Empresa ainda não publicou nenhuma vaga.</p>
+        <Button variant="primary" asChild>
+          <Link href={`/empresa/${empresaId}/vagas/nova`}>Publicar vaga</Link>
+        </Button>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {rows.map((row) => (
+        <Card key={row.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-fg">{row.title}</p>
+              <Badge variant={row.badgeVariant}>{row.statusLabel}</Badge>
+              {/* USP-024 / E-004 / P-003: sinal in-portal de validade próxima, independente do e-mail. */}
+              {row.expiraEmDias != null && (
+                <Badge variant="orange">
+                  {row.expiraEmDias === 0
+                    ? 'expira hoje'
+                    : `expira em ${row.expiraEmDias} dia${row.expiraEmDias === 1 ? '' : 's'}`}
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-fg-muted">
+              {row.validUntil ? `Válida até ${formatDate(row.validUntil)}` : 'Sem data de validade'}
+            </p>
+          </div>
+
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-2">
+              {row.actions.canEdit && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Editar</Link>
+                </Button>
+              )}
+              {row.actions.canSubmit && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Enviar para moderação</Link>
+                </Button>
+              )}
+            </div>
+            <CompanyJobActions jobId={row.id} actions={row.actions} />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}

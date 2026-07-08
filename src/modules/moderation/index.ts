@@ -52,6 +52,12 @@ export { PrismaCompanyVerifyHook } from './adapters/prisma-company-verify-hook';
 
 // ── Actions de decisão + fila do coordenador (#123) ──────────────────────────
 export { approveContent, returnForAdjustments, rejectContent } from './actions/decide';
+export { inactivateContent } from './actions/inactivate';
+export { suggestTaxonomy } from './actions/suggest-taxonomy';
+export {
+  approveTaxonomySuggestion,
+  rejectTaxonomySuggestion,
+} from './actions/resolve-taxonomy-suggestion';
 export {
   approveSchema,
   returnForAdjustmentsSchema,
@@ -62,12 +68,35 @@ export type {
   ReturnForAdjustmentsInput,
   RejectInput,
 } from './schemas/decision';
+export { inactivateSchema } from './schemas/inactivate';
+export type { InactivateContentInput } from './schemas/inactivate';
+export {
+  TAXONOMY_NAME_MIN,
+  TAXONOMY_NAME_MAX,
+  foldForDedup,
+} from './domain/taxonomy-suggestion';
+export type { TaxonomyKind } from './domain/taxonomy-suggestion';
+export {
+  suggestTaxonomySchema,
+  resolveTaxonomySuggestionSchema,
+} from './schemas/taxonomy-suggestion';
+export type {
+  SuggestTaxonomyInput,
+  ResolveTaxonomySuggestionInput,
+} from './schemas/taxonomy-suggestion';
 export { viewModerationQueue } from './queries/moderation-queue';
 export type { ModerationQueueItem } from './views/moderation-queue-item';
+export { listTaxonomySuggestions } from './queries/list-taxonomy-suggestions';
+export type { TaxonomySuggestionItem } from './views/taxonomy-suggestion-item';
+export { canApproveTaxonomySuggestions } from './server/taxonomy-suggestion-access';
 export { listVerificationChecklistItems } from './queries/list-verification-checklist';
-export { canAccessModerationQueue } from './server/moderation-access';
+export { canAccessModerationQueue, canManagePublishedContent } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
+export { PublishedContentManager } from './components/published-content-manager';
+export type { PublishedContentRow } from './components/published-content-manager';
+export { TaxonomySuggestionsList } from './components/taxonomy-suggestions-list';
+export type { TaxonomySuggestionRow } from './components/taxonomy-suggestions-list';
 export { VerificationPanel } from './components/verification-panel';
 export type {
   VerificationPanelData,

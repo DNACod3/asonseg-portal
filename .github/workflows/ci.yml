@@ -173,6 +173,12 @@ jobs:
             npx playwright install --with-deps chromium
           fi
 
+      # As specs E2E de vagas/serviços dependem das vagas demo (d001–d006). Roda
+      # DEPOIS da integração (cujo cleanup pode apagar seed com CNPJ compartilhado)
+      # e ANTES do Playwright. reference.ts é idempotente; o demo é gated por SEED_DEMO=1.
+      - name: Seed demo data (E2E fixtures)
+        run: SEED_DEMO=1 npx prisma db seed
+
       - name: Run E2E smokes
         run: npm run test:e2e
 

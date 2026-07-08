@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { Button, Card } from '@/shared/ui';
 import { aceitarVinculoResponsavel } from '../actions/accept-responsible-link';
 import type { PendingResponsibleLink } from '../queries/list-pending-responsible-links';
 
@@ -9,6 +10,10 @@ import type { PendingResponsibleLink } from '../queries/list-pending-responsible
  * (USP-013). Para cada convite, a Pessoa confirma o aceite; ao aceitar, o vínculo
  * vira ACTIVE e o item sai da lista. A identidade vem da sessão (P-002) — o
  * `empresaId` é só a chave do convite, não autentica nada.
+ *
+ * Fundação de Design System da Fase 2 (AD-014/AD-015): restilizado com os
+ * primitivos (`Card`/`Button`) e tokens — comportamento (aceitarVinculoResponsavel/
+ * filtro otimista/doneCount) preservado.
  */
 export function PendingResponsibleLinksList({ items }: { items: PendingResponsibleLink[] }) {
   const [links, setLinks] = useState(items);
@@ -34,10 +39,7 @@ export function PendingResponsibleLinksList({ items }: { items: PendingResponsib
 
   if (links.length === 0) {
     return (
-      <div
-        role="status"
-        className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600"
-      >
+      <div role="status" className="rounded-md border border-border bg-background p-6 text-sm text-fg-muted">
         {doneCount > 0
           ? `Tudo certo — ${doneCount} vínculo(s) aceito(s). Você não tem mais convites pendentes.`
           : 'Você não tem convites de vínculo pendentes.'}
@@ -50,29 +52,30 @@ export function PendingResponsibleLinksList({ items }: { items: PendingResponsib
       {links.map((link) => {
         const linkPending = isPending && pendingId === link.empresaId;
         return (
-          <li
-            key={link.empresaId}
-            className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-          >
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-gray-900">{link.empresaNome}</span>
-              <span className="text-xs text-gray-500">Convite enviado em {link.pendingAtLabel}</span>
-            </div>
+          <li key={link.empresaId}>
+            <Card className="flex flex-col gap-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-fg">{link.empresaNome}</span>
+                <span className="text-xs text-fg-muted">Convite enviado em {link.pendingAtLabel}</span>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => onAccept(link.empresaId)}
-              disabled={linkPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60 self-start"
-            >
-              {linkPending ? 'Aceitando…' : 'Aceitar vínculo'}
-            </button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => onAccept(link.empresaId)}
+                disabled={linkPending}
+                className="self-start"
+              >
+                {linkPending ? 'Aceitando…' : 'Aceitar vínculo'}
+              </Button>
 
-            {errors[link.empresaId] && (
-              <p role="alert" className="text-xs text-red-600">
-                {errors[link.empresaId]}
-              </p>
-            )}
+              {errors[link.empresaId] && (
+                <p role="alert" className="text-xs text-danger">
+                  {errors[link.empresaId]}
+                </p>
+              )}
+            </Card>
           </li>
         );
       })}

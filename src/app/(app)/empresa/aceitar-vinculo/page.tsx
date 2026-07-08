@@ -3,6 +3,7 @@ import {
   listPendingResponsibleLinks,
   PendingResponsibleLinksList,
 } from '@/modules/companies';
+import { FormHeader } from '@/shared/ui';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
@@ -19,13 +20,10 @@ export default async function AceitarVinculoPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Aceitar vínculo de responsável</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Convites para você representar uma Empresa como responsável. Ao aceitar, o vínculo passa
-          a valer imediatamente.
-        </p>
-      </header>
+      <FormHeader
+        title="Aceitar vínculo de responsável"
+        description="Convites para você representar uma Empresa como responsável. Ao aceitar, o vínculo passa a valer imediatamente."
+      />
 
       <PendingResponsibleLinksList items={links} />
     </main>

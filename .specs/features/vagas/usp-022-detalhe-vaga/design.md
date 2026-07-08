@@ -1,124 +1,128 @@
-# USP-022 — Ver detalhe da vaga — Design
+# USP-022 — Ver detalhe da vaga — Refactor (Fase 2 / Design System) — Design
 
-> **Modo ICE (thin adapter).** Resolve TD §4.4/§4.5/§4.6 + ADRs + runbooks para o concreto do código. Não re-deriva
-> arquitetura. Padrões de referência:
-> `jobs/queries/search-jobs.ts` (on-read + `select` explícito), `jobs/views/job-list-item.view.ts` (`viewJobForVisitor`
-> — anonimização por papel), `identity/server/session.ts` (`getCurrentPerson`), `app/(public)/vagas/page.tsx` (ISR +
-> `getCurrentPerson` + query), `moderation/adapters/next-cache-invalidation.ts` (revalidação on-demand de `/vagas`).
+**Spec**: `.specs/features/vagas/usp-022-detalhe-vaga/spec.md`
+**Status**: Draft
 
-## 0. Reconciliação (TD doc × schema implementado)
+> **Disciplina (AD-015).** Restyle **style-only**: muda-se **markup/classes**; não se tocam a query
+> on-read, o View Model, o `generateMetadata`, o `jobDetailJsonLd`/`serializeJsonLd`, o `revalidate`/ISR
+> nem a injeção do `<script ld+json>`. Os testes existentes (`get-job-detail.int.test.ts`,
+> `job-detail.view.spec.ts`, `job-detail.spec.tsx`) são os **testes de preservação**. Ver `project-guideline`
+> (§5/§10/§18) e AD-014/AD-012.
 
-- **`content_items`/`content_transitions` não existem** — `status` mora na entidade `Job` (`ContentStatus`); histórico em
-  `audit_log` (ADR-0023). O detalhe filtra **on-read** sobre `Job.status` direto, igual à USP-021. Ver [[td-content-items-nao-implementado]].
-- **A tabela `applications` (TD §4.5) NÃO existe** — `#162` (schema da USP-020) criou só `Job`/`JobArea`/`Region`/`ContentStatus`;
-  `JOB_APPLICATION` é só valor do enum de evento de auditoria, não model. **A USP-022 é a primeira que precisa de `applications`**
-  (contador E-003). **AD-012 (kickoff 2026-06-20):** introduzir a tabela `applications` **mínima** (capaz de contar) nesta USP;
-  o caminho de **escrita** (candidatar/cancelar) e o vínculo de encaminhamento (FK `Referral`, que ainda não existe) ficam na
-  USP-025/044. Mesmo padrão de AD-011 (USP-021 estendeu o `Job` que a USP-020 criou).
-- **Filtro on-read já existe** em `search-jobs.ts` (`status='ACTIVE' AND valid_until >= hojeSaoPaulo() AND company.is_verified`).
-  O detalhe **reusa exatamente** essa cláusula (E-005/P-004/P-005) — uma vaga só é "detalhável" se passaria na busca.
-- **Anonimização já existe** em `viewJobForVisitor` (anônimo → `"Empresa do setor de "+setor`, `isAnonymized=true`,
-  nunca `company.nomeFantasia`). O `viewJobDetail` **reusa a mesma regra** e a estende com os campos de texto longo.
-- **Cache de `/vagas/[id]`:** `NextCacheInvalidation.publicPathsFor(JOB)` hoje revalida `['/vagas']`. O detalhe é ISR
-  (`revalidate`); a precisão de invalidar `/vagas/[id]` individual fica como nota de débito (§5) — janela curta de ISR já cobre L-002.
+## 0. Comportamento preservado (fonte da verdade = código)
 
-## 1. Modelo de dados — tabela `applications` (mínima, AD-012)
+- **Query** `queries/get-job-detail.ts`: `getActiveJobDetail(id, viewer)` com WHERE on-read **idêntico à
+  busca** (`status='ACTIVE' AND validUntil >= hojeSaoPaulo() AND company.isVerified`) → **`null`** se não
+  casa (nunca 404). Conta candidaturas ativas via `_count.applications where cancelledAt=null` (sem N+1).
+  `select` condicional ao papel (`nomeFantasia` só p/ autenticado); memoizada com `cache()` por
+  `(id, authenticated)`.
+- **View Model** `views/job-detail.view.ts`: `viewJobDetail` = **única fonte de anonimização** (ADR-0022);
+  `APPLICATION_COUNTER_THRESHOLD=3` (contador `null` se `<3`, P-001); `canApply`/`showActivateCandidateCta`
+  por papel; `salaryVisible=false` ⇒ `salary=null`. `jobDetailJsonLd` (schema.org `JobPosting`,
+  `hiringOrganization` = `displayName` anonimizado) + `serializeJsonLd` (escape XSS `<`/`>`/`&`/U+2028/U+2029).
+- **Rota** `(public)/vagas/[id]/page.tsx`: `revalidate=1800`; `generateMetadata` chama
+  `getActiveJobDetail(id, null)` (**sempre anônimo**) → título/description/OG/Twitter/canonical anonimizados
+  (`robots.index=false` p/ vaga indisponível); página injeta `<script type="application/ld+json">` com
+  `viewJobDetail(row, null)` (**sempre anônimo**, independente do viewer, P-002); `row == null ?
+  <VagaIndisponivel/> : <JobDetailView job={viewJobDetail(row, viewer)}/>`.
 
-Adicionar à `prisma/schema.prisma` (campos `@map` snake_case; padrão do repo):
+Nada disso muda. O delta é 100% de apresentação; `JobDetailView` e a página são **Server Components**.
 
-```prisma
-model Application {
-  id                String    @id @default(uuid()) @db.Uuid
-  candidatePersonId String    @map("candidate_person_id") @db.Uuid
-  jobId             String    @map("job_id")              @db.Uuid
-  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz  // null = candidatura ativa (soft-cancel)
-  appliedAt         DateTime  @default(now()) @map("applied_at") @db.Timestamptz
+## 1. Architecture Overview
 
-  candidate Person @relation(fields: [candidatePersonId], references: [id])
-  job       Job    @relation(fields: [jobId], references: [id])
-
-  @@index([jobId, cancelledAt])     // contagem on-read do contador (E-003)
-  @@map("applications")
-}
+```mermaid
+graph TD
+    P["(public)/vagas/[id]/page.tsx (Server, ISR 1800)"] -->|getActiveJobDetail + viewJobDetail| Q[query + view]
+    P -->|generateMetadata + JSON-LD = viewJobDetail(row,null)| M[metadados SEMPRE anônimos]
+    P -->|row==null → VagaIndisponivel| E[Card 'vaga encerrada']
+    P -->|row!=null → JobDetailView| D[JobDetailView Server]
+    D -->|Card/FormCard/Badge/Button| UI[@/shared/ui]
+    E --> UI
 ```
 
-- Reversa: `Job.applications Application[]` e `Person.applications Application[]`.
-- **Nomes alinhados ao TD §4.5** (`candidatePersonId`/`candidate_person_id`, `appliedAt`/`applied_at`): aproveita o zero dado em
-  prod p/ não forçar rename na USP-025. **Decisão registrada (AD-012).**
-- **`cancelledAt DateTime?` (null = ativa)** em vez de enum `status (ativa|cancelada)` do TD §4.5: alinha ao corpo do board
-  (#173 conta "applications com `cancelledAt = null`") e dá índice parcial limpo para a contagem. **Decisão registrada (AD-012).**
-- **Índice único parcial** de candidatura ativa por (candidato, vaga) é **da USP-025** (escrita) — aqui não há escrita, só leitura.
-  Criar agora só o índice de contagem `(jobId, cancelledAt)`.
-- **Deferido p/ USP-025/044:** `viaEncaminhamento Boolean`, `encaminhamentoId` FK `Referral` (model inexistente), Server Actions
-  de candidatar/cancelar, índice único parcial de unicidade.
-- **Seed:** backfillar candidaturas de exemplo — uma vaga ACTIVE com **≥ 3** (contador visível, D-005) e outra com **0** (oculto).
+## 2. Code Reuse Analysis
 
-## 2. Query — `getActiveJobDetail(id, viewer)`
+### Primitivos do DS a adotar
 
-`src/modules/jobs/queries/get-job-detail.ts` — read-only, espelha o `where` on-read de `search-jobs.ts`.
+| Primitivo | Uso | Substitui |
+| --- | --- | --- |
+| `Card` / `FormCard` / `FormSectionTitle` | envelope do detalhe; `Section`; `<dl>` local/validade; estado "vaga encerrada" | `<article className="flex flex-col gap-6">`, `<dl className="… border-t border-gray-100">`, `VagaIndisponivel` |
+| `Badge` | pílulas de metadados (área/região/regime/contrato) e, se aplicável, status | `<li className="rounded-full bg-gray-100 … text-gray-700">` |
+| `Button` (+`asChild`) | CTAs: candidatar-se (display-only), ativar candidato (`asChild`→`/candidato`), criar conta (`asChild`→`/cadastro`), voltar à lista | `<button className="bg-blue-600 …">`, `<Link>` cru |
 
-```ts
-export async function getActiveJobDetail(
-  id: string,
-  viewer: CurrentPerson | null,
-): Promise<JobDetailRow | null>
-```
+### Padrões existentes (reusar)
 
-- Carrega **uma** vaga por `id` com `select` explícito (sem vazar entidade nem `company.nomeFantasia` para anônimo — a
-  projeção do nome real é **condicional ao papel**, como em `search-jobs.ts:55`, P-002 / [[view-model-anonimizacao-nao-basta-rsc-flight]]).
-- `where`: `id = $id AND status='ACTIVE' AND valid_until >= hojeSaoPaulo() AND company.is_verified = true` (E-005/P-004/P-005).
-  **Retorna `null`** quando não casa → a página renderiza o estado "vaga encerrada" (E-005), nunca 404 técnico.
-- Conta candidaturas ativas: `applications` com `cancelledAt = null` para o `jobId` (uma agregação; sem N+1).
-- Campos do `select`: título, descrição, requisitos, benefícios, `salaryMin/Max/Visible`, `contractType`, `workRegime`,
-  `validUntil`, `area.name`, `region.name`, `company.setor` (sempre), `company.nomeFantasia` (**só se `viewer` autenticado**).
+- `job-card.tsx` já reestilizado na USP-021 (mesmas pílulas → `Badge`) — consistência.
+- **View types intocáveis:** `JobDetail` (o componente consome `company.displayName`, `applicationCount`,
+  `canApply`, `showActivateCandidateCta`, `salary` já resolvidos; nunca acessa `nomeFantasia` nem recomputa
+  o limiar).
 
-## 3. View Model — `viewJobDetail(row, viewer)`
+## 3. Refactor deltas — `job-detail.tsx` (`JobDetailView`, Server Component)
 
-`src/modules/jobs/views/job-detail.view.ts` — **única fonte de anonimização** (ADR-0022; runbook-view-model-visibility).
-Consumido **tanto** pela página **quanto** pelo `generateMetadata` (P-002 — anonimizar uma vez, no serializer).
+1. Raiz `<article className="flex flex-col gap-6">` → `<Card>`/`<FormCard>` com spacing por token.
+2. Título `<h1 className="text-2xl font-bold text-gray-900">` → `text-fg` (+ `font-heading`).
+3. Empresa (`job.company.displayName`) → `text-fg-muted` (**displayName preservado**; nunca nome real).
+4. Pílulas de metadados → `<Badge variant="gray|blue">` (mesmo mapa da USP-021).
+5. Linha do salário e contador `<p>{count} pessoas se candidataram</p>` → tokens; **condição preservada**
+   (`job.applicationCount != null`, P-001).
+6. `Section({title, content})` → `FormSectionTitle` + corpo em `Card`/token (descrição, requisitos,
+   benefícios). Renderização condicional (só se `content`) preservada.
+7. `<dl className="grid … border-t border-gray-100 … sm:grid-cols-2">` (local/validade) → `FormRow cols={2}`
+   ou grid com `border-border`/token.
+8. **`ApplyCta`** (preserva a lógica de branch por papel):
+   - `canApply` → `<Button type="button" variant="primary">Candidatar-se</Button>` — **somente exibição**
+     (sem `onClick` de ação; a candidatura é USP-025) — must-not U22-MN-04.
+   - `showActivateCandidateCta` → `<Button asChild><Link href="/candidato">Ativar perfil candidato</Link></Button>`.
+   - anônimo → `<Button variant="outline" asChild><Link href="/cadastro">Criar conta para candidatar-se</Link></Button>`.
 
-```ts
-export function viewJobDetail(row: JobDetailRow, viewer: CurrentPerson | null): JobDetail
-```
+**Preservado:** toda a leitura de `JobDetail`, a condição do contador, os três branches de CTA, a omissão
+de salário.
 
-Regras:
-- **Empresa:** anônimo → `companyDisplayName = "Empresa do setor de "+row.company.setor`, `isAnonymized=true`, **nunca**
-  `nomeFantasia` (E-001/P-002). Autenticado → nome real, `isAnonymized=false` (E-002). Reusa `viewJobForVisitor`.
-- **Contador (E-003/P-001):** `applicationCount = count >= APPLICATION_COUNTER_THRESHOLD ? count : null` (limiar `3`,
-  constante exportada/tunável). `null` ⇒ a UI **não** renderiza o contador.
-- **Flags por papel:** `canApply = viewer?.roles.includes('candidato')` (E-002 — botão candidatar); `showActivateCandidateCta =
-  viewer != null && !canApply` (E-004/P-003 — CTA ativar candidato); anônimo ⇒ ambos `false` (UI mostra CTA criar conta).
-- **Salário:** `salaryVisible === false` ⇒ `salary = null` (edge, independe do papel).
+## 4. Refactor deltas — `(public)/vagas/[id]/page.tsx` (Server Component, ISR)
 
-## 4. Rota pública + metadados
+1. Back-link e container da página → tokens/`Button asChild`.
+2. `VagaIndisponivel` (estado "vaga encerrada / temporariamente indisponível") → `<Card>` neutro +
+   `<Button asChild><Link href="/vagas">Ver outras vagas</Link></Button>`; **sem** botão candidatar (P-005).
+3. **Preservado sem tocar (crítico p/ P-002):**
+   - `export const revalidate = 1800`.
+   - `generateMetadata` → `getActiveJobDetail(id, null)` + `viewJobDetail(row, null)` (**sempre anônimo**);
+     título/description/OG/Twitter/canonical/`robots` inalterados.
+   - injeção `<script type="application/ld+json" dangerouslySetInnerHTML={{__html: serializeJsonLd(
+     jobDetailJsonLd(viewJobDetail(row, null)))}} />` **somente** quando `row != null`, **sempre anônimo**.
+   - `row == null ? <VagaIndisponivel/> : <JobDetailView job={viewJobDetail(row, viewer)}/>`.
 
-`src/app/(public)/vagas/[id]/page.tsx` — Server Component, ISR (`export const revalidate`, alinhado a `/vagas` = 1800s, L-002).
+> O restyle **não** toca a serialização: só a apresentação HTML dos ramos `VagaIndisponivel`/`JobDetailView`.
 
-- **`page` (T3):** lê `params.id`, chama `getCurrentPerson()` + `getActiveJobDetail(id, viewer)` em paralelo.
-  - `row == null` ⇒ render "Vaga encerrada / temporariamente indisponível" + CTA `/vagas` (E-005/D-004). Sem botão candidatar (P-005).
-  - senão ⇒ `viewJobDetail` → render dados completos + Empresa (anonimizada/real) + contador (se presente) + CTA por papel:
-    candidato → "candidatar-se" (display; ação USP-025); autenticado-sem-papel → "Ativar perfil candidato" → USP-009 (E-004);
-    anônimo → "Criar conta para candidatar-se" → USP-001.
-- **`generateMetadata` (T4):** `export async function generateMetadata` no **mesmo arquivo**. Renderiza para
-  crawler/social = **sempre anônimo** ⇒ usa o View Model anonimizado: `<title>`/description/OG/Twitter Card +
-  JSON-LD `JobPosting` com `hiringOrganization` anonimizado + URL canônica por `id` (sem nome de Empresa). **P-002 em todos
-  os canais.** T4 compartilha arquivo com T3 ⇒ sequencial, não paralelo.
+## 5. Data Models
 
-## 5. Riscos & débitos
+Nenhum. O `model Application` (AD-012) e o índice de contagem já existem; o restyle não os toca.
 
-- **RP-009 (tráfego anônimo no detalhe):** mitigado por ISR (L-002) + rate limit (L-003). Sem trabalho novo.
-- **Invalidação fina de `/vagas/[id]`:** hoje só `/vagas` é revalidado on-demand; o detalhe depende da janela ISR. Débito
-  registrado (não bloqueia — janela curta cobre L-002). Avaliar `revalidatePath('/vagas/[id]')` na USP-023/024.
-- **Forma de `applications`:** definida aqui pela USP-022 (leitura); a USP-025 estende com escrita/unicidade/encaminhamento.
-  Risco de re-migração é aceito e explícito (AD-012).
+## 6. Error Handling / Estados
 
-## 6. Rastreabilidade ICE → artefato
+| Cenário | Comportamento (preservado) | Delta |
+| --- | --- | --- |
+| Vaga não-ativa/expirada/Empresa não verificada | `getActiveJobDetail` ⇒ `null` → "vaga encerrada" (nunca 404) | `Card` neutro + `Button` p/ `/vagas` |
+| Contador `<3` | `applicationCount=null` (não renderiza) | inalterado |
+| Salário oculto | `salary=null` | inalterado |
+| Anônimo | metadados/JSON-LD via `viewJobDetail(row,null)` | serialização inalterada |
 
-| ICE | Onde se materializa |
-|---|---|
-| E-001 / P-002 | `viewJobDetail` (anonimização) + `generateMetadata`/JSON-LD (T4) |
-| E-002 | `viewJobDetail.canApply` + botão (T3) |
-| E-003 / P-001 | `viewJobDetail.applicationCount` (limiar 3) + count na query (T1+T2) |
-| E-004 / P-003 | `viewJobDetail.showActivateCandidateCta` + CTA (T3) |
-| E-005 / P-004 / P-005 | `where` on-read da query (retorna null) + estado "vaga encerrada" (T2+T3) |
-| L-001/L-002/L-003 | ISR + índices + rate limit middleware |
+## 7. Risks & Concerns
+
+| Concern | Location | Impact | Mitigation |
+| --- | --- | --- | --- |
+| Restyle introduzir nome real no HTML/JSON-LD ao "melhorar" o cabeçalho | `job-detail.tsx` / `page.tsx` | Vazamento P-002 (LGPD, alto custo) | Componente consome só `displayName`; metadados/JSON-LD **sempre** `viewJobDetail(row,null)`; must-not U22-MN-01 travado por `job-detail.view.spec.ts` + teste de metadados anônimos. |
+| Botão "candidatar-se" ganhar `onClick`/action ao virar `Button` | `job-detail.tsx` (`ApplyCta`) | Invadir USP-025 / candidatura não intencional | `type="button"` display-only; must-not U22-MN-04 (`job-detail.spec.tsx`). |
+| Componente decidir visibilidade por `status` (reintroduzir vaga não-ativa) | `job-detail.tsx` | Quebra E-005/P-004/P-005 | Visibilidade fica na query (`null`); componente só renderiza o que recebe; `get-job-detail.int.test.ts`. |
+| Converter `JobDetailView`/página em client | `page.tsx` | Quebra ISR + expõe serialização ao cliente | Permanecem Server Components. |
+| Guarda estática de paleta crua com falso-positivo | arquivos tocados | Ruído no gate | Guarda restrita a `className`; allowlist `ds-*`. |
+
+## 8. Tech Decisions (não óbvias)
+
+| Decisão | Escolha | Rationale |
+| --- | --- | --- |
+| Preservar `viewJobDetail(row, null)` nos metadados/JSON-LD | Intocável | Fonte única de anonimização em todos os canais (P-002, ADR-0022). |
+| Botão candidatar permanece display-only | Sim | A ação é USP-025; U22-MN-04. |
+| Reforço de teste de P-002 nos metadados | Novo/estendido teste que assevera ausência de `nomeFantasia` em HTML/OG/Twitter/JSON-LD/canonical p/ anônimo | Must-not de maior custo trava por teste, não inspeção. |
+| Teste do restyle do componente | `job-detail.spec.tsx` (existente, estender) | RTL de detalhe já existe; passa a asseverar primitivos + CTA display-only. |
+
+> **Decisões de projeto:** nenhuma nova — consome AD-014/AD-015/AD-012. Nada a acrescentar em `STATE.md`.

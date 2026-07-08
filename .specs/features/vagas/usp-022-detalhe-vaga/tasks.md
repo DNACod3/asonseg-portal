@@ -1,135 +1,210 @@
-# USP-022 — Ver detalhe da vaga — Tasks
+# USP-022 — Ver detalhe da vaga — Refactor (Fase 2 / Design System) — Tasks
 
-> Deriva de [`design.md`](./design.md). 1 task = 1 PR (squash). **Status:** Approved — Dev Sênior aprovou o plano + 4 sub-issues
-> (2026-06-20). Board (#276/#173/#277/#278) e estimates aplicados (ver "Ajuste de board"). Próximo: Execute da T1 (#276).
-> **Estimate revisada = ~20h** — AD-012 cresceu o escopo do board (#173 = 6h, single task) ao (a) introduzir a tabela
-> `applications` que #162 nunca criou e (b) materializar P-001/P-002/E-004/E-005 que o board sub-especificou.
-> **Padrões de referência (não recriar):** `Job`/`Region`/`ContentStatus`/`Company.isVerified` (existem); `search-jobs.ts`
-> (on-read + `select` por papel); `job-list-item.view.ts` (`viewJobForVisitor`); `getCurrentPerson` (`@/modules/identity`);
-> `app/(public)/vagas/page.tsx` (ISR); `hojeSaoPaulo()` (`shared/lib/time.ts`); `NextCacheInvalidation` (`/vagas` cabeado);
-> rate limit no middleware (`RATE_LIMIT_DISABLED`).
+## Execution Protocol (MANDATORY — do not skip)
 
-## Grafo de dependências
+Implement these tasks with the **`bravi-spec-driven`** skill: **activate it by name** and follow its Execute
+flow and Critical Rules (per-task gate, atomic commit, independent Verifier, discrimination sensor, must-not
+negative tests). Do not search for skill files by filesystem path. **If the skill cannot be activated, STOP
+and report — do not proceed without it.**
 
-```
-T1 (schema applications + migration + seed)
-   └▶ T2 (getActiveJobDetail + viewJobDetail)
-        └▶ T3 (página detalhe ISR + estados + CTAs + contador)
-             └▶ T4 (generateMetadata + JSON-LD/OG anonimizados — P-002)
-```
+**Design**: `.specs/features/vagas/usp-022-detalhe-vaga/design.md`
+**Spec**: `.specs/features/vagas/usp-022-detalhe-vaga/spec.md`
+**Status**: Draft
 
-Cadeia linear (cada uma destrava a próxima — cascade OpenWolf regra 5). **T3 e T4 compartilham `page.tsx` ⇒ sequenciais,
-nunca `[P]`.** Nenhuma task é `[P]` (cadeia totalmente linear + arquivo compartilhado).
-
----
-
-## T1 — #276 · feat(jobs): tabela `applications` (contador) + migration + seed · 4h · Ready
-
-- **What:** introduzir `model Application` mínimo (capaz de contar) + reversas + migration + backfill no seed (AD-012, `design.md §1`).
-- **Where:** `prisma/schema.prisma` (`model Application`, reversa em `Job`/`Person`); `prisma/migrations/20260620XXXXXX_usp022_applications/`; `prisma/seed.ts` (backfill).
-- **Depends on:** `model Job`, `model Person` (existem). **Reuses:** padrão de migration USP-020/021; índice via Prisma `@@index`.
-- **Done when:**
-  - [ ] `Application { id, candidatoId→Person, jobId→Job, cancelledAt DateTime?, createdAt }` + `@@map("applications")` + `@@index([jobId, cancelledAt])`.
-  - [ ] Reversas `Job.applications` e `Person.applications`.
-  - [ ] **Deferido (comentário no schema):** `viaEncaminhamento`/`encaminhamentoId` (FK `Referral`) + índice único parcial → USP-025/044.
-  - [ ] `seed.ts`: 1 vaga ACTIVE com **≥ 3** candidaturas ativas (D-005 contador visível) + 1 com **0** (contador oculto).
-  - [ ] Migração aplica em DB limpo (`supabase db reset`); `prisma generate` + `npm run typecheck` ✓.
-- **Tests:** integração (`applications.int.test.ts`): contagem de candidaturas ativas por vaga ignora `cancelledAt != null`. (`@e-003`)
-- **TestGate:** full (`typecheck` + migração em DB limpo + `vitest`).
-- **Commit:** `feat(jobs): tabela applications p/ contador de candidaturas (USP-022)`
-
-## T2 — #173 · feat(jobs): getActiveJobDetail (on-read) + viewJobDetail (View Model) · 6h · Backlog (Blocked by #276)
-
-- **What:** query de detalhe on-read com contagem + View Model por papel (anonimização, limiar do contador, flags `canApply`/`showActivateCandidateCta`, salário) (`design.md §2-§3`).
-- **Where:** `src/modules/jobs/queries/get-job-detail.ts`, `src/modules/jobs/views/job-detail.view.ts`, `src/modules/jobs/__tests__/get-job-detail.int.test.ts`, `src/modules/jobs/__tests__/job-detail.view.spec.ts`, barrel `jobs/index.ts`.
-- **Depends on:** T1 (tabela `applications`). **Externos:** `prisma`, `getCurrentPerson`, `hojeSaoPaulo()`. **Reuses:** `search-jobs.ts` (`where` on-read + `select` condicional ao papel), `viewJobForVisitor` (branch de anonimização).
-- **Done when:**
-  - [ ] `getActiveJobDetail(id, viewer)`: `where` = `id AND status='ACTIVE' AND validUntil >= hojeSaoPaulo() AND company.isVerified` (E-005/P-004/P-005); **retorna `null`** se não casa; conta `applications` com `cancelledAt = null`; `select` explícito; `nomeFantasia` **só** se `viewer != null` (P-002).
-  - [ ] `viewJobDetail(row, viewer)`: anônimo → `companyDisplayName="Empresa do setor de X"`, `isAnonymized=true`, **nunca** `nomeFantasia` (E-001/P-002); autenticado → nome real (E-002); `applicationCount = count>=3 ? count : null` (E-003/P-001); `canApply = roles inclui 'candidato'` (E-002); `showActivateCandidateCta = autenticado && !canApply` (E-004/P-003); `salaryVisible===false ⇒ salary=null`.
-  - [ ] `APPLICATION_COUNTER_THRESHOLD = 3` exportada (tunável). Exports via barrel; `typecheck` + `lint` ✓.
-- **Tests:** facts do skill-tdad. Integração: vaga não-ACTIVE/expirada/Empresa não-verificada ⇒ `null` (`@e-005`/`@p-004`/`@p-005`); contagem ignora canceladas. View spec: **anônimo NÃO vê `nomeFantasia` em campo algum** (`@e-001`/`@p-002`), autenticado vê (`@e-002`); contador `null` p/ N<3 e número p/ N≥3 (`@e-003`/`@p-001`); `canApply`/`showActivateCandidateCta` por papel (`@e-002`/`@e-004`/`@p-003`); `salaryVisible=false` oculta salário.
-- **TestGate:** full (`typecheck` + `lint` + `vitest`).
-- **Commit:** `feat(jobs): getActiveJobDetail on-read + viewJobDetail por papel (USP-022)`
-
-## T3 — #277 · feat(jobs): página detalhe `(public)/vagas/[id]` (ISR) + estados + CTAs + contador · 6h · Backlog (Blocked by #173)
-
-- **What:** rota pública de detalhe (Server Component, ISR), estado "vaga encerrada" (E-005), contador (E-003) e CTAs por papel (`design.md §4`).
-- **Where:** `src/app/(public)/vagas/[id]/page.tsx` (componente default), `src/modules/jobs/components/job-detail.tsx` (apresentação), barrel.
-- **Depends on:** T2 (`getActiveJobDetail` + `viewJobDetail`). **Externos:** shadcn/ui, `getCurrentPerson`. **Reuses:** `(public)/vagas/page.tsx` (`export const revalidate`), mapeamento `JobListItem`→card.
-- **Done when:**
-  - [ ] `export const revalidate = 1800`; lê `params.id`, chama `getCurrentPerson()` + `getActiveJobDetail` em paralelo.
-  - [ ] `row == null` ⇒ "Vaga encerrada / temporariamente indisponível" + CTA `/vagas`, **sem** botão candidatar (E-005/P-005/D-004) — não 404 técnico.
-  - [ ] Render dados completos (descrição, requisitos, benefícios, salário se visível, regime, local, validade) + Empresa anonimizada/real conforme View Model.
-  - [ ] Contador "N pessoas se candidataram" só quando `applicationCount != null` (E-003/D-005).
-  - [ ] CTAs: candidato → botão "candidatar-se" (display; ação USP-025) (E-002); autenticado-sem-papel → "Ativar perfil candidato" → `/candidato` (USP-009) (E-004/P-003); anônimo → "Criar conta para candidatar-se" → USP-001.
-  - [ ] `typecheck` + `lint` ✓.
-- **Tests:** facts do skill-tdad. E2E (Playwright): anônimo abre `/vagas/[id]` de vaga ACTIVE → vê detalhe anonimizado, sem botão candidatar; vaga pausada/expirada por link direto → "vaga encerrada" + CTA lista (`@e-005`/`@d-004`); contador aparece só na vaga com ≥3 (`@e-003`/`@d-005`).
-- **TestGate:** build (`typecheck` + `lint` + E2E do fluxo de detalhe).
-- **Commit:** `feat(jobs): UI detalhe da vaga (ISR) + estados + CTAs (USP-022)`
-
-## T4 — #278 · feat(jobs): generateMetadata + JSON-LD/OG anonimizados (P-002) · 4h · Backlog (Blocked by #277)
-
-- **What:** `generateMetadata` + JSON-LD `JobPosting` + OG/Twitter Card no detalhe, **anonimizados em todos os canais** (`design.md §4`, P-002).
-- **Where:** `src/app/(public)/vagas/[id]/page.tsx` (`export async function generateMetadata`) + componente `<script type="application/ld+json">`.
-- **Depends on:** T3 (compartilha `page.tsx`). **Reuses:** `viewJobDetail` (T2) como **única fonte** de anonimização (ADR-0022).
-- **Done when:**
-  - [ ] `generateMetadata` renderiza para crawler = **sempre anônimo** ⇒ `title`/description/OG/Twitter usam `companyDisplayName` anonimizado; URL canônica por `id` (sem nome de Empresa).
-  - [ ] JSON-LD `JobPosting` com `hiringOrganization` = nome anonimizado por setor; demais campos da vaga (título, descrição, validade) presentes.
-  - [ ] vaga não-ACTIVE ⇒ metadados de "vaga indisponível" sem dados sensíveis.
-  - [ ] `typecheck` + `lint` ✓.
-- **Tests:** facts do skill-tdad. E2E/integração de metadados: para anônimo, **nenhum** canal (HTML/OG/Twitter/JSON-LD/canonical) contém o `nomeFantasia` real (`@p-002`/`@e-001`/`@d-001`).
-- **TestGate:** build (`typecheck` + `lint` + E2E de metadados).
-- **Commit:** `feat(jobs): metadados + JSON-LD anonimizados no detalhe (USP-022)`
+> **Escopo: restyle style-only (AD-015).** Muda-se **markup/classes**; **NÃO** se toca a fatia de dados: query
+> `getActiveJobDetail` (on-read + contagem), View Model `viewJobDetail` (única fonte de anonimização + limiar
+> do contador + flags por papel), `jobDetailJsonLd`/`serializeJsonLd`, `generateMetadata`, `revalidate=1800`,
+> nem a injeção do `<script ld+json>` (sempre `viewJobDetail(row, null)`). Os testes existentes
+> (`get-job-detail.int.test.ts`, `job-detail.view.spec.ts`, `job-detail.spec.tsx`) são **testes de
+> preservação** — o restyle não pode torná-los vermelhos.
+>
+> **Reuso ancorado (não recriar):** DS `Card`/`FormCard`/`FormSectionTitle`/`Badge`/`Button`(+`asChild`)/`cn`
+> via barrel `@/shared/ui`; `Badge variant` `blue`/`gray` (mesmo mapa do `job-card.tsx` da USP-021); tokens
+> `text-fg`/`text-fg-muted`/`border-border`; guarda estática molde `companies/__tests__/no-external-verify.test.ts`.
 
 ---
 
-## Validação pré-aprovação (3 checks obrigatórios)
+## Test Coverage Matrix
+
+> Gerada de codebase + guidelines + spec — confirmar antes do Execute. Guidelines: `CLAUDE.md` (§Testing —
+> Server Action cobre happy/validação/permissão/consent/concorrência; E2E dos fluxos críticos), `AD-014/AD-015`
+> (paridade DS + preservação de comportamento), `vitest.config.ts` (jsdom, exclui `*.int.test.ts`),
+> `vitest.integration.config.ts` (node + Postgres local).
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| --- | --- | --- | --- | --- |
+| Componente de apresentação (`job-detail.tsx`) | unit (RTL) | Usa primitivos DS; CTA display-only (U22-MN-04); contador só `!= null` (U22-MN-02); `displayName` (nunca `nomeFantasia`) (U22-MN-01 lado componente) | `src/modules/jobs/__tests__/job-detail.spec.tsx` | `npm run test` |
+| View Model (**preservado**) | unit | Já verde: anonimização (E-001/P-002), limiar (E-003/P-001), JSON-LD escapado | `src/modules/jobs/__tests__/job-detail.view.spec.ts` | `npm run test` |
+| Rota + metadados/JSON-LD (`(public)/vagas/[id]/page.tsx`) | integration | Anônimo: **nenhum** canal (HTML/OG/Twitter/JSON-LD/canonical) contém `nomeFantasia` (U22-MN-01); on-read não-ativo ⇒ `null` → "encerrada" (U22-MN-03) | `src/modules/jobs/__tests__/*.int.test.ts` | `npm run test:integration` |
+| Guarda estática de paridade DS | unit (`node:fs`) | Zero paleta crua (`bg-blue-600`/`text-gray-*`/`bg-gray-*`/`border-gray-*`) e zero hex literal nos 2 arquivos tocados (U22-MN-05) | `src/modules/jobs/__tests__/job-detail-ds-parity.test.ts` | `npm run test` |
+
+## Parallelism Assessment
+
+> Gerada de codebase — confirmar antes do Execute.
+
+| Test Type | Parallel-Safe? | Isolation Model | Evidence |
+| --- | --- | --- | --- |
+| unit / RTL / `node:fs` (`*.spec.tsx`, `*.test.ts`) | Yes | jsdom, sem store compartilhado; `node:fs` só lê fontes | `vitest.config.ts` (`environment:'jsdom'`, exclui `*.int.test.ts`); `no-external-verify.test.ts` |
+| integration (`*.int.test.ts`) | No | Postgres local compartilhado + cleanup por delete/truncação | `vitest.integration.config.ts`; `get-job-detail.int.test.ts` |
+
+## Gate Check Commands
+
+> Gerada de codebase — confirmar antes do Execute.
+
+| Gate Level | When to Use | Command |
+| --- | --- | --- |
+| Quick | Após tasks só com unit/RTL/guarda | `npm run test` |
+| Full | Após tasks com integração (metadados/on-read) | `npm run test && npm run test:integration` |
+| Build | Fim de fase / rota tocada | `npm run typecheck && npm run lint && npm run test && npm run test:integration && npm run build` |
+
+---
+
+## Execution Plan
+
+### Grafo de dependências
+
+```
+Fase 1 (Restyle — arquivos disjuntos):
+  T1 [P]  restyle job-detail.tsx (JobDetailView)          [RTL, paralelo-seguro]
+  T2      restyle page.tsx + teste P-002 de metadados     [integração, sequencial]
+
+Fase 2 (Guarda — depois dos 2 restyles):
+  T1,T2 ─▶ T3  guarda estática de paridade DS (node:fs)
+```
+
+Arestas (cross-check): T1→T3; T2→T3. T1 e T2 tocam **arquivos disjuntos** (`job-detail.tsx` × `page.tsx`) e
+não têm dependência de código (o restyle do componente não muda a assinatura consumida por `page.tsx`) ⇒
+sem aresta T1→T2. 2 fases (≤3) ⇒ execução inline, sem oferta de sub-agente. O Verifier independente roda
+automaticamente após T3.
+
+---
+
+## Task Breakdown
+
+### T1: Restyle `JobDetailView` (componente) para o Design System [P]
+
+**What**: Reestilizar a apresentação do detalhe com `Card`/`FormCard`/`FormSectionTitle`, `Badge` (metadados) e
+`Button` (CTAs), tokens light/dark — **preservando** todo o comportamento consumido do View Model.
+**Where**: `src/modules/jobs/components/job-detail.tsx` (modify); `src/modules/jobs/__tests__/job-detail.spec.tsx` (estende).
+**Depends on**: None
+**Reuses**: `@/shared/ui` (`Card`/`FormCard`/`FormSectionTitle`/`Badge`/`Button`/`cn`); mapa de `Badge variant` do `job-card.tsx` (USP-021); `formatDate` (`shared/lib/time`).
+**Requirement**: U22-STYLE-01 (AC P1-detalhe 1-5) · must-nots U22-MN-01(componente), U22-MN-02, U22-MN-04
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+- [ ] Raiz `<article>` → `Card`/`FormCard`; título → `text-fg` (+ `font-heading`); Empresa (`job.company.displayName`) → `text-fg-muted` (**displayName preservado**, nunca `nomeFantasia`).
+- [ ] Pílulas de metadados (`area`/`region`/`workRegime`/`contractType`/`educationLevel`) → `<Badge variant="gray|blue">` (mesmo mapa da USP-021).
+- [ ] `Section({title, content})` → `FormSectionTitle` + corpo em token; renderização condicional (só se `content`) **preservada**.
+- [ ] Linha `<dl>` (local/validade) → grid com `border-border`/token (ou `FormRow`); `<time dateTime>` preservado.
+- [ ] Contador: condição **preservada** `job.applicationCount != null` (P-001) — restyle não reintroduz contagem bruta (U22-MN-02).
+- [ ] Salário: omissão preservada (`salaryLabel` inalterado; `salary=null` ⇒ "Salário a combinar").
+- [ ] `ApplyCta`: `canApply` → `<Button type="button" variant="primary">Candidatar-se</Button>` **display-only, sem `onClick`/action** (U22-MN-04); `showActivateCandidateCta` → `<Button asChild><Link href="/candidato">…</Link></Button>`; anônimo → `<Button variant="outline" asChild><Link href="/cadastro">…</Link></Button>`. Três branches preservados.
+- [ ] **Zero** paleta crua (`bg-blue-600`/`text-gray-*`/`bg-gray-*`/`border-gray-*`) ou hex literal.
+- [ ] Permanece **Server Component** (sem `'use client'`).
+- [ ] Gate `quick` passa: `npm run test`. `typecheck`+`lint` ✓.
+
+**Tests**: unit RTL — estende `job-detail.spec.tsx` p/ asseverar: (a) uso dos primitivos (papel/estrutura de `Button` p/ os 3 CTAs; `Badge` nos metadados); (b) botão "Candidatar-se" é `type="button"` sem action disparada (U22-MN-04); (c) contador oculto p/ N<3 e visível p/ N≥3 via View Model (U22-MN-02); (d) para anônimo, aparece `displayName` por setor e **nunca** o `nomeFantasia` real (U22-MN-01 lado componente). `job-detail.view.spec.ts` permanece verde (não tocado). Test count: suíte existente + ≥3 asserts novos, todos verdes (sem deleção).
+**Gate**: quick
+**Commit**: `refactor(jobs): restyle JobDetailView para o Design System (USP-022)`
+
+---
+
+### T2: Restyle da casca `(public)/vagas/[id]/page.tsx` + trava P-002 dos metadados
+
+**What**: Reestilizar os ramos de apresentação da rota (`VagaIndisponivel`, back-link, container) e **travar por
+teste** que os metadados/JSON-LD anônimos não vazam `nomeFantasia` — sem tocar a serialização/ISR.
+**Where**: `src/app/(public)/vagas/[id]/page.tsx` (modify); `src/modules/jobs/__tests__/vagas-detalhe-metadata.int.test.ts` (novo).
+**Depends on**: None (arquivo disjunto de T1)
+**Reuses**: `@/shared/ui` (`Card`/`Button`+`asChild`); `getActiveJobDetail`/`viewJobDetail`/`jobDetailJsonLd`/`serializeJsonLd` (intocáveis); `get-job-detail.int.test.ts` (padrão de seed/int).
+**Requirement**: U22-STYLE-02 (AC P1-página 1-4) · must-nots U22-MN-01, U22-MN-03 (preservação)
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+- [ ] `VagaIndisponivel` (estado "vaga encerrada / temporariamente indisponível") → `Card` neutro + `<Button asChild><Link href="/vagas">Ver outras vagas</Link></Button>`; **sem** botão candidatar (P-005/U22-MN-03).
+- [ ] Back-link e `<main>` container → tokens/`Button asChild`; **zero** paleta crua/hex.
+- [ ] **Preservado sem tocar** (crítico P-002): `export const revalidate = 1800`; `generateMetadata` chamando `getActiveJobDetail(id, null)` + `viewJobDetail(row, null)` (title/description/OG/Twitter/canonical/`robots`); injeção `<script type="application/ld+json">` com `serializeJsonLd(jobDetailJsonLd(viewJobDetail(row, null)))` **somente** quando `row != null`; branch `row == null ? <VagaIndisponivel/> : <JobDetailView job={viewJobDetail(row, viewer)}/>`.
+- [ ] Página e componente permanecem **Server Components** (sem `'use client'`) — ISR + serialização fora do cliente.
+- [ ] Gate `build` passa (`npm run build` compila a rota); `typecheck`+`lint` ✓.
+
+**Tests**: integration — `vagas-detalhe-metadata.int.test.ts`: semeia Empresa **verificada** + vaga **ACTIVE** com `nomeFantasia` real; chama `generateMetadata({ params })` e constrói o JSON-LD via `serializeJsonLd(jobDetailJsonLd(viewJobDetail(row, null)))`; assevera que **nenhum** canal (title, description, `openGraph`, `twitter`, `alternates.canonical`, string do JSON-LD `hiringOrganization`) contém o `nomeFantasia` real (U22-MN-01/P-002). Segundo caso: vaga não-`ACTIVE`/expirada/Empresa não-verificada ⇒ `getActiveJobDetail(id, null) == null` ⇒ metadados de "indisponível" (`robots.index=false`), sem dado sensível (U22-MN-03). `get-job-detail.int.test.ts` e `job-detail.view.spec.ts` permanecem verdes. Test count: ≥3 novos, verdes.
+**Gate**: build
+**Commit**: `refactor(jobs): restyle da página de detalhe + trava P-002 dos metadados (USP-022)`
+
+---
+
+### T3: Guarda estática de paridade DS nos arquivos tocados
+
+**What**: Teste `node:fs` (molde `no-external-verify.test.ts`) que falha se `job-detail.tsx` ou `page.tsx`
+retiverem paleta crua/hex — trava "DS construído mas não adotado" (U22-MN-05).
+**Where**: `src/modules/jobs/__tests__/job-detail-ds-parity.test.ts` (novo).
+**Depends on**: T1, T2
+**Reuses**: molde `src/modules/companies/__tests__/no-external-verify.test.ts` (varredura `node:fs` + regex sobre fontes).
+**Requirement**: must-not U22-MN-05
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+- [ ] Lê `src/modules/jobs/components/job-detail.tsx` e `src/app/(public)/vagas/[id]/page.tsx`.
+- [ ] Falha se qualquer arquivo contiver, em `className`/markup, `bg-blue-600`, `text-gray-*`, `bg-gray-*`, `border-gray-*` ou hex literal (`#[0-9a-fA-F]{3,8}`) para superfícies temáticas.
+- [ ] Passa no estado pós-T1/T2 (ambos já reestilizados) — `expect(offenders).toEqual([])`.
+- [ ] Gate `quick` passa: `npm run test`.
+
+**Tests**: unit (`node:fs`) — este arquivo **é** o teste negativo de U22-MN-05. Test count: ≥1 novo, verde.
+**Gate**: quick
+**Commit**: `test(jobs): guarda estática de paridade DS no detalhe da vaga (USP-022)`
+
+---
+
+## Validação pré-aprovação (4 checks obrigatórios)
 
 ### Check 1 — Granularidade
 
 | Task | Escopo | Status |
-|---|---|---|
-| T1 | 1 model + 1 migration + backfill seed (coeso) | ✅ Granular |
-| T2 | 1 query + 1 View Model (coeso, mesma fatia leitura) | ✅ Granular |
-| T3 | 1 rota/página + 1 componente de apresentação | ✅ Granular |
-| T4 | 1 função `generateMetadata` + JSON-LD (mesmo arquivo) | ✅ Granular |
+| --- | --- | --- |
+| T1 | 1 componente (restyle) + testes co-locados | ✅ Granular |
+| T2 | 1 rota (restyle) + 1 teste de metadados | ✅ Granular |
+| T3 | 1 teste-guarda estático | ✅ Granular |
 
 ### Check 2 — Cross-check diagrama × `Depends on`
 
-| Task | Depends on (corpo) | Diagrama | Status |
-|---|---|---|---|
-| T1 | — (só models existentes) | raiz | ✅ Match |
-| T2 | T1 | T1 → T2 | ✅ Match |
-| T3 | T2 | T2 → T3 | ✅ Match |
-| T4 | T3 (arquivo compartilhado) | T3 → T4 | ✅ Match |
+| Task | Depends on (corpo) | Diagrama (arestas) | Status |
+| --- | --- | --- | --- |
+| T1 | — | raiz | ✅ Match |
+| T2 | — | raiz | ✅ Match |
+| T3 | T1, T2 | T1→T3, T2→T3 | ✅ Match |
 
-Nenhuma task `[P]`; cadeia linear ⇒ sem violação de paralelismo.
+`[P]` só em T1 (RTL, paralelo-seguro). T2 tem teste de integração ⇒ **não** `[P]`. T3 depende de T1+T2. Nenhuma
+`[P]` depende de outra na mesma fase.
 
-### Check 3 — Co-locação de testes (sem TESTING.md — gates inline, padrão USP-021)
+### Check 3 — Co-locação de testes (× Test Coverage Matrix)
 
-| Task | Camada criada | Tipo de teste exigido | Task declara | Status |
-|---|---|---|---|---|
-| T1 | schema/migration + seed | integração (contagem) | integração | ✅ OK |
-| T2 | query + View Model | integração + unit (view) | integração + view spec | ✅ OK |
-| T3 | rota pública + UI | e2e | e2e | ✅ OK |
-| T4 | metadados/serialização SEO | e2e (P-002) | e2e/integração | ✅ OK |
+| Task | Camada criada/modificada | Matrix exige | Task declara | Status |
+| --- | --- | --- | --- | --- |
+| T1 | componente de apresentação | unit (RTL) | unit RTL | ✅ OK |
+| T2 | rota + metadados/JSON-LD | integration | integration | ✅ OK |
+| T3 | guarda estática | unit (`node:fs`) | unit | ✅ OK |
 
-Nenhuma task difere testes para outra ⇒ sem violação de co-locação. Todo must-not tem task dona:
-P-001/E-003→T2(+T1); P-002→T4(+T2); P-003/E-004→T3(+T2); P-004/P-005/E-005→T2(+T3).
+Nenhuma task difere seus testes para outra ⇒ sem violação de co-locação.
 
-## Facts (skill-tdad) — a gerar na fase Execute
+### 💠 Check 4 — Titularidade de must-not
 
-Rodar `skill-tdad` sobre `expectations-USP-022.md` (E-001..E-005, P-001..P-005, L-001..L-003) para produzir:
-`.feature` Gherkin PT-BR (tags `@e-001`…`@p-005`), Vitest RED (int de `getActiveJobDetail` + view spec de `viewJobDetail`),
-Playwright E2E (detalhe + metadados/P-002), matriz AC→fact. Os paths retornados populam o campo **Tests** de cada task.
-Fora desta US (UAT pós-merge): D-001..D-005 (ensaios), L-001 (carga p95).
+| Must-not | Owning task(s) | Teste negativo (verde exigido) |
+| --- | --- | --- |
+| U22-MN-01 (nenhum canal expõe `nomeFantasia` a anônimo) | T2 (metadados) + T1 (componente) | `vagas-detalhe-metadata.int.test.ts` (nenhum canal com nome real) + `job-detail.view.spec.ts`/`job-detail.spec.tsx` (anônimo ⇒ `displayName`). |
+| U22-MN-02 (contador N∈{0,1,2} oculto) | T1 | `job-detail.view.spec.ts` (N<3 ⇒ `applicationCount=null`) + `job-detail.spec.tsx` (UI não renderiza). |
+| U22-MN-03 (vaga não-`ACTIVE` ⇒ "encerrada", sem candidatar) | T2 (preservação) | `get-job-detail.int.test.ts` (não-ACTIVE ⇒ `null`) + página renderiza `VagaIndisponivel` sem botão candidatar. |
+| U22-MN-04 (botão candidatar sem cabeamento de ação) | T1 | `job-detail.spec.tsx` — "Candidatar-se" é `type="button"` display-only, nenhuma action disparada. |
+| U22-MN-05 (sem paleta crua/hex nos arquivos tocados) | T3 | `job-detail-ds-parity.test.ts` — `offenders == []`. |
 
-## Ajuste de board (OpenWolf regra 3 — Estimate pai = soma dos subs) — ✅ aplicado 2026-06-20
+Todos os 5 must-nots têm task dona + teste negativo (3 reusam specs existentes como testes de preservação;
+P-002 reforçado por teste de metadados; estilo via guarda). Nenhum órfão.
 
-Dev Sênior aprovou o plano e optou por **4 sub-issues** (2026-06-20):
-- **#276** (T1) criada, filha de #172, Estimate 4h, Status **Ready**.
-- **#173** (T2) reaproveitada (era "query+view+UI" single task) → Estimate 6h, **Blocked by #276**.
-- **#277** (T3) criada, Estimate 6h, **Blocked by #173**. **#278** (T4) criada, Estimate 4h, **Blocked by #277**.
-- Cadeia de bloqueio nativa (GitHub dependencies API): #276 → #173 → #277 → #278.
-- **#172** Estimate 6h → **20h** (= 4+6+6+4). Épico **#6** 163h → **177h** (Δ +14h).
-- Cascade: ao fechar #276 → #173 vai a Ready; ao fechar #173 → #277; ao fechar #277 → #278 (regra 5).
+---
+
+## Tools / MCPs / Skills por task
+
+- Nenhuma MCP necessária (restyle style-only sobre primitivos DS já existentes; comportamento intocado).
+- **Skill `bravi-spec-driven`** ativa em todas as tasks (Execute + gate + commit atômico + Verifier).
+- **Sem** mudança de schema, query, View Model, serialização, `revalidate` ou wiring de ação.

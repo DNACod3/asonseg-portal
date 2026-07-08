@@ -5,6 +5,7 @@ import {
   VERIFICATION_CHECKLIST_ITEMS,
   type VerificationChecklistItem,
 } from '../domain/verification-checklist';
+import { Input } from '@/shared/ui';
 
 /** Linha de rejeição já formatada pelo Server Component (data em fuso de SP). */
 export interface VerificationRejectionRow {
@@ -95,8 +96,11 @@ export function VerificationPanel({
   // E-004 — vaga subsequente de Empresa já verificada: sem painel de verificação.
   if (data.isVerified) {
     return (
-      <section aria-label="Verificação da Empresa" className="rounded-lg border border-green-200 bg-green-50 p-3">
-        <p className="text-sm text-green-800">
+      <section
+        aria-label="Verificação da Empresa"
+        className="rounded-lg border border-success bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] p-3"
+      >
+        <p className="text-sm text-success">
           ✓ Empresa verificada
           {data.verifiedAtLabel ? ` em ${data.verifiedAtLabel}` : ''}
           {data.verifiedByName ? ` por ${data.verifiedByName}` : ''}.
@@ -114,11 +118,11 @@ export function VerificationPanel({
   return (
     <section
       aria-label="Verificação da Empresa"
-      className="flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4"
+      className="flex flex-col gap-3 rounded-lg border border-cta bg-[color-mix(in_srgb,var(--color-cta)_10%,transparent)] p-4"
     >
       <header className="flex flex-col gap-1">
-        <h3 className="text-sm font-bold text-amber-900">Verificação da Empresa</h3>
-        <p className="text-xs text-amber-800">
+        <h3 className="text-sm font-bold text-fg">Verificação da Empresa</h3>
+        <p className="text-xs text-cta">
           {reverification
             ? 'Empresa editada após a verificação anterior — confira os dados alterados antes de reverificar.'
             : 'Primeira vaga desta Empresa — confira os dados manualmente antes de aprovar.'}
@@ -126,7 +130,7 @@ export function VerificationPanel({
       </header>
 
       {/* Dados da Empresa em destaque (E-001). */}
-      <dl className="grid grid-cols-1 gap-1 text-xs text-gray-800 sm:grid-cols-2">
+      <dl className="grid grid-cols-1 gap-1 text-xs text-fg sm:grid-cols-2">
         <Field label="CNPJ" value={data.cnpj} changed={data.changedSinceVerification.includes('cnpj')} />
         <Field label="Razão social" value={data.razaoSocial} changed={data.changedSinceVerification.includes('razaoSocial')} />
         <Field label="Nome fantasia" value={data.nomeFantasia} changed={data.changedSinceVerification.includes('nomeFantasia')} />
@@ -135,7 +139,7 @@ export function VerificationPanel({
       </dl>
 
       {reverification && (
-        <p className="text-xs font-medium text-amber-900">
+        <p className="text-xs font-medium text-fg">
           Alterado desde a última verificação:{' '}
           {data.changedSinceVerification.map((f) => FIELD_LABELS[f] ?? f).join(', ')}.
         </p>
@@ -143,13 +147,13 @@ export function VerificationPanel({
 
       {/* Histórico de rejeições (P-003 / D-005). */}
       {data.rejectionCount > 0 && (
-        <details className="rounded border border-red-200 bg-red-50 p-2 text-xs">
-          <summary className="cursor-pointer font-semibold text-red-700">
+        <details className="rounded border border-danger bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-2 text-xs">
+          <summary className="cursor-pointer font-semibold text-danger">
             Rejeitada {data.rejectionCount} {data.rejectionCount === 1 ? 'vez' : 'vezes'}
           </summary>
           <ul className="mt-2 flex flex-col gap-1.5">
             {data.rejections.map((r, idx) => (
-              <li key={`${r.rejectedAtLabel}-${idx}`} className="text-red-800">
+              <li key={`${r.rejectedAtLabel}-${idx}`} className="text-danger">
                 <span className="font-medium">{r.rejectedAtLabel}</span>
                 {r.byName ? ` · ${r.byName}` : ''}
                 {r.reason ? ` — ${r.reason}` : ''}
@@ -161,26 +165,27 @@ export function VerificationPanel({
 
       {/* Checklist interativa (P-001). */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs font-semibold text-amber-900">
+        <legend className="text-xs font-semibold text-fg">
           Checklist de verificação (obrigatória para aprovar)
         </legend>
         {checklistItems.map((item) => {
           const s = state[item.id] ?? EMPTY_ITEM;
           return (
-            <div key={item.id} className="flex flex-col gap-1 rounded border border-amber-200 bg-white p-2">
-              <label className="flex items-start gap-2 text-xs text-gray-800">
+            <div key={item.id} className="flex flex-col gap-1 rounded border border-border bg-surface p-2">
+              <label className="flex items-start gap-2 text-xs text-fg">
                 <input
                   type="checkbox"
-                  className="mt-0.5"
+                  className="mt-0.5 accent-primary"
                   checked={s.checked}
                   onChange={(e) => update(item.id, { checked: e.target.checked, dismissed: false })}
                 />
                 <span>{item.label}</span>
               </label>
               {!s.checked && (
-                <label className="flex items-center gap-2 pl-6 text-[11px] text-gray-600">
+                <label className="flex items-center gap-2 pl-6 text-[11px] text-fg-muted">
                   <input
                     type="checkbox"
+                    className="accent-primary"
                     checked={s.dismissed}
                     onChange={(e) => update(item.id, { dismissed: e.target.checked })}
                   />
@@ -188,10 +193,10 @@ export function VerificationPanel({
                 </label>
               )}
               {s.dismissed && !s.checked && (
-                <input
+                <Input
                   type="text"
                   aria-label={`Motivo da dispensa: ${item.label}`}
-                  className="ml-6 rounded border border-gray-300 px-2 py-1 text-[11px]"
+                  className="ml-6 w-auto px-2 py-1 text-[11px]"
                   placeholder="Motivo da dispensa"
                   value={s.reason}
                   onChange={(e) => update(item.id, { reason: e.target.value })}
@@ -201,7 +206,7 @@ export function VerificationPanel({
           );
         })}
         {!ready && (
-          <p className="text-[11px] text-amber-800">
+          <p className="text-[11px] text-cta">
             Marque (ou dispense com motivo) todos os itens para liberar a aprovação da vaga.
           </p>
         )}
@@ -212,7 +217,7 @@ export function VerificationPanel({
 
 function Field({ label, value, changed }: { label: string; value: string; changed: boolean }) {
   return (
-    <div className={changed ? 'rounded bg-amber-200 px-1' : ''}>
+    <div className={changed ? 'rounded bg-[color-mix(in_srgb,var(--color-cta)_22%,transparent)] px-1' : ''}>
       <dt className="inline font-semibold">{label}: </dt>
       <dd className="inline">{value}</dd>
     </div>

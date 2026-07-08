@@ -7,14 +7,14 @@ import {
   isMeaningfulJustification,
 } from '../domain/justification';
 
-/** Referência a um conteúdo moderável (tipo + id). */
-const contentRef = {
+/** Referência a um conteúdo moderável (tipo + id). Reusada por `inactivate.ts` (USP-018). */
+export const contentRef = {
   contentKind: z.nativeEnum(ContentKind),
   contentId: z.string().uuid('Conteúdo inválido.'),
 };
 
-/** Motivo obrigatório e significativo de devolução/rejeição (P-003). */
-const justification = z
+/** Motivo obrigatório e significativo de devolução/rejeição/inativação (P-003). */
+export const justification = z
   .string({ required_error: JUSTIFICATION_TOO_SHORT_MESSAGE })
   .trim()
   .min(MIN_JUSTIFICATION_LENGTH, JUSTIFICATION_TOO_SHORT_MESSAGE)

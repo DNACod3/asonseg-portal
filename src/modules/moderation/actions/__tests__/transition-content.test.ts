@@ -211,7 +211,7 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     expect(repo.updateStatus).not.toHaveBeenCalled();
   });
 
-  it('INTERNAL quando a transição válida não tem evento de auditoria mapeado (ACTIVE→PAUSED)', async () => {
+  it('USP-023/T1: JOB ACTIVE→PAUSED (AUTHOR_ACTION) agora mapeia JOB_PAUSED (eventTypeFor kind-aware)', async () => {
     repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
     const res = await transitionContent({
       contentKind: ContentKind.JOB,
@@ -220,11 +220,12 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
       trigger: 'AUTHOR_ACTION',
       actorPersonId: ACTOR,
     });
-    expect(res).toMatchObject({ ok: false, error: { code: 'INTERNAL' } });
-    expect(repo.updateStatus).not.toHaveBeenCalled();
+    expect(res.ok).toBe(true);
+    expect(auditState.event).toBe(AuditEvent.JOB_PAUSED);
+    expect(repo.updateStatus).toHaveBeenCalledTimes(1);
   });
 
-  it('INTERNAL para reativação do autor (PAUSED→ACTIVE) — destino ACTIVE sem MODERATOR_ACTION não mapeia evento', async () => {
+  it('USP-023/T1: JOB PAUSED→ACTIVE (AUTHOR_ACTION) agora mapeia JOB_UNPAUSED (distingue de CONTENT_APPROVED)', async () => {
     repo.loadStatus.mockResolvedValue(ContentStatus.PAUSED);
     const res = await transitionContent({
       contentKind: ContentKind.JOB,
@@ -233,7 +234,21 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
       trigger: 'AUTHOR_ACTION',
       actorPersonId: ACTOR,
     });
+    expect(res.ok).toBe(true);
+    expect(auditState.event).toBe(AuditEvent.JOB_UNPAUSED);
+  });
+
+  it('preservação: CV ACTIVE→PAUSED continua INTERNAL — o ramo JOB_* não vaza para outros ContentKind', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    const res = await transitionContent({
+      contentKind: ContentKind.CV,
+      contentId: CONTENT_ID,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
     expect(res).toMatchObject({ ok: false, error: { code: 'INTERNAL' } });
+    expect(repo.updateStatus).not.toHaveBeenCalled();
   });
 });
 

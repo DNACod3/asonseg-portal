@@ -43,6 +43,10 @@ interface DemoJob {
   salaryMin: number | null;
   salaryMax: number | null;
   salaryVisible: boolean;
+  /** Override do status padrão (`ACTIVE`) — fixtures de estado p/ E2E público (USP-023/024). */
+  status?: 'ACTIVE' | 'PAUSED' | 'EXPIRED';
+  /** Override do offset padrão de `validUntil` (+90 dias) — vaga expirada precisa de data passada. */
+  validUntilOffsetDays?: number;
 }
 
 const DEMO_JOBS: ReadonlyArray<DemoJob> = [
@@ -107,6 +111,46 @@ const DEMO_JOBS: ReadonlyArray<DemoJob> = [
     salaryMax: null,
     salaryVisible: true,
   },
+  {
+    // Vaga PAUSED de demonstração — fixture pública p/ o E2E do detalhe de vaga
+    // pausada (USP-023/T7/P-003): `/vagas/[id]` mostra "temporariamente pausada",
+    // sem botão candidatar-se. Rota pública, sem necessidade de sessão.
+    id: '00000000-0000-0000-0000-00000000d005',
+    title: 'Auxiliar de eventos (vaga pausada — demo)',
+    areaName: 'Turismo e Hotelaria',
+    regionName: 'Jurerê',
+    description: 'Vaga de demonstração pausada pela Empresa (fixture de teste E2E).',
+    requirements: 'N/A (fixture de teste).',
+    workRegime: 'Presencial',
+    contractType: 'Temporário',
+    location: 'Jurerê - Florianópolis/SC',
+    educationLevelRequired: null,
+    salaryMin: null,
+    salaryMax: null,
+    salaryVisible: false,
+    status: 'PAUSED',
+  },
+  {
+    // Vaga EXPIRED de demonstração — fixture pública p/ o E2E de expiração
+    // automática (USP-024/T3/T5/P-001): some da busca (`/vagas`) e o detalhe
+    // (`/vagas/[id]`) mostra "vaga encerrada". Simula o estado pós-cron sem
+    // depender do job periódico rodar durante o teste.
+    id: '00000000-0000-0000-0000-00000000d006',
+    title: 'Estoquista (vaga expirada — demo)',
+    areaName: 'Logística e Transporte',
+    regionName: 'Toda Florianópolis',
+    description: 'Vaga de demonstração já expirada (fixture de teste E2E).',
+    requirements: 'N/A (fixture de teste).',
+    workRegime: 'Presencial',
+    contractType: 'CLT',
+    location: 'Toda Florianópolis',
+    educationLevelRequired: null,
+    salaryMin: null,
+    salaryMax: null,
+    salaryVisible: false,
+    status: 'EXPIRED',
+    validUntilOffsetDays: -5,
+  },
 ];
 
 async function seedDemoJobs(prisma: PrismaClient): Promise<number> {
@@ -159,12 +203,14 @@ async function seedDemoJobs(prisma: PrismaClient): Promise<number> {
       salaryMin: job.salaryMin,
       salaryMax: job.salaryMax,
       salaryVisible: job.salaryVisible,
-      validUntil,
+      validUntil: job.validUntilOffsetDays !== undefined ? dateOffset(job.validUntilOffsetDays) : validUntil,
       publishedAt,
-      status: 'ACTIVE' as const,
+      status: job.status ?? 'ACTIVE',
     };
     await prisma.job.upsert({ where: { id: job.id }, update: data, create: { id: job.id, ...data } });
-    count += 1;
+    // O log de conclusão (`prisma/seed.ts`) rotula esta contagem "(ACTIVE)" — só as
+    // vagas ACTIVE entram (as fixtures PAUSED/EXPIRED de d005/d006 não contam aqui).
+    if ((job.status ?? 'ACTIVE') === 'ACTIVE') count += 1;
   }
   return count;
 }

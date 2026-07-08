@@ -8,6 +8,28 @@
 
 ---
 
+## Refactor context (Fase 2 — restyle preservando comportamento, padrão AD-015)
+
+> ⚠️ **Esta USP já está implementada em `master`** (`src/modules/moderation/**` + rota `(app)/moderacao`).
+> Este ciclo **não** reescreve comportamento: é um **refactor de estilo** (adoção do Design System da
+> Fase 1 — AD-014) + alinhamento a `project-guideline`, **preservando** todos os ACs abaixo — o mesmo
+> padrão da Fase 1 (AD-015: restyle *style-only*, comportamento intacto, decisões de consistência
+> documentadas). A spec/design/tasks descrevem a US "como se nova" (baseline de comportamento); o
+> Implementer **refatora o código existente** para cumpri-la.
+>
+> **Baseline de comportamento a PRESERVAR (não pode regredir):** máquina de estados (`transitionContent`,
+> `ContentKind`/`ContentStatus`, `TRANSITIONS`); `ContentStatusRepository` + adapter Prisma sobre
+> `_moderation_fixture` e `DispatchingContentStatusRepository` (AD-005); atomicidade da auditoria
+> (`withAudit`, L-003); os View Models da fila (`views/moderation-queue-item.ts`); a query
+> `viewModerationQueue` (ordem, autor≠moderador, `take`/`select`); os schemas de motivo (P-003). Prova de
+> não-regressão: a suíte existente em `src/modules/moderation/**/__tests__/` (unit + `*.int.test.ts` +
+> `components/__tests__/*.tsx`) permanece **verde**.
+>
+> **O que muda:** só a camada de apresentação da fila do coordenador — `components/moderation-queue.tsx`
+> e `app/(app)/moderacao/page.tsx` — hoje em paleta crua Tailwind (`bg-blue-600`, `text-gray-*`, `<button>`
+> e `<textarea>` nativos), fora dos primitivos/tokens de `@/shared/ui`. O painel de verificação
+> (`verification-panel.tsx`) é restilizado na **USP-017** (dono do componente).
+
 ## Problem Statement
 
 Rascunhos de vaga, CV/perfil e serviço são enviados para moderação (`IN_MODERATION`), mas hoje não existe o módulo `moderation` nem o caminho canônico de decisão. Sem ele: (a) não há fila ordenada para o coordenador processar; (b) status seria alterado via `prisma.update` direto — sem auditoria, sem validação de transição, sem e-mail ao autor; (c) o gate qualitativo do portal (diferencial do MVP, ADR-0015) não existe.
@@ -53,6 +75,18 @@ ACs verbatim do issue #117 + expectations ICE. IDs de requisito = IDs ICE (`E-NN
 | **E-005 / P-001** | Alerta operacional quando fila >10 pendentes ou item >48h. | ⏸ Diferido (GAP-5) |
 | **P-002** | Aprovação de vaga de Empresa "não verificada" exige painel da USP-017. | ⏭ USP-017 |
 | **P-004** | Exibir, ao lado de cada item moderado, atalho para inativar (USP-018). | ⏭ USP-018 |
+
+### Requisitos de adoção do Design System (novos nesta rodada de restyle — AD-014/AD-015)
+
+Origem: AD-014 (`src/shared/ui`, tokens light/dark, dark-mode por `[data-theme]`, fontes self-hosted) +
+`project-guideline`. Must-nots com teste negativo (garantia 1 do bravi-spec-driven), análogos a DS-MN-03.
+
+| Req | AC / Proibição (EARS) | Em escopo? |
+|---|---|---|
+| **DS-16-01** | QUANDO a fila de moderação e a página `(app)/moderacao` são renderizadas ENTÃO DEVEM usar os primitivos de `@/shared/ui` (`Button`, `Textarea`, `Badge`, `Card`, `FormHeader`) e classes mapeadas por token (`bg-cta`, `text-fg`, `bg-surface`, `border-border`, `text-danger`…), com paridade visual **light e dark** dirigida por `[data-theme]`. | ✅ (T4) |
+| **DS-16-MN-1** | NÃO PODE reter utilitário de paleta crua (`bg-blue-600`, `bg-green-600`, `bg-amber-500`, `bg-gray-*`, `text-gray-*`, `border-gray-*`, `ring-*-*`, ou hex `#RRGGBB`) em `moderation/components/moderation-queue.tsx` nem em `app/(app)/moderacao/page.tsx`. | ✅ (T4 — teste negativo) |
+| **DS-16-MN-2** | NÃO PODE alterar comportamento: rótulos de tipo, os três fluxos de decisão (aprovar/devolver/rejeitar), o bloqueio por motivo ≥ 20 (P-003), a remoção do item da fila ao concluir, e as mensagens de erro permanecem **idênticos** — só muda o estilo. | ✅ (T4 — RTL existente verde) |
+| **DS-16-MN-3** | NÃO PODE introduzir mecanismo próprio de dark-mode (`dark:` ad-hoc, `@media (prefers-color-scheme)`, lib de tema) — o tema já é dirigido globalmente por `[data-theme]` + tokens (AD-014). | ✅ (T4) |
 
 ## Independent Test
 

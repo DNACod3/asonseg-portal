@@ -115,12 +115,19 @@ skipIfNoDb('adicionarResponsavel — integração', () => {
     expect(res).toMatchObject({ ok: false, error: { code: 'VALIDATION' } });
   });
 
-  it('@ac-p-005 — nega quando o ator não é responsável ativo da Empresa', async () => {
+  it('@ac-p-005 — nega quando o ator não é responsável ativo da Empresa (U13-MN-03: zero grant criado)', async () => {
+    const fakeCompanyId = '00000000-0000-0000-0000-0000000000ff';
     const res = await adicionarResponsavel({
-      empresaId: '00000000-0000-0000-0000-0000000000ff',
+      empresaId: fakeCompanyId,
       cpfOuEmail: TARGET_CPF,
     });
     expect(res).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+
+    const grant = await prisma.personCompanyGrant.findFirst({
+      where: { personId: targetId, companyId: fakeCompanyId },
+      select: { id: true },
+    });
+    expect(grant).toBeNull();
   });
 
   it('@ac-e-002 — Pessoa não cadastrada → NOT_FOUND orientando auto-cadastro', async () => {

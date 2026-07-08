@@ -2,7 +2,7 @@
 // Todos os imports externos devem passar por este arquivo (nunca deep paths).
 
 // ── Domínio ───────────────────────────────────────────────────────────────────
-export { MAX_VALIDADE_DIAS, validadeStatus } from './domain/validade';
+export { MAX_VALIDADE_DIAS, validadeStatus, diasAteExpiracao } from './domain/validade';
 export type { ValidadeStatus } from './domain/validade';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -26,11 +26,41 @@ export type {
   DraftJobData,
   SubmitJobInput,
   SubmitJobData,
+  EditJobInput,
+  EditJobData,
 } from './schemas/publish-job.schema';
+export { editJobSchema } from './schemas/publish-job.schema';
+export {
+  jobIdSchema,
+  pauseJobSchema,
+  unpauseJobSchema,
+  archiveJobSchema,
+  extendJobValiditySchema,
+} from './schemas/lifecycle.schema';
+export type {
+  JobIdInput,
+  PauseJobInput,
+  UnpauseJobInput,
+  ArchiveJobInput,
+  ExtendJobValidityInput,
+} from './schemas/lifecycle.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-draft';
 export { submitJobForModeration, type SubmitJobResult } from './actions/submit-job-for-moderation';
+export { pauseJob, type PauseJobResult } from './actions/pause-job';
+export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
+export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
+export { extendJobValidity, type ExtendJobValidityResult } from './actions/extend-job-validity';
+export { editJob, type EditJobResult } from './actions/edit-job';
+export { runJobExpiration, type RunJobExpirationResult } from './actions/run-job-expiration';
+export {
+  enqueueExpiryReminder,
+  type JobExpiryReminderPayload,
+} from './actions/enqueue-expiry-reminder';
+
+// ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
+export { requireActiveResponsible } from './server/require-active-responsible';
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 export { PrismaJobStatusRepository } from './adapters/prisma-job-status';
@@ -45,6 +75,18 @@ export {
   type SearchJobsResult,
 } from './queries/search-jobs';
 export { getActiveJobDetail } from './queries/get-job-detail';
+export { getPausedJobNotice, type PausedJobNotice } from './queries/get-paused-job-notice';
+export {
+  listCompanyJobs,
+  COMPANY_JOBS_PAGE_SIZE,
+  type CompanyJobRow,
+} from './queries/list-company-jobs';
+export {
+  listActivePublishedJobs,
+  PUBLISHED_JOBS_PAGE_SIZE,
+  type PublishedJobRow,
+  type ListActivePublishedJobsResult,
+} from './queries/list-active-published-jobs';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
@@ -57,8 +99,15 @@ export {
   type JobDetail,
   type JobDetailRow,
 } from './views/job-detail.view';
+export {
+  viewCompanyJobRow,
+  type CompanyJobRowView,
+  type CompanyJobRowActions,
+} from './views/company-job-row.view';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
+export { CompanyJobList, type CompanyJobListProps } from './components/company-job-list';
+export { JobEditForm, type JobEditFormProps } from './components/job-edit-form';
 export { JobForm, type JobFormProps } from './components/job-form';
 export {
   JobSearchFilters,

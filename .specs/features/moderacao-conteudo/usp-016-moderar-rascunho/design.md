@@ -182,3 +182,59 @@ Item da fila: `{ contentKind, contentId, title, authorName, submittedAt, company
 - **R3 (concorrência):** dois moderadores decidem o mesmo item. → `UPDATE WHERE status = current` (otimista); 2ª chamada falha por `INVALID_TRANSITION` (ADR-0011 R3). Teste de integração cobre.
 - **R4 (enum duplicado — GAP-2):** redeclarar `ContentStatus` colide com migration da USP-009. → checar schema antes; reusar.
 - **R5 (permissão imprecisa — GAP-7):** catálogo de permissões de moderação (D-006) ainda aberto. → usar constante nomeada e marcar TODO até D-006 fechar; não bloqueia dev, bloqueia go-live (gate D-001 do intent).
+
+## 8. Refactor deltas — adoção do Design System (AD-014/AD-015)
+
+> Esta seção é o **guia de execução do restyle** (a US já está em `master`). Só a camada de apresentação
+> da fila muda; **nada** de domínio/porta/ação/consulta é tocado. Regra AD-015: *style-only*, comportamento
+> preservado; qualquer mudança que toque comportamento é documentada e sinalizada como decisão de consistência.
+
+### 8.1 Invariantes — o que NÃO muda (baseline de comportamento)
+
+Nenhuma edição em: `domain/**` (máquina de estados), `actions/transition-content.ts`, `actions/decide.ts`,
+`schemas/decision.ts`, `queries/moderation-queue.ts`, `views/moderation-queue-item.ts`, `ports/**`,
+`adapters/**` (incl. `dispatching-content-status-repository.ts` + `_moderation_fixture`), `server/moderation-access.ts`,
+`shared/container.ts`. A lógica do client `moderation-queue.tsx` (estado `rows`/`reason`/`errors`/`verifyReady`,
+`run`/`resolve`/`onApprove`/`onSubmitReason`, gating `needsChecklist && !verifyReady`) **permanece byte-a-byte**;
+troca-se apenas o *markup* e as *classes*. A formatação de data em fuso SP (`formatSaoPaulo`) no Server
+Component permanece.
+
+### 8.2 `components/moderation-queue.tsx` → primitivos + tokens
+
+| Elemento atual (paleta crua) | file:line | Alvo Design System |
+|---|---|---|
+| `const btnBase` + botões `bg-green-600…` / `bg-amber-500…` / `bg-red-600…` / `bg-blue-600…` / `bg-gray-100…` | `:34-35`, `:187-241` | `<Button>` de `@/shared/ui`: **Aprovar** → `variant="primary"` (CTA laranja); **Devolver** → `variant="secondary"`; **Rejeitar** → `variant="danger"`; **Confirmar** (motivo) → `variant="primary"`; **Cancelar** → `variant="outline"`. Remover `btnBase`. `disabled`/`title` (gating P-001) preservados como props. |
+| `const textareaClass` (`border-gray-300 focus:ring-blue-200…`) | `:31-32`, `:173` | `<Textarea>` de `@/shared/ui` (já token: `border-border`, foco `ring` primário). Remover `textareaClass`. `id`/`rows`/`value`/`onChange`/`placeholder` mantidos. |
+| pill de tipo `bg-blue-50 text-blue-700` | `:138-140` | `<Badge variant="blue">`. |
+| pill `Empresa não verificada` `bg-amber-50 text-amber-700` | `:141-148` | `<Badge variant="orange">` (o `title` de dica é mantido). |
+| card do item `rounded-xl border border-gray-200 bg-white p-5 shadow-sm` | `:133-136` | `<Card>` (surface + `border-border` + `shadow-sm` + hover) **ou** tokens `bg-surface border-border shadow-sm`. |
+| estado vazio `bg-gray-50 text-gray-600 border-gray-200` | `:116` | tokens `bg-surface text-fg-muted border-border` (mantém `role="status"`). |
+| títulos/labels `text-gray-900 / 700 / 600 / 500` | `:152-154`, `:168` | `text-fg` (título) / `text-fg-muted` (secundário). |
+| erro `text-red-600` | `:246` | `text-danger` (mantém `role="alert"`). |
+| label do motivo `text-gray-700` | `:168` | `text-fg-muted`; usar `<Label>` de `@/shared/ui` (mantém `htmlFor`). |
+
+### 8.3 `app/(app)/moderacao/page.tsx` → tokens + FormHeader
+
+| Elemento atual | file:line | Alvo |
+|---|---|---|
+| `<h1 className="text-2xl font-bold text-gray-900">` + `<p className="text-sm text-gray-600">` | `:91-99` | `<FormHeader title="Fila de moderação" description="…" />` (título em `font-heading`) **ou**, se o alinhamento centralizado do `FormHeader` não couber na fila, tokens `font-heading text-fg` / `text-fg-muted` no `<header>` atual. Layout/estrutura (`main`, `max-w-3xl`) preservados. |
+
+Decisão de consistência a registrar: `FormHeader` do DS é centralizado (feito para telas de formulário);
+se destoar do layout de lista, usar tokens diretos no `<header>` — documentar a escolha (como AD-015 fez
+com decisões sem mudança de código).
+
+### 8.4 Alinhamento a `project-guideline` (server) — sem mudança de comportamento
+
+O servidor já segue as convenções canônicas (sequência da Server Action: Zod → `requirePermission` →
+precondições → `transitionContent`/`withAudit`; imports por barrel; `take`/`select` explícitos). **Nada a
+refatorar no servidor.** Observação (drift pré-existente, fora do escopo do restyle): `ContentKind` ganhou
+`CANDIDATE_PROFILE` (o design original citava 3 kinds) — **preservar como está**; não é alvo deste ciclo.
+
+### 8.5 Teste negativo do restyle (garantia de must-not)
+
+Novo guard estático (padrão dos guards DS existentes em `src/shared/__tests__/ds-*.test.ts`, ex.
+`ds-login-parity.test.ts`): **`src/shared/__tests__/ds-moderation-parity.test.ts`** — lê o fonte de
+`moderation/components/moderation-queue.tsx` e `app/(app)/moderacao/page.tsx` e falha se encontrar
+utilitário de paleta crua (regex `\b(bg|text|border|ring)-(gray|slate|blue|green|amber|red)-[0-9]{2,3}\b`
+ou hex `#[0-9a-fA-F]{6}`). Cobre DS-16-MN-1. A USP-017 **estende** o mesmo guard para incluir
+`verification-panel.tsx`.

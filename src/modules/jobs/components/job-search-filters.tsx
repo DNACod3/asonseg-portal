@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { Button, Card, Input, Label } from '@/shared/ui';
 import type { JobAreaOption } from '../queries/list-approved-job-areas';
 import type { RegionOption } from '../queries/list-active-regions';
 
-const fieldClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+// `<select>` nativo não tem primitivo no DS — estilo por token, mesma superfície
+// visual do `Input` (AD-014, mesmo padrão de `job-form.tsx`/USP-020).
+const selectClass =
+  'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary';
 
 /** Valores atuais dos filtros (vindos dos searchParams), p/ pré-selecionar o form. */
 export interface JobSearchFilterValues {
@@ -37,148 +39,118 @@ export function JobSearchFilters({ areas, regions, values }: Readonly<JobSearchF
   );
 
   return (
-    <form
-      action="/vagas"
-      method="get"
-      className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-5"
-    >
-      {/* Busca textual (E-003) */}
-      <div>
-        <label className={labelClass} htmlFor="q">
-          Buscar vaga
-        </label>
-        <input
-          id="q"
-          name="q"
-          type="search"
-          placeholder="Ex.: padaria, atendente, limpeza…"
-          defaultValue={values.q ?? ''}
-          className={fieldClass}
-        />
-      </div>
-
-      {/* Prioritários: área + região (P-002) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form action="/vagas" method="get">
+      <Card className="flex flex-col gap-4 p-4 sm:p-5">
+        {/* Busca textual (E-003) */}
         <div>
-          <label className={labelClass} htmlFor="area">
-            Área
-          </label>
-          <select id="area" name="area" defaultValue={values.area ?? ''} className={fieldClass}>
-            <option value="">Todas as áreas</option>
-            {areas.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.name}
-              </option>
-            ))}
-          </select>
+          <Label htmlFor="q">Buscar vaga</Label>
+          <Input
+            id="q"
+            name="q"
+            type="search"
+            placeholder="Ex.: padaria, atendente, limpeza…"
+            defaultValue={values.q ?? ''}
+          />
         </div>
-        <div>
-          <label className={labelClass} htmlFor="regiao">
-            Região
-          </label>
-          <select id="regiao" name="regiao" defaultValue={values.regiao ?? ''} className={fieldClass}>
-            <option value="">Todas as regiões</option>
-            {regions.map((region) => (
-              <option key={region.id} value={region.id}>
-                {region.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
 
-      {/* Mais filtros (recolhível, P-002) */}
-      <details className="rounded-lg border border-gray-100 bg-gray-50 p-3" open={hasMoreFilters}>
-        <summary className="cursor-pointer text-sm font-medium text-gray-700">Mais filtros</summary>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Prioritários: área + região (P-002) */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass} htmlFor="regime">
-              Regime
-            </label>
-            <input
-              id="regime"
-              name="regime"
-              type="text"
-              placeholder="Ex.: Presencial"
-              defaultValue={values.regime ?? ''}
-              className={fieldClass}
-            />
+            <Label htmlFor="area">Área</Label>
+            <select id="area" name="area" defaultValue={values.area ?? ''} className={selectClass}>
+              <option value="">Todas as áreas</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className={labelClass} htmlFor="contrato">
-              Tipo de contrato
-            </label>
-            <input
-              id="contrato"
-              name="contrato"
-              type="text"
-              placeholder="Ex.: CLT, PJ"
-              defaultValue={values.contrato ?? ''}
-              className={fieldClass}
-            />
+            <Label htmlFor="regiao">Região</Label>
+            <select id="regiao" name="regiao" defaultValue={values.regiao ?? ''} className={selectClass}>
+              <option value="">Todas as regiões</option>
+              {regions.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {region.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <div>
-            <label className={labelClass} htmlFor="escolaridade">
-              Escolaridade
-            </label>
-            <input
-              id="escolaridade"
-              name="escolaridade"
-              type="text"
-              placeholder="Ex.: Ensino médio completo"
-              defaultValue={values.escolaridade ?? ''}
-              className={fieldClass}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+        </div>
+
+        {/* Mais filtros (recolhível, P-002) */}
+        <details className="rounded-lg border border-border bg-background p-3" open={hasMoreFilters}>
+          <summary className="cursor-pointer text-sm font-medium text-fg">Mais filtros</summary>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass} htmlFor="salarioMin">
-                Salário mín.
-              </label>
-              <input
-                id="salarioMin"
-                name="salarioMin"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="R$"
-                defaultValue={values.salarioMin ?? ''}
-                className={fieldClass}
+              <Label htmlFor="regime">Regime</Label>
+              <Input
+                id="regime"
+                name="regime"
+                type="text"
+                placeholder="Ex.: Presencial"
+                defaultValue={values.regime ?? ''}
               />
             </div>
             <div>
-              <label className={labelClass} htmlFor="salarioMax">
-                Salário máx.
-              </label>
-              <input
-                id="salarioMax"
-                name="salarioMax"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="R$"
-                defaultValue={values.salarioMax ?? ''}
-                className={fieldClass}
+              <Label htmlFor="contrato">Tipo de contrato</Label>
+              <Input
+                id="contrato"
+                name="contrato"
+                type="text"
+                placeholder="Ex.: CLT, PJ"
+                defaultValue={values.contrato ?? ''}
               />
             </div>
+            <div>
+              <Label htmlFor="escolaridade">Escolaridade</Label>
+              <Input
+                id="escolaridade"
+                name="escolaridade"
+                type="text"
+                placeholder="Ex.: Ensino médio completo"
+                defaultValue={values.escolaridade ?? ''}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="salarioMin">Salário mín.</Label>
+                <Input
+                  id="salarioMin"
+                  name="salarioMin"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="R$"
+                  defaultValue={values.salarioMin ?? ''}
+                />
+              </div>
+              <div>
+                <Label htmlFor="salarioMax">Salário máx.</Label>
+                <Input
+                  id="salarioMax"
+                  name="salarioMax"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="R$"
+                  defaultValue={values.salarioMax ?? ''}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </details>
+        </details>
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Filtrar
-        </button>
-        <Link
-          href="/vagas"
-          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Limpar
-        </Link>
-      </div>
+        <div className="flex gap-3">
+          <Button type="submit" variant="primary">
+            Filtrar
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/vagas">Limpar</Link>
+          </Button>
+        </div>
+      </Card>
     </form>
   );
 }

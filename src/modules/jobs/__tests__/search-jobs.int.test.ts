@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { CurrentPerson } from '@/modules/identity';
+import { hojeSaoPaulo } from '@/shared/lib/time';
 
 /**
  * Testes de integração da query de busca pública `searchJobs` (USP-021 / #170).
@@ -23,9 +24,15 @@ const CNPJ_VERIFIED = '11444777000200';
 const CNPJ_UNVERIFIED = '11444777000201';
 const SETOR = 'Comércio Int';
 
+/**
+ * `days` a partir do dia-calendário de São Paulo (não do relógio local do processo).
+ * `hojeSaoPaulo()` já normaliza "hoje" para meia-noite UTC do dia-calendário em SP; a
+ * partir daí a aritmética usa `setUTCDate` para permanecer imune ao fuso do runner —
+ * evita a janela 21h-00h BRT em que dia-calendário local e UTC divergem (L-006).
+ */
 function dateOffset(days: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
+  const d = hojeSaoPaulo();
+  d.setUTCDate(d.getUTCDate() + days);
   return d;
 }
 
@@ -45,6 +52,7 @@ skipIfNoDb('searchJobs — integração', () => {
   let jModeracao = ''; // IN_MODERATION (E-001)
   let jNaoVerificada = ''; // ACTIVE válida mas Empresa não verificada (P-005)
   let jOutra = ''; // ACTIVE verificada, Região B, PJ (p/ filtros AND)
+  let jInativada = ''; // INACTIVATED pelo coordenador (USP-018 / INACT-MN-04)
 
   async function cleanup() {
     await prisma.job.deleteMany({
@@ -123,7 +131,7 @@ skipIfNoDb('searchJobs — integração', () => {
       workRegime: 'Presencial',
     };
 
-    const [v, e, m, nv, o] = await Promise.all([
+    const [v, e, m, nv, o, ina] = await Promise.all([
       prisma.job.create({
         data: {
           ...base,
@@ -194,12 +202,26 @@ skipIfNoDb('searchJobs — integração', () => {
         },
         select: { id: true },
       }),
+      prisma.job.create({
+        data: {
+          ...base,
+          companyId: verifiedCompanyId,
+          regionId: regionAId,
+          title: 'Vaga Inativada Int',
+          contractType: 'CLT',
+          status: 'INACTIVATED', // USP-018 — inativada pelo coordenador
+          publishedAt: dateOffset(-1),
+          validUntil: dateOffset(30),
+        },
+        select: { id: true },
+      }),
     ]);
     jVisivel = v.id;
     jExpirada = e.id;
     jModeracao = m.id;
     jNaoVerificada = nv.id;
     jOutra = o.id;
+    jInativada = ina.id;
   });
 
   afterAll(async () => {
@@ -216,6 +238,13 @@ skipIfNoDb('searchJobs — integração', () => {
     expect(ids).not.toContain(jExpirada); // validade vencida apesar de status ACTIVE (P-003)
     expect(ids).not.toContain(jModeracao); // não-ACTIVE (E-001)
     expect(ids).not.toContain(jNaoVerificada); // Empresa não verificada (P-005)
+    expect(ids).not.toContain(jInativada); // INACTIVATED (USP-018 / INACT-MN-04)
+  });
+
+  it('@usp-018 @inact-mn-04 vaga INACTIVATED some da busca pública e não afeta o total', async () => {
+    const { items, total } = await searchJobs({ areaId }, anon);
+    expect(items.map((i) => i.id)).not.toContain(jInativada);
+    expect(total).toBe(2); // só jVisivel + jOutra — a inativada nunca conta
   });
 
   it('@e-002 combina filtros em AND (área + região + contrato)', async () => {

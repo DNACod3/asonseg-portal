@@ -10,11 +10,25 @@ import { submitJobForModeration } from '../actions/submit-job-for-moderation';
 import { createJobDraft } from '../actions/create-job-draft';
 import type { JobAreaOption } from '../queries/list-approved-job-areas';
 import type { RegionOption } from '../queries/list-active-regions';
+// Escape-hatch (padrão AD-013/T-A1, ver USP-018 next-cache-invalidation.ts):
+// o barrel `@/modules/moderation` arrasta adapters server-only (revalidatePath,
+// next/headers via o container) para o bundle client. Este é um Client
+// Component — importa a action `'use server'` direto pelo caminho, não pelo
+// barrel, exatamente como CLAUDE.md descreve a fronteira RSC (a action vira
+// referência serializada; nada do módulo é bundlado no cliente).
+// eslint-disable-next-line no-restricted-imports
+import { suggestTaxonomy } from '@/modules/moderation/actions/suggest-taxonomy';
+import { Button, Input, Label, Textarea } from '@/shared/ui';
 
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
-const errorClass = 'mt-1 text-xs text-red-600';
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+/** Opção sentinela do select de área — abre o sub-fluxo "sugerir nova" (USP-019 / SUGG-07). */
+const SUGGEST_AREA_VALUE = '__suggest__';
+
+// `<select>` nativo não tem primitivo no DS (só Input/Textarea) — estilo por
+// token, mesma superfície visual do `Input` (AD-014).
+const selectClass =
+  'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60';
+const errorClass = 'mt-1 text-xs text-danger';
+const legendClass = 'mb-1 block text-sm font-medium text-fg';
 
 export interface JobFormProps {
   /** Empresa em nome da qual a vaga será publicada (P-006). */
@@ -47,11 +61,21 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Sub-fluxo "Outro / sugerir nova área" (USP-019 / SUGG-07) — estado local,
+  // separado do RHF principal: sugerir NÃO seleciona a área (pendente até
+  // aprovação — SUGG-MN-01); o campo `areaId` continua exigido para publicar.
+  const [suggestName, setSuggestName] = useState('');
+  const [suggestPending, startSuggestTransition] = useTransition();
+  const [suggestFeedback, setSuggestFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(
+    null,
+  );
+
   const {
     register,
     handleSubmit,
     getValues,
     setError,
+    watch,
     formState: { errors },
   } = useForm<PublishJobInput>({
     resolver: zodResolver(publishJobSchema),
@@ -135,31 +159,42 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
     });
   }
 
+  // Submete a sugestão de nova área (USP-019 / SUGG-07) — sub-fluxo à parte do
+  // formulário de vaga; não altera `areaId` nem o submit de publicação.
+  function onSuggestArea() {
+    setSuggestFeedback(null);
+    startSuggestTransition(async () => {
+      const result = await suggestTaxonomy({ kind: 'JOB_AREA', name: suggestName });
+      if (result.ok) {
+        setSuggestName('');
+        setSuggestFeedback({ kind: 'success', message: 'Sugestão enviada para aprovação.' });
+      } else {
+        const message =
+          result.error.code === 'VALIDATION'
+            ? (result.error.fieldErrors?.name?.[0] ?? result.error.message)
+            : result.error.message;
+        setSuggestFeedback({ kind: 'error', message });
+      }
+    });
+  }
+
+  const areaValue = watch('areaId');
+
   return (
     <form onSubmit={handleSubmit(onPublish)} className="flex flex-col gap-5 max-w-lg">
       <input type="hidden" {...register('companyId')} />
 
       {/* Título */}
       <div>
-        <label className={labelClass} htmlFor="title">
-          Título da vaga
-        </label>
-        <input
-          id="title"
-          type="text"
-          placeholder="Ex.: Atendente de balcão"
-          className={inputClass}
-          {...register('title')}
-        />
+        <Label htmlFor="title">Título da vaga</Label>
+        <Input id="title" type="text" placeholder="Ex.: Atendente de balcão" {...register('title')} />
         {errors.title && <p className={errorClass}>{errors.title.message}</p>}
       </div>
 
       {/* Área */}
       <div>
-        <label className={labelClass} htmlFor="areaId">
-          Área de atuação
-        </label>
-        <select id="areaId" className={inputClass} defaultValue="" {...register('areaId')}>
+        <Label htmlFor="areaId">Área de atuação</Label>
+        <select id="areaId" className={selectClass} defaultValue="" {...register('areaId')}>
           <option value="" disabled>
             Selecione…
           </option>
@@ -168,38 +203,68 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
               {area.name}
             </option>
           ))}
+          <option value={SUGGEST_AREA_VALUE}>Outro / sugerir nova área</option>
         </select>
         {errors.areaId && <p className={errorClass}>{errors.areaId.message}</p>}
+
+        {/* Sub-fluxo de sugestão (USP-019 / SUGG-07) — não seleciona a área
+            para a vaga (pendente até aprovação, SUGG-MN-01); `areaId` continua
+            exigido acima para publicar. */}
+        {areaValue === SUGGEST_AREA_VALUE && (
+          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
+            <Label className="sr-only" htmlFor="suggest-area-name">
+              Nome da nova área
+            </Label>
+            <Input
+              id="suggest-area-name"
+              type="text"
+              placeholder="Ex.: Jardinagem"
+              value={suggestName}
+              onChange={(e) => setSuggestName(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onSuggestArea}
+              disabled={suggestPending || suggestName.trim().length < 2}
+              className="self-start"
+            >
+              {suggestPending ? 'Enviando…' : 'Sugerir área'}
+            </Button>
+            {suggestFeedback && (
+              <p
+                role={suggestFeedback.kind === 'error' ? 'alert' : 'status'}
+                className={suggestFeedback.kind === 'error' ? errorClass : 'text-xs text-success'}
+              >
+                {suggestFeedback.message}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Descrição */}
       <div>
-        <label className={labelClass} htmlFor="description">
-          Descrição
-        </label>
-        <textarea id="description" rows={4} className={inputClass} {...register('description')} />
+        <Label htmlFor="description">Descrição</Label>
+        <Textarea id="description" rows={4} {...register('description')} />
         {errors.description && <p className={errorClass}>{errors.description.message}</p>}
       </div>
 
       {/* Requisitos */}
       <div>
-        <label className={labelClass} htmlFor="requirements">
-          Requisitos
-        </label>
-        <textarea id="requirements" rows={3} className={inputClass} {...register('requirements')} />
+        <Label htmlFor="requirements">Requisitos</Label>
+        <Textarea id="requirements" rows={3} {...register('requirements')} />
         {errors.requirements && <p className={errorClass}>{errors.requirements.message}</p>}
       </div>
 
       {/* Regime */}
       <div>
-        <label className={labelClass} htmlFor="workRegime">
-          Regime de trabalho
-        </label>
-        <input
+        <Label htmlFor="workRegime">Regime de trabalho</Label>
+        <Input
           id="workRegime"
           type="text"
           placeholder="Ex.: CLT, PJ, estágio"
-          className={inputClass}
           {...register('workRegime')}
         />
         {errors.workRegime && <p className={errorClass}>{errors.workRegime.message}</p>}
@@ -207,14 +272,11 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
 
       {/* Tipo de contrato (USP-021 / E-002) */}
       <div>
-        <label className={labelClass} htmlFor="contractType">
-          Tipo de contrato
-        </label>
-        <input
+        <Label htmlFor="contractType">Tipo de contrato</Label>
+        <Input
           id="contractType"
           type="text"
           placeholder="Ex.: CLT, PJ, MEI, temporário"
-          className={inputClass}
           {...register('contractType')}
         />
         {errors.contractType && <p className={errorClass}>{errors.contractType.message}</p>}
@@ -222,10 +284,8 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
 
       {/* Região (USP-021 / E-002) */}
       <div>
-        <label className={labelClass} htmlFor="regionId">
-          Região
-        </label>
-        <select id="regionId" className={inputClass} defaultValue="" {...register('regionId')}>
+        <Label htmlFor="regionId">Região</Label>
+        <select id="regionId" className={selectClass} defaultValue="" {...register('regionId')}>
           <option value="" disabled>
             Selecione…
           </option>
@@ -240,14 +300,13 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
 
       {/* Escolaridade exigida (opcional, USP-021 / E-002) */}
       <div>
-        <label className={labelClass} htmlFor="educationLevelRequired">
-          Escolaridade exigida <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-        <input
+        <Label htmlFor="educationLevelRequired">
+          Escolaridade exigida <span className="font-normal text-fg-muted">(opcional)</span>
+        </Label>
+        <Input
           id="educationLevelRequired"
           type="text"
           placeholder="Ex.: Ensino médio completo"
-          className={inputClass}
           {...register('educationLevelRequired')}
         />
         {errors.educationLevelRequired && (
@@ -257,83 +316,72 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
 
       {/* Local */}
       <div>
-        <label className={labelClass} htmlFor="location">
-          Local
-        </label>
-        <input
-          id="location"
-          type="text"
-          placeholder="Ex.: São Paulo - SP"
-          className={inputClass}
-          {...register('location')}
-        />
+        <Label htmlFor="location">Local</Label>
+        <Input id="location" type="text" placeholder="Ex.: São Paulo - SP" {...register('location')} />
         {errors.location && <p className={errorClass}>{errors.location.message}</p>}
       </div>
 
       {/* Benefícios (opcional) */}
       <div>
-        <label className={labelClass} htmlFor="benefits">
-          Benefícios <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-        <textarea id="benefits" rows={2} className={inputClass} {...register('benefits')} />
+        <Label htmlFor="benefits">
+          Benefícios <span className="font-normal text-fg-muted">(opcional)</span>
+        </Label>
+        <Textarea id="benefits" rows={2} {...register('benefits')} />
         {errors.benefits && <p className={errorClass}>{errors.benefits.message}</p>}
       </div>
 
       {/* Faixa salarial (opcional, USP-021 / E-002) */}
       <fieldset className="flex flex-col gap-3">
-        <legend className={labelClass}>
-          Faixa salarial <span className="text-gray-400 font-normal">(opcional)</span>
+        <legend className={legendClass}>
+          Faixa salarial <span className="font-normal text-fg-muted">(opcional)</span>
         </legend>
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="sr-only" htmlFor="salaryMin">
+            <Label className="sr-only" htmlFor="salaryMin">
               Salário mínimo
-            </label>
-            <input
+            </Label>
+            <Input
               id="salaryMin"
               type="number"
               min={0}
               step="0.01"
               placeholder="Mínimo (R$)"
-              className={inputClass}
               {...register('salaryMin')}
             />
             {errors.salaryMin && <p className={errorClass}>{errors.salaryMin.message}</p>}
           </div>
           <div className="flex-1">
-            <label className="sr-only" htmlFor="salaryMax">
+            <Label className="sr-only" htmlFor="salaryMax">
               Salário máximo
-            </label>
-            <input
+            </Label>
+            <Input
               id="salaryMax"
               type="number"
               min={0}
               step="0.01"
               placeholder="Máximo (R$)"
-              className={inputClass}
               {...register('salaryMax')}
             />
             {errors.salaryMax && <p className={errorClass}>{errors.salaryMax.message}</p>}
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-700" htmlFor="salaryVisible">
+        <Label className="flex items-center gap-2 text-sm font-normal text-fg" htmlFor="salaryVisible">
           <input id="salaryVisible" type="checkbox" {...register('salaryVisible')} />
           Exibir salário na vaga pública
-        </label>
+        </Label>
       </fieldset>
 
       {/* Validade */}
       <div>
-        <label className={labelClass} htmlFor="validUntil">
+        <Label htmlFor="validUntil">
           Validade da vaga{' '}
-          <span className="text-gray-400 font-normal">(até quando recebe candidatos)</span>
-        </label>
-        <input
+          <span className="font-normal text-fg-muted">(até quando recebe candidatos)</span>
+        </Label>
+        <Input
           id="validUntil"
           type="date"
           min={isoDateOffset(1)}
           max={isoDateOffset(180)}
-          className={inputClass}
           {...register('validUntil')}
         />
         {errors.validUntil && <p className={errorClass}>{errors.validUntil.message}</p>}
@@ -342,7 +390,7 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
       {success && (
         <div
           role="status"
-          className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+          className="rounded-lg border border-success bg-[color-mix(in_srgb,var(--color-success)_10%,transparent)] px-4 py-3 text-sm text-success"
         >
           {success}
         </div>
@@ -351,28 +399,19 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
       {serverError && (
         <div
           role="alert"
-          className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          className="rounded-lg border border-danger bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] px-4 py-3 text-sm text-danger"
         >
           {serverError}
         </div>
       )}
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onSaveDraft}
-          disabled={isPending}
-          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="button" variant="secondary" onClick={onSaveDraft} disabled={isPending}>
           {isPending ? 'Salvando…' : 'Salvar rascunho'}
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        </Button>
+        <Button type="submit" variant="primary" disabled={isPending}>
           {isPending ? 'Enviando…' : 'Enviar para moderação'}
-        </button>
+        </Button>
       </div>
     </form>
   );

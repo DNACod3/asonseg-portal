@@ -61,9 +61,39 @@ Cadeia linear: cada task desbloqueia a próxima ao fechar (cascade do protocolo 
 
 ---
 
+> **Estado (Fase 2 — restyle):** T1–T3 (comportamento) já estão **implementadas e merged em `master`**.
+> Nesta rodada elas são o **baseline de comportamento a preservar** (a suíte
+> `src/modules/moderation/**/__tests__/` é o gate de não-regressão). O trabalho novo é **T4** (adoção do
+> Design System na fila do coordenador), padrão AD-015. O painel de verificação é restilizado na USP-017.
+
+## T4 — refactor(moderation): restyle da fila + página ao Design System (AD-014) · restyle · Ready
+
+- **What:** substituir paleta crua Tailwind e elementos nativos por primitivos/tokens de `@/shared/ui` na
+  fila do coordenador e na página da rota, **preservando 100% do comportamento** (rótulos, fluxos de
+  decisão, gating de motivo, remoção do item, erros). Ver mapeamento em `design.md` §8.2–§8.3.
+- **Where:**
+  - `src/modules/moderation/components/moderation-queue.tsx` (botões→`Button`; textarea→`Textarea`; pills→`Badge`; card→`Card`/tokens; cores→tokens; label→`Label`).
+  - `src/app/(app)/moderacao/page.tsx` (header→`FormHeader`/tokens).
+  - **novo** `src/shared/__tests__/ds-moderation-parity.test.ts` (guard negativo — DS-16-MN-1).
+- **Depends on:** Fundação DS (AD-014, `src/shared/ui` ✅) + baseline T1–T3 ✅. **Reuses:** `Button`,
+  `Textarea`, `Badge`, `Card`, `Label`, `FormHeader` de `@/shared/ui`; `cn`.
+- **Done when:**
+  - [ ] DS-16-01: fila e página usam apenas primitivos/tokens; paridade light/dark via `[data-theme]` (verificar visualmente nos dois temas).
+  - [ ] DS-16-MN-1: guard `ds-moderation-parity` verde — zero paleta crua/hex em `moderation-queue.tsx` e `moderacao/page.tsx`.
+  - [ ] DS-16-MN-2: comportamento intacto — `components/__tests__/moderation-queue.test.tsx` (e demais RTL) **verdes sem alteração de asserções de comportamento**; ajustes de teste só se um seletor de estilo mudou (documentar).
+  - [ ] DS-16-MN-3: sem `dark:`/`prefers-color-scheme`/lib de tema introduzidos.
+  - [ ] Nenhum arquivo de `domain/`, `actions/`, `queries/`, `schemas/`, `ports/`, `adapters/`, `views/`, `server/` ou `container.ts` tocado (invariante §8.1).
+- **Tests:** **guard estático** — `ds-moderation-parity.test.ts` (must-not DS-16-MN-1). **RTL de regressão** —
+  `components/__tests__/moderation-queue.test.tsx` continua verde (comportamento preservado, DS-16-MN-2).
+  (skill-tdad gera/atualiza o guard como teste-fonte RED antes do restyle.)
+- **Gate:** `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run test` verde (guard + RTL) · 1 commit atômico.
+
+---
+
 ## Definition of Done (US #117)
 
 - [ ] E-001..E-004, AC5, AC6, P-003, P-005, P-006, P-007, L-001, L-003 implementados e cobertos por testes.
+- [ ] **Restyle (T4):** DS-16-01 cumprido e DS-16-MN-1..3 provados (guard `ds-moderation-parity` verde; RTL de regressão verde; sem mudança de comportamento). Camada de servidor intacta (§8.1).
 - [ ] Sub-tasks #121/#122/#123 fechadas e PRs merged (squash).
 - [ ] Sem regressão em `typecheck`/`lint`/testes; CI build + E2E verdes.
 - [ ] Lacunas GAP-1..GAP-8 resolvidas ou explicitamente diferidas com decisão registrada (GAP-2 ✅ #121 owner do enum; GAP-8 `ContentStatusRepository` port; E-005/P-001 → GAP-5 diferido; P-002 → USP-017; P-004 → USP-018; e-mail real → USP-044).

@@ -1,87 +1,216 @@
-# USP-021 — Buscar vagas (pública) — Tasks
+# USP-021 — Buscar vagas (pública) — Refactor (Fase 2 / Design System) — Tasks
 
-> Deriva de [`design.md`](./design.md). 1 task = 1 PR (squash). Estimate revisada = **~22h** (AD-011 cresceu o escopo
-> do board original de 12h, ao estender o schema). Board (2026-06-20): #169 **In progress** (kickoff) · #170/#171 **Backlog**.
-> **Board ajustado (2026-06-20):** subtask T1 criada (**#274**, Ready, 8h); #170→8h, #171→6h (ambas Blocked); #169=22h; Épico #6=163h.
-> **Padrões de referência:** `jobs/queries/list-approved-job-areas.ts` (query), `reporting/views/access-report.view.ts`
-> (View Model async), `moderation/adapters/next-cache-invalidation.ts` (revalidação `/vagas` já cabeada),
-> `identity/server/session.ts` (`getCurrentPerson`), USP-020 (model `Job` + migration + `JobForm`).
+## Execution Protocol (MANDATORY — do not skip)
 
-## Grafo de dependências
+Implement these tasks with the spec-driven execution skill: **activate `bravi-spec-driven` by name**
+(fallback `idsd-spec-driven`) and follow its Execute flow and Critical Rules. Do not search for skill files
+by filesystem path. The skill is the source of truth for the per-task cycle (implement → gate → atomic
+commit), sub-agent delegation, and the independent Verifier.
 
-```
-T1 (schema +unaccent +seed +JobForm) ──▶ T2 (#170 searchJobs + View Models) ──▶ T3 (#171 UI /vagas ISR)
-```
+**If the skill cannot be activated, STOP and tell the orchestrator — do not proceed without it.**
 
-Cadeia linear; cada subtask destrava a próxima ao fechar (cascade OpenWolf regra 5).
-**Já existem (não recriar):** `model Job` (USP-020), `Region` (taxonomia), `Company.isVerified` (USP-017),
-enum `ContentStatus`, `listApprovedJobAreas`, `getCurrentPerson`, `NextCacheInvalidation` (`/vagas` já mapeado),
-helpers de tempo em `shared/lib/time.ts`, rate limiting no middleware (`RATE_LIMIT_DISABLED`).
+**Refactor discipline (every task):** change **only markup/classes**. Do not touch `searchJobs`, View
+Models (`viewJobForVisitor`/`companyDisplayName`), the GET semantics/searchParam names, `revalidate`/ISR or
+on-demand revalidation. Existing tests MUST stay green (no weakening/deleting). Preserve: filtro on-read,
+6 filtros AND, busca `unaccent`, paginação (`take`), anonimização (ADR-0022), ordenação `publishedAt DESC`.
 
----
-
-## T1 — #274 · feat(jobs): estender schema Job (TD §4.5) + unaccent + seed + form · 8h · Ready
-
-- **What:** migração estendendo `Job` ao contrato do TD §4.5 (`design.md §1`) + extensão `unaccent`/`pg_trgm` e índice funcional (`design.md §2`) + backfill no seed + atualizar `JobForm` (USP-020) p/ coletar os campos novos.
-- **Where:** `prisma/schema.prisma`; `prisma/migrations/20260620XXXXXX_usp021_job_search_fields/`; `prisma/seed.ts` (backfill); `src/modules/jobs/schemas/publish-job.schema.ts` (campos novos no submit); `src/modules/jobs/components/job-form.tsx`; barrel `jobs/index.ts`.
-- **Depends on:** `Region`, `Company.isVerified`, `model Job` (existem).
-- **Reuses:** padrão de migration da USP-020 (`..._usp020_job`); `educationLevel String?` de `CandidateProfile` (mesmo estilo freetext); índice parcial via SQL bruto (padrão `job_dedup_alive`).
-- **Done when:**
-  - [ ] `Job` ganha `educationLevelRequired?`, `contractType?`, `salaryMin?`/`salaryMax?` (`Decimal(10,2)`), `salaryVisible Boolean @default(true)`, `regionId?` + relação `region Region?`; reversa `Region.jobs Job[]` (AD-1: nullable p/ não quebrar seed).
-  - [ ] `@@index([status, validUntil])` e `@@index([areaId, regionId, status])` (L-001/RP-009).
-  - [ ] Migração SQL bruto: `CREATE EXTENSION unaccent`, `CREATE EXTENSION pg_trgm`, wrapper `immutable_unaccent(text) IMMUTABLE`, índice GIN trgm `job_search_trgm` (`design.md §2`).
-  - [ ] `publishJobSchema`/`submitJobSchema` exigem `contractType` + `regionId` no submit (rascunho continua parcial); `educationLevelRequired`/`salaryMin/Max`/`salaryVisible` opcionais.
-  - [ ] `JobForm` coleta os campos novos (select de Região via `Region` ativas; select/input contrato; faixa salário + toggle "exibir salário").
-  - [ ] `seed.ts` backfilla vagas existentes com `contractType`/`regionId` válidos (ou cria vagas de exemplo completas p/ a busca pública).
-  - [ ] Migração aplica em DB limpo (`supabase db reset`); `prisma generate` + `npm run typecheck` ✓.
-- **Tests:** validação por migration + typecheck; smoke `supabase db reset`; teste de regressão do `JobForm` (USP-020 não quebra). Facts do skill-tdad p/ os campos novos no submit.
-- **Gate:** `npm run typecheck` ✓ · migração aplica em DB limpo ✓ · índice `unaccent` criado · suíte da USP-020 sem regressão.
-- **Commit:** `feat(jobs): estende schema Job + unaccent p/ busca (USP-021)`
-
-## T2 — #170 · feat(jobs): searchJobs (query on-read) + View Models por papel · 8h · Backlog
-
-- **What:** query `searchJobs` (filtro on-read + 6 filtros AND + busca `unaccent` + paginação) + View Models `viewJobForVisitor` (anonimização anônimo vs. autenticado) + query auxiliar `listActiveRegions`.
-- **Where:** `src/modules/jobs/queries/search-jobs.ts`, `src/modules/jobs/queries/list-active-regions.ts`, `src/modules/jobs/views/job-list-item.view.ts`, `src/modules/jobs/__tests__/search-jobs.int.test.ts`, `src/modules/jobs/__tests__/job-list-item.view.spec.ts`, `shared/lib/time.ts` (`hojeSaoPaulo()`), barrel `jobs/index.ts`.
-- **Depends on:** T1 (colunas + índice unaccent). Externos: `prisma`, `getCurrentPerson` (`@/modules/identity`), helpers de tempo.
-- **Reuses:** `list-approved-job-areas.ts` (forma de query read-only + `take`); `access-report.view.ts` (View Model async com recorte); runbook-search-pagination + runbook-view-model-visibility **verbatim**.
-- **Done when:**
-  - [ ] `searchJobs(filters, viewer)`: on-read `status=ACTIVE AND validUntil >= hojeSP() AND company.isVerified=true` (E-001/P-003/P-005); todos os filtros em AND (E-002); busca textual `unaccent` sobre título+desc+requisitos via `$queryRaw` parametrizado (E-003, AD-2); `orderBy publishedAt desc`; `take`+`skip` (L-002); `select` explícito (sem vazar entidade/Empresa).
-  - [ ] `viewJobForVisitor(row, viewer)`: anônimo → `displayName="Empresa do setor de X"`, `isAnonymized=true`, **nunca** `company.name` (E-004/P-001/P-004); autenticado → nome real (E-005); `salaryVisible=false` → `salary=null` (edge).
-  - [ ] `hojeSaoPaulo()` em `shared/lib/time.ts` (data em America/Sao_Paulo).
-  - [ ] `listActiveRegions()` (id+name, `isActive`, `take`).
-  - [ ] Exports via barrel; `npm run typecheck` + `lint` ✓.
-- **Tests:** facts do skill-tdad. Integração (`*.int.test.ts`): só `ACTIVE`+não-expirada+Empresa verificada aparece (E-001/P-003/P-005); vaga expirada por validade vencida some mesmo com status persistido `ACTIVE` (P-003/D-004); filtros AND combinados; busca "padaria" acha "padária" e "PADARIA" (E-003); paginação. View (`*.view.spec.ts`): **anônimo NÃO vê `company.name` em nenhum campo** (E-004/P-001/D-002), autenticado vê (E-005), `salaryVisible=false` oculta salário.
-- **Gate:** `npm run typecheck` ✓ · `lint` ✓ · `vitest` (int + view) verdes.
-- **Commit:** `feat(jobs): searchJobs on-read + View Models por papel (USP-021)`
-
-## T3 — #171 · feat(jobs): UI busca pública /vagas (ISR + filtros) · 6h · Backlog
-
-- **What:** rota pública `(public)/vagas` (ISR) + UI de filtros (2-3 prioritários + expansível) + lista de cards anonimizados + paginação.
-- **Where:** `src/app/(public)/vagas/page.tsx`, `src/modules/jobs/components/job-search-filters.tsx`, `src/modules/jobs/components/job-card.tsx`, `src/modules/jobs/components/job-list.tsx`, barrel.
-- **Depends on:** T2 (`searchJobs` + View Models). Externos: shadcn/ui, `getCurrentPerson`, `listApprovedJobAreas`/`listActiveRegions`.
-- **Reuses:** padrão de Server Component público (`(public)/page.tsx` — `export const revalidate`); `NextCacheInvalidation` já revalida `/vagas` (não tocar); mapeamento de `JobListItem` → card.
-- **Done when:**
-  - [ ] `export const revalidate = 1800` na page; Server Component lê `searchParams`, chama `getCurrentPerson()` + `searchJobs` e renderiza.
-  - [ ] Filtros via searchParams (`?area=&regime=&regiao=&q=&pagina=`); URL compartilhável; **P-002:** área + regime/região visíveis, restante (escolaridade/contrato/faixa salário) em "Mais filtros" expansível; mobile-first.
-  - [ ] Cards: título, área, região, regime, salário (se visível), Empresa (anonimizada p/ anônimo, real p/ autenticado), data; link p/ detalhe (rota USP-022, placeholder ok).
-  - [ ] Estado vazio + paginação; sem nome de Empresa em metadados da lista (E-004).
-  - [ ] `npm run typecheck` + `lint` ✓.
-- **Tests:** facts do skill-tdad. E2E (Playwright, top-flow descoberta): anônimo abre `/vagas`, vê vagas ativas anonimizadas; aplica filtro (área+região) → lista reduz; busca textual sem acento acha vaga; (D-002) inspeciona HTML e não acha nome real da Empresa.
-- **Gate:** `npm run typecheck` ✓ · `lint` ✓ · E2E do fluxo de busca pública verde.
-- **Commit:** `feat(jobs): UI busca pública de vagas (ISR) (USP-021)`
+**Novos testes (skill-tdad):** a guarda de estilo pode ser gerada via `skill-tdad` a partir dos must-nots
+U21-MN-*.
 
 ---
 
-## Ajuste de board (OpenWolf regra 3 — Estimate pai = soma dos subs) — ✅ aplicado 2026-06-20
+**Design**: `.specs/features/vagas/usp-021-buscar-vagas-publica/design.md`
+**Status**: Draft
 
-- **#274** (T1) criada, filha de #169, Estimate 8h, Status **Ready**.
-- **#170** (T2) Estimate 6h→8h, **Blocked by #274**. **#171** (T3) Estimate 6h, **Blocked by #170**.
-- **#169** Estimate 12h→**22h** (= 8+8+6). Épico **#6** 153h→**163h** (Δ +10h).
-- Cascade: ao fechar #274 → #170 vai a Ready; ao fechar #170 → #171 vai a Ready (regra 5).
+---
 
-## Facts (skill-tdad) — a gerar na fase Execute
+## Test Coverage Matrix
 
-Rodar `skill-tdad` sobre `expectations-USP-021.md` (E-001..E-005, P-001..P-005, L-002/L-004) para produzir:
-- `.feature` Gherkin PT-BR (tags `@e-001`…`@p-005`), Vitest RED (int de `searchJobs` + view specs), Playwright E2E (top-flow descoberta), matriz de rastreabilidade AC→fact.
-- Cobertura alvo: **E-001, E-002, E-003, E-004/P-001, E-005, P-003, P-004, P-005, L-002, L-004**.
-- Fora desta US (verificam em USP-022/024): OG/JSON-LD por vaga (E-004 no detalhe), expiração por cron (USP-024), D-001/D-003/D-005 (UAT/carga pós-merge).
+> Gerada do codebase + guidelines + spec — confirmar antes do Execute. Toda a superfície da USP-021 é
+> **Server Component** → restyle validado por `build`; anonimização/on-read preservados pelos specs
+> existentes (`job-list-item.view.spec.ts`, `search-jobs.int.test.ts`).
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| --- | --- | --- | --- | --- |
+| Server Component (`JobCard`/`JobList`/`JobSearchFilters`/página) | none | Gate de build; sem paleta crua | `src/modules/jobs/components/**`, `src/app/(public)/vagas/**` | build gate |
+| Guarda de estilo (DS parity) | unit (node:fs) | Zero paleta crua/hex + zero `nomeFantasia` na camada de componente (U21-MN-01/04) | `src/shared/__tests__/ds-*-parity.test.ts` | `npm run test` |
+| View Model (existente, preservado) | unit | `job-list-item.view.spec.ts` verde — anônimo sem nome real (U21-MN-01) | `src/modules/jobs/__tests__/*.view.spec.ts` | `npm run test` |
+| Query `searchJobs` (existente, preservado) | integration | `search-jobs.int.test.ts` verde — on-read/verificada/expiração/campos restritos (U21-MN-02/03) | `src/modules/jobs/__tests__/*.int.test.ts` | `npm run test:integration` |
+
+## Parallelism Assessment
+
+| Test Type | Parallel-Safe? | Isolation Model | Evidence |
+| --- | --- | --- | --- |
+| unit (node:fs guard / view spec, jsdom) | Yes | Leitura de arquivo / deps mockadas | `ds-ui-uses-tokens.test.ts`, `job-list-item.view.spec.ts` |
+| integration (Postgres) | No | Postgres compartilhado + cleanup | `search-jobs.int.test.ts` |
+
+## Gate Check Commands
+
+| Gate Level | When to Use | Command |
+| --- | --- | --- |
+| Quick | Guarda/unit apenas | `npm run typecheck && npm run lint && npm run test` |
+| Build | Restyle de Server Component | `npm run typecheck && npm run lint && npm run test && npm run build` |
+| Full+Build | Task que precisa confirmar preservação de `searchJobs` (integração) | `npm run typecheck && npm run lint && npm run test && npm run test:integration && npm run build` |
+
+---
+
+## Execution Plan
+
+### Phase 1: Restyle de card e lista (Sequential)
+
+```
+T1
+```
+
+### Phase 2: Restyle de filtros e página (Sequential)
+
+```
+T1 ──→ T2 ──→ T3
+```
+
+3 fases lógicas colapsadas em cadeia linear → execução inline (sem sub-agentes por fase).
+
+---
+
+## Task Breakdown
+
+### T1: Restyle `JobCard` + `JobList` para o Design System (só estilo) + guarda de estilo
+
+**What**: `JobCard` raiz → `Card`; pílulas de metadados → `Badge`; estado vazio de `JobList` → `Card`
+neutro; cores → tokens (`text-fg`/`text-fg-muted`/`border-border`). Criar/estender a guarda de estilo (sem
+paleta crua + sem `nomeFantasia` na camada de componente).
+**Where**:
+- `src/modules/jobs/components/job-card.tsx` (modify — só marcação/classe)
+- `src/modules/jobs/components/job-list.tsx` (modify — só marcação/classe)
+- `src/shared/__tests__/ds-vagas-parity.test.ts` (criar se não existir; cobrir card+list)
+**Depends on**: None
+**Reuses**: `@/shared/ui` (`Card`, `Badge`); `job-list-item.view.spec.ts` (preservação de anonimização); `ds-login-parity.test.ts` (padrão de guarda)
+**Requirement**: U21-STYLE-01, U21-MN-01, U21-MN-04
+
+**Tools**:
+- MCP: NONE
+- Skill: `skill-tdad` (guarda dos must-nots), opcional
+
+**Done when**:
+- [ ] `JobCard` usa `Card` (raiz) + `Badge` (pílulas área/região/regime/contrato); título/empresa/salário/data com tokens; **`company.displayName` preservado** (nenhum acesso a `nomeFantasia`).
+- [ ] `JobList`: estado vazio em `Card` neutro (`text-fg-muted`), cópia "Nenhuma vaga encontrada" preservada; lista mantém `<ul>` + spacing por token.
+- [ ] Nenhuma classe de paleta crua (`bg-blue-600`, `text-gray-*`, `border-gray-*`, `bg-gray-100`, `border-dashed`) nem hex.
+- [ ] **Guarda (U21-MN-01/04):** `ds-vagas-parity.test.ts` assevera zero paleta crua/hex **e** zero referência a `nomeFantasia`/`company.name` em `job-card.tsx`/`job-list.tsx`.
+- [ ] **Preservação (U21-MN-01):** `job-list-item.view.spec.ts` permanece verde (anônimo ⇒ rótulo por setor; autenticado ⇒ nome real).
+- [ ] Gate check passes: `npm run typecheck && npm run lint && npm run test && npm run build`
+
+**Tests**: none (Server Component) + unit (guarda + view spec preservado)
+**Gate**: build
+
+**Commit**: `refactor(jobs): restyle JobCard/JobList com Design System (AD-014) (USP-021)`
+
+---
+
+### T2: Restyle `JobSearchFilters` (form GET) para o Design System (só estilo)
+
+**What**: Painel de filtros em `Card`; campos → `Input`/`Label`; "Filtrar" → `Button primary`; "Limpar" →
+`Button outline asChild`; `<details>` "Mais filtros" preservado e reestilizado. Estender a guarda.
+**Where**:
+- `src/modules/jobs/components/job-search-filters.tsx` (modify — só marcação/classe)
+- `src/shared/__tests__/ds-vagas-parity.test.ts` (estender p/ cobrir o arquivo)
+**Depends on**: T1 (guarda já criada)
+**Reuses**: `@/shared/ui` (`Card`, `Input`, `Label`, `Button`, `FormRow`)
+**Requirement**: U21-STYLE-02, U21-MN-04, U21-MN-05
+
+**Tools**:
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+- [ ] Constantes `fieldClass`/`labelClass` removidas; campos usam `Input`/`Label`; selects com token; "Filtrar" `Button variant="primary"` (submit); "Limpar" `Button variant="outline" asChild` → `<Link href="/vagas">`.
+- [ ] **Preservado (U21-MN-05):** `<form action="/vagas" method="get">`, os nomes de searchParam PT (`q/area/regiao/regime/contrato/escolaridade/salarioMin/salarioMax`), e o `<details>` "Mais filtros" com os filtros secundários (P-002 não opressivo, progressive enhancement).
+- [ ] Nenhuma paleta crua/hex; renderiza em light/dark.
+- [ ] **Guarda (U21-MN-04/05):** `ds-vagas-parity.test.ts` cobre o arquivo (sem paleta crua) e assevera presença de `method="get"` + `<details>`.
+- [ ] Gate check passes: `npm run typecheck && npm run lint && npm run test && npm run build`
+
+**Tests**: none (Server Component) + unit (guarda)
+**Gate**: build
+
+**Commit**: `refactor(jobs): restyle JobSearchFilters com Design System (AD-014) (USP-021)`
+
+---
+
+### T3: Restyle da página `(public)/vagas/page.tsx` (ISR) — só estilo + confirmação de preservação de `searchJobs`
+
+**What**: Casca da página em tokens/`FormHeader`; contagem + paginação reestilizadas (`Button` nos links de
+página); confirmar preservação da fatia de leitura (integração). Estender a guarda.
+**Where**:
+- `src/app/(public)/vagas/page.tsx` (modify — só marcação/classe)
+- `src/shared/__tests__/ds-vagas-parity.test.ts` (estender p/ cobrir a página)
+**Depends on**: T2
+**Reuses**: `@/shared/ui` (`FormHeader`, `Button`); `(public)/page.tsx` (padrão de casca ISR)
+**Requirement**: U21-STYLE-02, U21-MN-02, U21-MN-03, U21-MN-04
+
+**Tools**:
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+- [ ] Casca com `FormHeader`/tokens; contagem (`aria-live`) e paginação (`?pagina=` preservando filtros) reestilizadas com `Button`; sem paleta crua.
+- [ ] **Preservado sem alteração:** `export const revalidate = 1800`, leitura de `searchParams`, `Promise.all([getCurrentPerson(), listApprovedJobAreas(), listActiveRegions()])`, `searchJobs(filters, viewer)`, o `metadata` estático.
+- [ ] **Preservação (U21-MN-02/03):** `search-jobs.int.test.ts` permanece verde — só `ACTIVE`+não-expirada+`company.isVerified` aparece; campos restritos não expostos (`select` explícito).
+- [ ] **Guarda (U21-MN-04):** `ds-vagas-parity.test.ts` cobre a página.
+- [ ] Gate check passes: `npm run typecheck && npm run lint && npm run test && npm run test:integration && npm run build`
+
+**Tests**: none (Server Component) + integration (preservação de `searchJobs`)
+**Gate**: full+build
+
+**Commit**: `refactor(jobs): restyle página de busca de vagas com Design System (AD-014) (USP-021)`
+
+---
+
+## Parallel Execution Map
+
+```
+Phase 1 (Sequential):  T1 (card + list + cria guarda)
+Phase 2 (Sequential):  T1 → T2 (filtros) → T3 (página + preservação searchJobs)
+```
+
+Nenhuma task `[P]`: T2/T3 estendem a mesma guarda e dependem em cadeia; integração (T3) não é parallel-safe.
+
+## Task Granularity Check
+
+| Task | Escopo | Status |
+| --- | --- | --- |
+| T1: card + list + guarda | 2 componentes coesos (mesmo vocabulário Card/Badge) + guarda | ✅ Granular |
+| T2: filtros | 1 componente | ✅ Granular |
+| T3: página | 1 arquivo | ✅ Granular |
+
+## Diagram-Definition Cross-Check
+
+| Task | Depends On (body) | Diagram | Status |
+| --- | --- | --- | --- |
+| T1 | None | raiz | ✅ Match |
+| T2 | T1 | T1 → T2 | ✅ Match |
+| T3 | T2 | T2 → T3 | ✅ Match |
+
+## Test Co-location Validation
+
+| Task | Code Layer | Matrix Requires | Task Says | Status |
+| --- | --- | --- | --- | --- |
+| T1 | Server Component + guarda + view spec | none/build + unit | build (inclui unit) | ✅ OK |
+| T2 | Server Component + guarda | none/build + unit | build | ✅ OK |
+| T3 | Server Component + preservação integração | none/build + integration | full+build | ✅ OK |
+
+## Must-Not Ownership
+
+| Must-Not | Owning Task | Negative Test |
+| --- | --- | --- |
+| U21-MN-01 (anonimização preservada) | T1 | `job-list-item.view.spec.ts` (anônimo sem nome real) + guarda (sem `nomeFantasia` no componente) |
+| U21-MN-02 (não-verificada/não-ACTIVE/expirada ocultas) | T3 | `search-jobs.int.test.ts` (só ACTIVE+verificada+não-expirada) permanece verde |
+| U21-MN-03 (campos restritos não expostos) | T3 | `search-jobs.int.test.ts` / `job-list-item.view.spec.ts` (`select` explícito) permanece verde |
+| U21-MN-04 (sem paleta crua) | T1 + T2 + T3 | `ds-vagas-parity.test.ts` — zero paleta crua/hex nos arquivos tocados |
+| U21-MN-05 (filtros não opressivos + GET preservado) | T2 | `ds-vagas-parity.test.ts` — `method="get"` + `<details>` presentes |
+
+---
+
+## Task Verification Standards
+
+Cada `Done when` é binário e referencia o comando de gate. Contagens de teste explícitas previnem deleções
+silenciosas. Restyle tasks devem manter verdes todos os testes existentes da USP-021 (regra de refactor: só
+estilo).

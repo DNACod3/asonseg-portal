@@ -90,3 +90,36 @@ describe('JobDetailView', () => {
     expect(screen.getByText(/1 pessoa se candidatou/i)).toBeInTheDocument();
   });
 });
+
+/**
+ * Restyle Design System (USP-022 / T1 / U22-STYLE-01). O `JobDetailView` passou a usar
+ * os primitivos `Card/FormCard/FormSectionTitle/Badge/Button` de `@/shared/ui` — este
+ * bloco trava que a mudança foi só de apresentação: os 3 CTAs continuam com a
+ * estrutura/papel corretos e o CTA "Candidatar-se" continua display-only (U22-MN-04).
+ */
+describe('JobDetailView — restyle Design System (USP-022)', () => {
+  it('U22-MN-04: "Candidatar-se" é type="button" e não dispara nenhuma action (display-only)', () => {
+    render(<JobDetailView job={viewJobDetail(row(), candidato)} />);
+    const cta = screen.getByRole('button', { name: /candidatar-se/i });
+    expect(cta).toHaveAttribute('type', 'button');
+    expect(cta).not.toHaveAttribute('onclick');
+    expect(cta).not.toHaveAttribute('formaction');
+  });
+
+  it('metadados renderizam como Badge (papel/estrutura do primitivo DS)', () => {
+    render(<JobDetailView job={viewJobDetail(row(), candidato)} />);
+    // Badge do DS renderiza `<span class="...rounded-full...">` — mesma pílula do JobCard (USP-021).
+    const areaBadge = screen.getByText('Comércio e Vendas', { selector: 'span' });
+    expect(areaBadge.className).toMatch(/rounded-full/);
+  });
+
+  it('CTA "ativar perfil" e CTA "criar conta" renderizam como link (Button asChild)', () => {
+    const { rerender } = render(<JobDetailView job={viewJobDetail(row(), prestador)} />);
+    const activateCta = screen.getByRole('link', { name: /ative seu perfil candidato/i });
+    expect(activateCta.tagName).toBe('A');
+
+    rerender(<JobDetailView job={viewJobDetail(row(), null)} />);
+    const anonCta = screen.getByRole('link', { name: /criar conta para candidatar/i });
+    expect(anonCta.tagName).toBe('A');
+  });
+});
