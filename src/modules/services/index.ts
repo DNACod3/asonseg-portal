@@ -95,6 +95,11 @@ export {
 } from './queries/list-provider-services';
 export { getMyActiveServiceInterest } from './queries/get-my-service-interest';
 export { getProviderContactForService } from './queries/get-provider-contact';
+export {
+  listProviderInterests,
+  PROVIDER_INTERESTS_PAGE_SIZE,
+  type ProviderInterestsResult,
+} from './queries/list-provider-interests';
 
 // ── Views ──────────────────────────────────────────────────────────────────
 export {
@@ -122,6 +127,11 @@ export {
   type ProviderContact,
   type ProviderContactRow,
 } from './views/provider-contact.view';
+export {
+  viewClientForProvider,
+  type ProviderInterestView,
+  type ProviderInterestRow,
+} from './views/client-for-provider.view';
 
 // ── Components ─────────────────────────────────────────────────────────────
 export { ServiceForm, type ServiceFormProps, type CompanyOption, type RegionOption } from './components/service-form';
