@@ -93,6 +93,9 @@ export { NullCompanyResponsibilityAdapter } from './adapters/null-company-respon
 export { viewPersonForStaff, viewStaffPersonNames } from './views/view-person-for-staff';
 export type { StaffPersonView } from './views/view-person-for-staff';
 
+// Busca ativa de candidatos pela Empresa (USP-028 / CAN-04).
+export { firstNameOf } from './domain/candidate-display';
+
 // View de candidato para a Empresa dona da vaga (USP-027 / CAN-03).
 export { viewCandidateForEmployer } from './views/view-candidate-for-employer';
 export type {
