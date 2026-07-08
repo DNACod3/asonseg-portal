@@ -112,6 +112,15 @@ export type {
   SearchCandidatesFilters,
   SearchCandidatesResult,
 } from './queries/search-candidates';
+export {
+  CandidateSearchForm,
+  type CandidateSearchFormProps,
+  type CandidateSearchFilterValues,
+} from './components/candidate-search-form';
+export {
+  CandidateSearchList,
+  type CandidateSearchListProps,
+} from './components/candidate-search-list';
 
 // View de candidato para a Empresa dona da vaga (USP-027 / CAN-03).
 export { viewCandidateForEmployer } from './views/view-candidate-for-employer';
