@@ -17,6 +17,24 @@ vi.mock('@/shared/env', async (orig) => {
   return { env: new Proxy(actual.env, { get: (target, prop) => (prop === 'CRON_SECRET' ? mockEnv.CRON_SECRET : target[prop as keyof typeof target]) }) };
 });
 
+// Toggle p/ o caminho 500 (mesmo padrão do proxy de `mockEnv` acima): mantém a
+// implementação real de `runJobExpiration` (e de todo o resto do barrel) em todos
+// os outros testes, e força a rejeição só quando `mockJobs.shouldThrow` está ligado.
+const mockJobs: { shouldThrow: boolean } = { shouldThrow: false };
+
+vi.mock('@/modules/jobs', async (orig) => {
+  const actual = (await orig()) as Record<string, unknown>;
+  return {
+    ...actual,
+    runJobExpiration: (...args: unknown[]) => {
+      if (mockJobs.shouldThrow) {
+        return Promise.reject(new Error('runJobExpiration falhou (teste — caminho 500)'));
+      }
+      return (actual.runJobExpiration as (...a: unknown[]) => unknown)(...args);
+    },
+  };
+});
+
 const { prisma } = await import('@/shared/lib/prisma');
 const { GET } = await import('./route');
 const { NextRequest } = await import('next/server');
@@ -51,6 +69,7 @@ skipIfNoDb('cron expire-jobs — integração', () => {
 
   beforeEach(async () => {
     mockEnv.CRON_SECRET = 'segredo-cron-expire-teste';
+    mockJobs.shouldThrow = false;
     await cleanup();
     const company = await prisma.company.create({
       data: {
@@ -111,6 +130,27 @@ skipIfNoDb('cron expire-jobs — integração', () => {
     const res = await GET(makeRequest({ 'x-cron-secret': 'qualquer-coisa' }));
     expect(res.status).toBe(503);
 
+    const row = await prisma.job.findUnique({ where: { id: job.id }, select: { status: true } });
+    expect(row?.status).toBe('ACTIVE');
+  });
+
+  it('runJobExpiration rejeita → 500 com corpo genérico, sem vazar detalhe do erro', async () => {
+    const job = await prisma.job.create({
+      data: { companyId, authorPersonId: authorId, title: 'Vaga Cron Expire Int', status: 'ACTIVE', validUntil: dateOffset(-1) },
+      select: { id: true },
+    });
+    mockJobs.shouldThrow = true;
+
+    const res = await GET(makeRequest({ 'x-cron-secret': 'segredo-cron-expire-teste' }));
+    expect(res.status).toBe(500);
+
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).toEqual({ ok: false, error: 'Falha ao executar a expiração de vagas' });
+    // Não vaza a mensagem/stack do erro original nem qualquer outra chave.
+    expect(Object.keys(body).sort()).toEqual(['error', 'ok']);
+    expect(JSON.stringify(body)).not.toContain('runJobExpiration falhou');
+
+    // Rejeição ocorre antes de qualquer transição — vaga permanece intocada.
     const row = await prisma.job.findUnique({ where: { id: job.id }, select: { status: true } });
     expect(row?.status).toBe('ACTIVE');
   });
