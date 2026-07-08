@@ -37,6 +37,14 @@ describe('publishServiceSchema — happy path e faixa de valor', () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("preprocessa companyId '' (sentinela do select PF) para undefined — não trava o submit de PF", () => {
+    const parsed = publishServiceSchema.safeParse(validPublishInput({ companyId: '' }));
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.companyId).toBeUndefined();
+    }
+  });
+
   it("preprocessa priceMin/priceMax '' (vazio) para undefined", () => {
     const parsed = publishServiceSchema.safeParse(
       validPublishInput({ priceMin: '', priceMax: '' }),

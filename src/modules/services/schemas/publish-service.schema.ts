@@ -9,9 +9,15 @@ export const PRICE_UNIT_MAX = 60;
 export const AVAILABILITY_MAX = 500;
 
 // ── Campos compartilhados (rascunho e submissão) ───────────────────────────────
-// `companyId` é nullable/opcional em Service (null = PF, setado = em nome da
-// Empresa X — AC-029-1). Divergência estrutural vs Job.companyId (NOT NULL lá).
-const companyId = z.string().uuid('Empresa inválida.').nullable().optional();
+// `companyId` é opcional em Service (ausente = PF, setado = em nome da Empresa
+// X — AC-029-1). Divergência estrutural vs Job.companyId (NOT NULL lá). O select
+// PF-vs-Empresa do ServiceForm usa `''` como sentinela de "PF" — preprocess
+// converte para `undefined` (mesmo padrão de `priceAmount` abaixo), senão a
+// string vazia falharia a validação `.uuid()` e travaria o submit de PF.
+const companyId = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? undefined : v),
+  z.string().uuid('Empresa inválida.').optional(),
+);
 const title = z
   .string()
   .trim()
