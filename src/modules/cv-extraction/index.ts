@@ -31,3 +31,7 @@ export { confirmCvFieldsSchema } from './schemas/confirm-cv-fields.schema';
 export type { ConfirmCvFieldsInput, ConfirmCvFieldsData } from './schemas/confirm-cv-fields.schema';
 export { cvUploadFileSchema, parseCvUploadFormData } from './schemas/upload-cv-file.schema';
 export type { CvUploadFileInput } from './schemas/upload-cv-file.schema';
+
+// ── Server Action: upload (CVE-01) ──────────────────────────────────────────
+export { uploadCv } from './actions/upload-cv';
+export type { UploadCvResult } from './actions/upload-cv';
