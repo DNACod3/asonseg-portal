@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { formatDate } from '@/shared/lib/time';
 import { Badge, Button, FormCard, FormSectionTitle } from '@/shared/ui';
 import type { JobDetail } from '../views/job-detail.view';
+import { ApplyToJobButton } from './apply-to-job-button';
 
 const brl = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -33,17 +34,22 @@ function Section({ title, content }: Readonly<{ title: string; content: string |
 }
 
 /**
- * Bloco de chamada à ação por papel (USP-022 / E-002/E-004/P-003). O serializer
- * (`viewJobDetail`) já decidiu o papel — aqui só renderiza. O botão "candidatar-se" é
- * **somente exibição**: o disparo da candidatura é da USP-025.
+ * Bloco de chamada à ação por papel (USP-022/025 / E-002/E-004/P-003). O
+ * serializer (`viewJobDetail`) já decidiu o papel — aqui só renderiza. Quando
+ * `job.canApply`, o botão é o `ApplyToJobButton` real (USP-025 — dispara a
+ * candidatura); enquanto não há `myApplicationId`, mostra "Candidatar-se". Já
+ * havendo uma candidatura ativa, mostra o estado "já candidatado" (o botão de
+ * cancelar é da USP-026).
  */
-function ApplyCta({ job }: Readonly<{ job: JobDetail }>) {
+function ApplyCta({
+  job,
+  myApplicationId,
+}: Readonly<{ job: JobDetail; myApplicationId: string | null }>) {
   if (job.canApply) {
-    return (
-      <Button type="button" variant="primary" className="w-full sm:w-auto">
-        Candidatar-se
-      </Button>
-    );
+    if (myApplicationId) {
+      return <p className="text-sm font-medium text-fg">Você já se candidatou a esta vaga.</p>;
+    }
+    return <ApplyToJobButton jobId={job.id} />;
   }
   if (job.showActivateCandidateCta) {
     return (
@@ -60,13 +66,23 @@ function ApplyCta({ job }: Readonly<{ job: JobDetail }>) {
   );
 }
 
+export interface JobDetailViewProps {
+  job: JobDetail;
+  /**
+   * Id da candidatura ATIVA do viewer a esta vaga, já resolvida pela página
+   * (Server Component — `getMyActiveApplication`, USP-025). `null`/omitido =
+   * ainda não se candidatou (ou não é candidato). Ignorado quando `!job.canApply`.
+   */
+  myApplicationId?: string | null;
+}
+
 /**
- * Apresentação do detalhe de uma vaga (USP-022). Consome o View Model já recortado por
+ * Apresentação do detalhe de uma vaga (USP-022/025). Consome o View Model já recortado por
  * papel: a Empresa vem anonimizada/real e o contador já respeita o limiar (E-003) — nenhum
  * dado restrito (nome real para anônimo) chega aqui (P-002). O contador só aparece quando
  * `applicationCount != null`.
  */
-export function JobDetailView({ job }: Readonly<{ job: JobDetail }>) {
+export function JobDetailView({ job, myApplicationId = null }: Readonly<JobDetailViewProps>) {
   const salary = salaryLabel(job.salary);
   const meta = [job.area, job.region, job.workRegime, job.contractType, job.educationLevel].filter(
     Boolean,
@@ -121,7 +137,7 @@ export function JobDetailView({ job }: Readonly<{ job: JobDetail }>) {
       )}
 
       <div className="border-t border-border pt-5">
-        <ApplyCta job={job} />
+        <ApplyCta job={job} myApplicationId={myApplicationId} />
       </div>
     </FormCard>
   );

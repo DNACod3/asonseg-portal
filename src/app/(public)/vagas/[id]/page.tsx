@@ -4,6 +4,7 @@ import { getCurrentPerson } from '@/modules/identity';
 import {
   getActiveJobDetail,
   getPausedJobNotice,
+  getMyActiveApplication,
   viewJobDetail,
   jobDetailJsonLd,
   serializeJsonLd,
@@ -124,6 +125,11 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
   const viewer = await getCurrentPerson();
   const row = await getActiveJobDetail(id, viewer);
   const pausedNotice = row == null ? await getPausedJobNotice(id) : null;
+  const job = row != null ? viewJobDetail(row, viewer) : null;
+  // Só resolve a candidatura ATIVA quando o CTA de candidatar-se é elegível
+  // (papel candidato + vaga aberta) — evita a query para quem não pode ver o CTA.
+  const myApplicationId =
+    job?.canApply && viewer != null ? ((await getMyActiveApplication(id, viewer.id))?.id ?? null) : null;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -140,8 +146,8 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
         ← Voltar para as vagas
       </Link>
 
-      {row != null ? (
-        <JobDetailView job={viewJobDetail(row, viewer)} />
+      {job != null ? (
+        <JobDetailView job={job} myApplicationId={myApplicationId} />
       ) : pausedNotice != null ? (
         <VagaPausada />
       ) : (

@@ -92,6 +92,7 @@ export {
   type PublishedJobRow,
   type ListActivePublishedJobsResult,
 } from './queries/list-active-published-jobs';
+export { getMyActiveApplication } from './queries/get-my-application';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
@@ -121,4 +122,5 @@ export {
 } from './components/job-search-filters';
 export { JobCard } from './components/job-card';
 export { JobList } from './components/job-list';
-export { JobDetailView } from './components/job-detail';
+export { JobDetailView, type JobDetailViewProps } from './components/job-detail';
+export { ApplyToJobButton, type ApplyToJobButtonProps } from './components/apply-to-job-button';
