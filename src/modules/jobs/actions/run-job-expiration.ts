@@ -3,7 +3,7 @@ import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
 import { hojeSaoPaulo } from '@/shared/lib/time';
 import { SYSTEM_ACTOR_ID } from '@/shared/system-actor';
-import { enqueueExpiryReminder } from './enqueue-expiry-reminder';
+import type { JobExpiryReminderPayload } from './enqueue-expiry-reminder';
 
 /** `take` por página (obrigatório, CLAUDE.md); volume MVP é pequeno (<30 vagas). */
 const BATCH_SIZE = 100;
@@ -82,6 +82,11 @@ export async function runJobExpiration(): Promise<RunJobExpirationResult> {
  * `ACTIVE` cuja validade cai em exatamente {@link REMINDER_DAYS_BEFORE_EXPIRY} dias
  * (America/Sao_Paulo) e que ainda não recebeu lembrete (`expiryReminderSentAt IS NULL`).
  * Mesma fronteira temporal de `runJobExpiration`/`hojeSaoPaulo()` (P-002).
+ *
+ * Em lote e numa única transação (2 statements de escrita, não 2·N): `updateMany`
+ * reivindica as pendentes (idempotência U24-MN-07 — condição `expiryReminderSentAt: null`),
+ * e o `createMany` enfileira só as que ESTA execução carimbou com `sentAt` (uma corrida
+ * concorrente usaria outro `Date`, então não há dupla Outbox nem lembrete perdido).
  */
 async function enqueueDueExpiryReminders(log: ReturnType<typeof childLogger>): Promise<void> {
   const reminderDate = hojeSaoPaulo();
@@ -92,12 +97,32 @@ async function enqueueDueExpiryReminders(log: ReturnType<typeof childLogger>): P
     select: { id: true },
     take: BATCH_SIZE,
   });
+  if (dueJobs.length === 0) return;
 
-  for (const job of dueJobs) {
-    try {
-      await enqueueExpiryReminder(job.id);
-    } catch (err) {
-      log.error({ err, jobId: job.id }, 'jobs:expiry_reminder_step_failed');
-    }
+  const ids = dueJobs.map((job) => job.id);
+  const sentAt = new Date();
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.job.updateMany({
+        where: { id: { in: ids }, expiryReminderSentAt: null },
+        data: { expiryReminderSentAt: sentAt },
+      });
+      // Só as linhas reivindicadas por esta execução carregam exatamente `sentAt`.
+      const claimed = await tx.job.findMany({
+        where: { id: { in: ids }, expiryReminderSentAt: sentAt },
+        select: { id: true },
+      });
+      if (claimed.length === 0) return;
+      await tx.outbox.createMany({
+        data: claimed.map((job) => ({
+          topic: 'email',
+          payload: { kind: 'JOB_EXPIRY_D3', jobId: job.id } satisfies JobExpiryReminderPayload,
+        })),
+      });
+      log.info({ count: claimed.length }, 'jobs:expiry_reminders_enqueued');
+    });
+  } catch (err) {
+    log.error({ err, count: ids.length }, 'jobs:expiry_reminder_step_failed');
   }
 }
