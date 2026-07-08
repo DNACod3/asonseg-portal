@@ -14,7 +14,7 @@ const auditState = vi.hoisted(() => ({
   events: [] as string[],
   recorder: null as Record<string, unknown> | null,
 }));
-const txState = vi.hoisted(() => ({ upsert: vi.fn(), throwOnAudit: false }));
+const txState = vi.hoisted(() => ({ upsert: vi.fn(), personUpdate: vi.fn(), throwOnAudit: false }));
 const moderationState = vi.hoisted(() => ({ transition: vi.fn() }));
 const prismaState = vi.hoisted(() => ({ findUnique: vi.fn() }));
 
@@ -41,7 +41,10 @@ vi.mock('@/modules/audit', () => ({
     auditState.events.push(event);
     if (txState.throwOnAudit) throw new Error('db indisponível');
     const recorder: Record<string, unknown> = {};
-    const tx = { candidateProfile: { upsert: txState.upsert } };
+    const tx = {
+      candidateProfile: { upsert: txState.upsert },
+      person: { update: txState.personUpdate },
+    };
     const result = await fn(tx, recorder);
     auditState.recorder = recorder;
     return result;
@@ -87,6 +90,7 @@ beforeEach(() => {
   auditState.events = [];
   auditState.recorder = null;
   txState.upsert.mockReset().mockResolvedValue({});
+  txState.personUpdate.mockReset().mockResolvedValue({});
   txState.throwOnAudit = false;
   moderationState.transition.mockReset();
   prismaState.findUnique.mockReset();
@@ -112,6 +116,11 @@ describe('persons/activateCandidateRole', () => {
       availability: null,
     });
     expect(auditState.recorder?.after).toMatchObject({ publicationStatus: 'DRAFT' });
+    // Fix (necessário p/ USP-027): telefone normalizado (só dígitos) persistido em Person.
+    expect(txState.personUpdate).toHaveBeenCalledWith({
+      where: { id: 'person-1' },
+      data: { phone: '11988887777' },
+    });
   });
 
   it('happy path (todos os opcionais): ramo "presente" dos defaults é exercido', async () => {
