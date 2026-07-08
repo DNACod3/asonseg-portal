@@ -11,7 +11,9 @@
 export { isServiceDedupViolation } from './domain/dedup';
 export {
   isServiceOpenForInterest,
+  canCancelInterest,
   type ServiceInterestServiceInput,
+  type CancelInterestCheck,
 } from './domain/service-interest-rules';
 export {
   detectServicePhotoMime,
@@ -50,6 +52,8 @@ export {
 export {
   manifestInterestSchema,
   type ManifestInterestInput,
+  cancelInterestSchema,
+  type CancelInterestInput,
 } from './schemas/service-interest.schema';
 
 // ── Actions ────────────────────────────────────────────────────────────────
