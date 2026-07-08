@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Fase 2 — Empresas + Vagas + Moderação
-**Status:** In Progress · próxima unidade elegível: **USP-018** (Inativar conteúdo já publicado)
+**Current Milestone:** Fase 3 — Candidaturas + Busca + Extração de CV
+**Status:** Fase 2 **100% concluída** (13 USPs, 1 PR único, AD-016) · próxima unidade elegível: **USP-025** (Candidatar-se a uma vaga)
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
 
@@ -63,13 +63,13 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 - [x] USP-015 — Editar dados da Empresa · epic: vinculos-pessoa-empresa · dir: .specs/features/vinculos-pessoa-empresa/usp-015-editar-empresa/ · deps: USP-012 · gate: —
 - [x] USP-016 — Moderar rascunho (vaga, CV ou serviço) · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-016-moderar-rascunho/ · deps: USP-008 · gate: —
 - [x] USP-017 — Validar Empresa na primeira vaga publicada · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-017-validar-empresa-primeira-vaga/ · deps: USP-012 · gate: —
-- [ ] USP-018 — Inativar conteúdo já publicado · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-018-inativar-conteudo/ · deps: USP-016 · gate: —
-- [ ] USP-019 — Sugerir nova categoria de serviço ou área de vaga · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-019-sugerir-categoria/ · deps: — · gate: —
+- [x] USP-018 — Inativar conteúdo já publicado · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-018-inativar-conteudo/ · deps: USP-016 · gate: —
+- [x] USP-019 — Sugerir nova categoria de serviço ou área de vaga · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-019-sugerir-categoria/ · deps: — · gate: —
 - [x] USP-020 — Publicar vaga · epic: vagas · dir: .specs/features/vagas/usp-020-publicar-vaga/ · deps: USP-012, USP-016 · gate: —
 - [x] USP-021 — Buscar vagas (pública) · epic: vagas · dir: .specs/features/vagas/usp-021-buscar-vagas-publica/ · deps: USP-020 · gate: —
 - [x] USP-022 — Ver detalhe da vaga · epic: vagas · dir: .specs/features/vagas/usp-022-detalhe-vaga/ · deps: USP-020 · gate: —
-- [ ] USP-023 — Editar vaga (pausar, arquivar, renovar) · epic: vagas · dir: .specs/features/vagas/usp-023-editar-vaga/ · deps: USP-020 · gate: —
-- [ ] USP-024 — Expiração automática de vaga · epic: vagas · dir: .specs/features/vagas/usp-024-expiracao-automatica/ · deps: USP-020 · gate: —
+- [x] USP-023 — Editar vaga (pausar, arquivar, renovar) · epic: vagas · dir: .specs/features/vagas/usp-023-editar-vaga/ · deps: USP-020 · gate: —
+- [x] USP-024 — Expiração automática de vaga · epic: vagas · dir: .specs/features/vagas/usp-024-expiracao-automatica/ · deps: USP-020 · gate: —
 
 ---
 
