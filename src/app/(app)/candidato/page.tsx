@@ -2,9 +2,21 @@ import { requireActivePerson } from '@/modules/identity';
 import { loadTerm, stripTermFrontMatter, TermLoaderError } from '@/modules/consents';
 import { CandidateForm } from '@/modules/persons';
 import { prisma } from '@/shared/lib/prisma';
+import { FormCard, FormHeader, StepIcon } from '@/shared/ui';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
+
+// SVG de silhueta de usuário/candidato (sem dependência externa).
+const userIcon = (
+  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+    />
+  </svg>
+);
 
 /**
  * Cadastro de candidato (USP-009 / #46). A Pessoa autenticada preenche o perfil
@@ -13,6 +25,11 @@ export const dynamic = 'force-dynamic';
  *
  * Privacidade/P-002: opera sobre a própria sessão. As taxonomias (JobArea) são
  * dados de referência — leitura direta com select explícito + paginação (take).
+ *
+ * Fundação de Design System (AD-014/AD-015/AD-016, Fase 3 unidade U1): layout
+ * restilizado ao padrão de tela de cadastro (`StepIcon`+`FormHeader`+`FormCard`,
+ * como `(app)/empresa/cadastrar`) — data-loading e props ao `CandidateForm`
+ * inalterados.
  */
 export default async function CandidatoPage() {
   const person = await requireActivePerson();
@@ -43,26 +60,26 @@ export default async function CandidatoPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-10">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Cadastro de candidato</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Preencha seus dados para aparecer nas buscas de empresas e se candidatar a vagas. Após
-          salvar, envie o perfil para moderação — ele fica visível depois da aprovação do coordenador.
-        </p>
-      </header>
+    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
+      <StepIcon variant="orange">{userIcon}</StepIcon>
+      <FormHeader
+        title="Cadastro de candidato"
+        description="Preencha seus dados para aparecer nas buscas de empresas e se candidatar a vagas. Após salvar, envie o perfil para moderação — ele fica visível depois da aprovação do coordenador."
+      />
 
       {term ? (
-        <CandidateForm
-          jobAreas={jobAreas}
-          term={term}
-          alreadyCandidate={person.roles.includes('CANDIDATE')}
-          initialStatus={profile?.publicationStatus ?? null}
-        />
+        <FormCard>
+          <CandidateForm
+            jobAreas={jobAreas}
+            term={term}
+            alreadyCandidate={person.roles.includes('CANDIDATE')}
+            initialStatus={profile?.publicationStatus ?? null}
+          />
+        </FormCard>
       ) : (
         <div
           role="alert"
-          className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          className="rounded-lg bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] border border-danger px-4 py-3 text-sm text-danger"
         >
           O termo de consentimento está indisponível no momento. Tente novamente mais tarde.
         </div>
