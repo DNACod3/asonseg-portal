@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
-import { listCompanyJobs, viewCompanyJobRow, CompanyJobList } from '@/modules/jobs';
+import { listCompanyJobs, viewCompanyJobRow, CompanyJobList, requireActiveResponsible } from '@/modules/jobs';
 import { prisma } from '@/shared/lib/prisma';
 import { FormHeader } from '@/shared/ui';
 
@@ -21,18 +21,9 @@ export default async function GestaoVagasPage({
   const { empresaId } = await params;
   const person = await requireActivePerson();
 
-  // Gate P-005 na borda: responsável ATIVO da Empresa.
-  const grant = await prisma.personCompanyGrant.findFirst({
-    where: {
-      personId: person.id,
-      companyId: empresaId,
-      grantType: 'RESPONSIBLE',
-      status: 'ACTIVE',
-      revokedAt: null,
-    },
-    select: { id: true },
-  });
-  if (!grant) {
+  // Gate P-005 na borda: responsável ATIVO da Empresa. Reusa o mesmo helper das
+  // actions de ciclo de vida (USP-023/T2) — um único ponto de verdade da autorização.
+  if (!(await requireActiveResponsible(person.id, empresaId))) {
     notFound();
   }
 

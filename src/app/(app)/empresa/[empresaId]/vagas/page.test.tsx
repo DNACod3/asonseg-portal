@@ -12,7 +12,7 @@ import { render, screen } from '@testing-library/react';
 
 const guardState = vi.hoisted(() => ({
   requireActivePerson: vi.fn(),
-  grantFindFirst: vi.fn(),
+  requireActiveResponsible: vi.fn(),
   companyFindUnique: vi.fn(),
   listCompanyJobs: vi.fn(),
   notFoundCalled: false,
@@ -33,6 +33,7 @@ vi.mock('@/modules/identity', () => ({
 }));
 
 vi.mock('@/modules/jobs', () => ({
+  requireActiveResponsible: (...a: unknown[]) => guardState.requireActiveResponsible(...a),
   listCompanyJobs: (...a: unknown[]) => guardState.listCompanyJobs(...a),
   viewCompanyJobRow: (row: unknown) => row,
   CompanyJobList: ({ rows }: { rows: Array<{ id: string }> }) => (
@@ -42,7 +43,6 @@ vi.mock('@/modules/jobs', () => ({
 
 vi.mock('@/shared/lib/prisma', () => ({
   prisma: {
-    personCompanyGrant: { findFirst: (...a: unknown[]) => guardState.grantFindFirst(...a) },
     company: { findUnique: (...a: unknown[]) => guardState.companyFindUnique(...a) },
   },
 }));
@@ -60,7 +60,7 @@ beforeEach(() => {
 describe('GestaoVagasPage — gate de rota (P-005/D-005)', () => {
   it('não-responsável → 404, e as vagas NÃO são carregadas', async () => {
     guardState.requireActivePerson.mockResolvedValue({ id: 'p-estranho' });
-    guardState.grantFindFirst.mockResolvedValue(null); // sem grant ativo
+    guardState.requireActiveResponsible.mockResolvedValue(false); // sem vínculo ativo
 
     await expect(GestaoVagasPage({ params })).rejects.toBeInstanceOf(NotFoundError);
     expect(guardState.notFoundCalled).toBe(true);
@@ -70,7 +70,7 @@ describe('GestaoVagasPage — gate de rota (P-005/D-005)', () => {
 
   it('responsável ATIVO mas Empresa inexistente → 404', async () => {
     guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
-    guardState.grantFindFirst.mockResolvedValue({ id: 'g-1' });
+    guardState.requireActiveResponsible.mockResolvedValue(true);
     guardState.companyFindUnique.mockResolvedValue(null);
 
     await expect(GestaoVagasPage({ params })).rejects.toBeInstanceOf(NotFoundError);
@@ -80,7 +80,7 @@ describe('GestaoVagasPage — gate de rota (P-005/D-005)', () => {
 
   it('responsável ATIVO → renderiza o painel com as vagas da Empresa', async () => {
     guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
-    guardState.grantFindFirst.mockResolvedValue({ id: 'g-1' });
+    guardState.requireActiveResponsible.mockResolvedValue(true);
     guardState.companyFindUnique.mockResolvedValue({ nomeFantasia: 'Padaria Aurora' });
     guardState.listCompanyJobs.mockResolvedValue([{ id: 'job-1' }, { id: 'job-2' }]);
 

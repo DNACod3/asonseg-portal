@@ -35,5 +35,8 @@ export async function listCompanyJobs(companyId: string): Promise<CompanyJobRow[
       lastStatusChangeAt: true,
     },
   });
-  return rows as unknown as CompanyJobRow[];
+  // Só o enum precisa de ponte Prisma→domínio (mesmas strings, tipos nominais
+  // distintos — content-status.ts). Os demais campos seguem verificados pelo
+  // `select` sob strict, sem o cast largo `as unknown as CompanyJobRow[]`.
+  return rows.map((row) => ({ ...row, status: row.status as unknown as ContentStatus }));
 }
