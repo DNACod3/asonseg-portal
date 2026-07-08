@@ -74,6 +74,14 @@ const envSchema = z.object({
   RATE_LIMIT_DISABLED: z
     .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() === 'true' : v), z.boolean())
     .default(false),
+
+  // Liga o `FakeCVExtractor` no container em vez do adapter Anthropic
+  // (USP-040 / A-12) — E2E/teste determinístico sem chamada real ao LLM. Num
+  // deploy real da Vercel é proibido (trava no boot — mesmo padrão de
+  // `RATE_LIMIT_DISABLED`, ver `superRefine` abaixo).
+  CV_EXTRACTOR_FAKE: z
+    .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() === 'true' : v), z.boolean())
+    .default(false),
 });
 
 /**
@@ -96,6 +104,17 @@ const runtimeEnvSchema = envSchema.superRefine((env, ctx) => {
       message:
         'RATE_LIMIT_DISABLED não pode ser `true` num deploy Vercel (production/preview) — ' +
         'hardening US #200 / ADR-0029. Use apenas em desenvolvimento/E2E.',
+    });
+  }
+  // Mesmo guard fail-closed para o fake do CVExtractor (USP-040 / CVE-MN-05 —
+  // risco listado em design.md): nunca deixar o fake vazar para um deploy real.
+  if (isVercelDeploy && env.CV_EXTRACTOR_FAKE) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['CV_EXTRACTOR_FAKE'],
+      message:
+        'CV_EXTRACTOR_FAKE não pode ser `true` num deploy Vercel (production/preview) — ' +
+        'USP-040. Use apenas em desenvolvimento/E2E.',
     });
   }
 });

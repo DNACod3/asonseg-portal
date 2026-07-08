@@ -116,6 +116,14 @@ skipIfNoDb('USP-009 #44 — cadastro de candidato (integração)', () => {
     expect(profile?.educationLevel).toBe('ENSINO_MEDIO');
   });
 
+  it('CAD-01/USP-027 persiste o telefone normalizado em Person.phone', async () => {
+    mockPerson = baseMockPerson(personId);
+    const res = await activateCandidateRole(baseInput());
+    expect(res.ok).toBe(true);
+    const person = await prisma.person.findUnique({ where: { id: personId }, select: { phone: true } });
+    expect(person?.phone).toBe('11988887777'); // normalizado (só dígitos) — '(11) 98888-7777' de baseInput()
+  });
+
   it('CAD-01 validação Zod: rejeita telefone inválido', async () => {
     mockPerson = baseMockPerson(personId);
     const res = await activateCandidateRole({ ...baseInput(), phone: '12' });

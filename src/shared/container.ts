@@ -127,3 +127,17 @@ container.register(
 container.register(MODERATION_NOTIFICATION_TOKEN, () => new StubModerationNotification());
 container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
 container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new PrismaCompanyVerifyHook());
+
+// Extração de CV via IA (USP-040 / ADR-0012): porta `CVExtractor` → adapter
+// Anthropic em produção; `FakeCVExtractor` só sob `env.CV_EXTRACTOR_FAKE`
+// (guardado por `VERCEL_ENV` em `shared/env.ts` — nunca ativo em deploy real).
+// eslint-disable-next-line no-restricted-imports
+import { CV_EXTRACTOR_TOKEN } from '@/modules/cv-extraction/ports/cv-extractor.port';
+// eslint-disable-next-line no-restricted-imports
+import { AnthropicCVExtractor } from '@/modules/cv-extraction/adapters/anthropic-cv-extractor';
+// eslint-disable-next-line no-restricted-imports
+import { FakeCVExtractor } from '@/modules/cv-extraction/adapters/fake-cv-extractor';
+import { env } from '@/shared/env';
+container.register(CV_EXTRACTOR_TOKEN, () =>
+  env.CV_EXTRACTOR_FAKE ? new FakeCVExtractor() : new AnthropicCVExtractor(),
+);

@@ -60,6 +60,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/app/(app)/empresa/[empresaId]/vagas/page.tsx notFound() guard vs. sibling src/app/(app)/empresa/[empresaId]/editar/page.test.tsx (app-routes/authz-guard)
 - last seen: 2026-07-08T02:18:35Z
 
+### L-009 — When a spec sets a p95 latency AC for a synchronous LLM/external-call action, add an explicit timing assertion (or a documented, deliberate decision to skip it) instead of leaving it evidenced only by design intent (max_tokens caps, sync framing).
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `cv-extraction` · harmful: 0
+- features: extracao-cv-ia/usp-040-extracao-cv
+- evidence: validation.md#Edge Cases — p95≤30s latency AC (cv-extraction)
+- last seen: 2026-07-08T17:08:52Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

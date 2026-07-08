@@ -69,6 +69,12 @@ export async function activateCandidateRole(
     await withAudit(
       AuditEvent.CANDIDATE_ROLE_ACTIVATED,
       async (tx, audit) => {
+        // Persiste o telefone na Pessoa (não no CandidateProfile — coluna vive em
+        // `persons`, é dado de contato da Pessoa, reusável por outros papéis).
+        // Débito USP-009 (o form valida `phone` mas nunca gravava): USP-027 precisa
+        // do contato real do candidato; corrigido aqui, na mesma transação auditada.
+        await tx.person.update({ where: { id: person.id }, data: { phone: data.phone } });
+
         // Idempotência: upsert por personId. No update, preserva o
         // publication_status atual (não rebaixa um perfil já em moderação/ativo).
         await tx.candidateProfile.upsert({

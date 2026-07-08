@@ -64,8 +64,9 @@ model Region {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  providerProfiles ProviderProfile[]
-  jobs             Job[] // USP-021: vagas filtráveis por região
+  providerProfiles  ProviderProfile[]
+  jobs              Job[] // USP-021: vagas filtráveis por região
+  candidateProfiles CandidateProfile[] // USP-028: localização do candidato na busca ativa
 
   @@map("regions")
 }
@@ -205,6 +206,8 @@ model Person {
   clientProfile        ClientProfile?
   authoredJobs         Job[]
   applications         Application[]
+  cvUploadAttempts     CvUploadAttempt[]
+  cvExtractionAttempts CvExtractionAttempt[]
 
   @@map("persons")
 }
@@ -470,7 +473,7 @@ model Job {
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company Company  @relation(fields: [companyId], references: [id])
-  area    JobArea? @relation(fields: [areaId], references: [id])
+  area    JobArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
   author  Person   @relation(fields: [authorPersonId], references: [id])
   region  Region?  @relation(fields: [regionId], references: [id])
 
@@ -489,22 +492,28 @@ model Job {
 // ── Candidaturas (USP-022 — AD-012) ──────────────────────────────────────────
 /// Candidatura de uma Pessoa (papel candidato) a uma Vaga. Introduzida pela USP-022
 /// na forma MÍNIMA capaz apenas de **contar** candidaturas ativas (contador E-003 do
-/// detalhe da vaga). O caminho de **escrita** (candidatar/cancelar) e o vínculo de
-/// encaminhamento são da USP-025/044 (AD-012). `cancelledAt = null` ⇒ candidatura ativa
-/// (soft-cancel); o índice parcial de contagem `(jobId, cancelledAt)` resolve o contador on-read.
+/// detalhe da vaga). O caminho de **escrita** (candidatar/cancelar) é da USP-025/026
+/// (AD-017). `cancelledAt = null` ⇒ candidatura ativa (soft-cancel); o índice parcial
+/// de contagem `(jobId, cancelledAt)` resolve o contador on-read.
 model Application {
   id                String    @id @default(uuid()) @db.Uuid
   candidatePersonId String    @map("candidate_person_id") @db.Uuid
   jobId             String    @map("job_id") @db.Uuid
   cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(6) // null = candidatura ativa (soft-cancel)
   appliedAt         DateTime  @default(now()) @map("applied_at") @db.Timestamptz(6)
+  // A-2 (AD-017): `Referral` é Fase 5 (USP-037) e ainda não existe — materializamos só
+  // o boolean agora (sempre false na Fase 3). USP-037 adiciona a FK `viaReferralId` e
+  // passa a setar este campo, sem re-migrar a coluna.
+  viaEncaminhamento Boolean   @default(false) @map("via_encaminhamento")
 
   candidate Person @relation(fields: [candidatePersonId], references: [id])
   job       Job    @relation(fields: [jobId], references: [id])
 
-  // Deferido p/ USP-025/044 (escrita): `viaEncaminhamento Boolean` + `encaminhamentoId`
-  // FK `Referral` (model ainda inexistente) + índice ÚNICO parcial de unicidade da
-  // candidatura ativa por (candidato, vaga). Aqui só há leitura → só o índice de contagem.
+  // uq_application_active (SQL bruto nesta migração, Prisma não expressa índice
+  // parcial no schema): UNIQUE (candidate_person_id, job_id) WHERE cancelled_at IS
+  // NULL — no máx. 1 candidatura ATIVA por (candidato, vaga); permite recandidatura
+  // após cancelar (A-3 / AD-017). Supersede o `@@unique([jobId, candidatePersonId,
+  // appliedAt])` de technical-design.md §4.5 (não garante unicidade ativa sob corrida).
   @@index([jobId, cancelledAt]) // contagem on-read do contador (E-003)
   @@map("applications")
 }
@@ -544,6 +553,10 @@ model CandidateProfile {
   skillsText              String?       @map("skills_text") @db.Text
   coursesText             String?       @map("courses_text") @db.Text
   availability            String?
+  // USP-028: localização estruturada do candidato (espelha `ProviderProfile.regionId`).
+  // Nullable — a coleta no form de cadastro (USP-009) é follow-up fora do escopo;
+  // candidatos reais nascem sem região até lá (busca/exibição tratam null com graça).
+  regionId                String?       @map("region_id") @db.Uuid
   cvStoragePath           String?       @map("cv_storage_path")
   cvSha256                String?       @map("cv_sha256")
   cvUploadedAt            DateTime?     @map("cv_uploaded_at") @db.Timestamptz(6)
@@ -555,8 +568,10 @@ model CandidateProfile {
 
   person                Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   primaryAreaOfInterest JobArea? @relation(fields: [primaryAreaOfInterestId], references: [id])
+  region                Region?  @relation(fields: [regionId], references: [id])
 
   @@index([publicationStatus])
+  @@index([regionId])
   @@map("candidate_profiles")
 }
 
@@ -635,6 +650,36 @@ model AuthAttempt {
   @@index([email, ip, attemptedAt], name: "auth_attempts_lockout_idx")
   @@index([attemptedAt], name: "auth_attempts_retention_idx")
   @@map("auth_attempts")
+}
+
+/// Tentativas de upload de CV por candidato — cota diária (USP-040 / CVE-07).
+/// Espelha o padrão durável de `auth_attempts`. Uma linha por upload VÁLIDO
+/// (criada no tx de CV_UPLOADED); a contagem diária (America/Sao_Paulo) barra o 4º.
+model CvUploadAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  personId  String   @map("person_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, createdAt])
+  @@map("cv_upload_attempts")
+}
+
+/// Espelha `CvUploadAttempt`, mas para a EXTRAÇÃO via IA (USP-040 / CVE-07):
+/// uma linha por extração solicitada (criada no tx de `CV_EXTRACTION_REQUESTED`).
+/// A contagem diária (America/Sao_Paulo) barra chamadas em loop ao LLM — sem
+/// ela, `extractCvFromUpload` (Server Action independente) poderia ser invocada
+/// repetidamente sobre o mesmo upload, gerando custo Anthropic ilimitado.
+model CvExtractionAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  personId  String   @map("person_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, createdAt])
+  @@map("cv_extraction_attempts")
 }
 
 // ── Auditoria (US #12 — ADR-0023 / ADR-T-0004) ────────────────────────────

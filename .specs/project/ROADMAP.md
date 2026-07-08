@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Fase 3 — Candidaturas + Busca + Extração de CV
-**Status:** Fase 2 **100% concluída** (13 USPs, 1 PR único, AD-016) · próxima unidade elegível: **USP-025** (Candidatar-se a uma vaga)
+**Current Milestone:** Fase 4 — Serviços + Manifestações
+**Status:** Fase 3 **100% concluída** (6 USPs, 1 PR único, AD-019) · próxima unidade elegível: **USP-011** (Cadastro de cliente de serviço)
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
 
@@ -80,11 +80,11 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 ### Unidades
 
 - [x] USP-009 — Cadastro de candidato (papel) · epic: cadastros-publicos · dir: .specs/features/cadastros-publicos/usp-009-cadastro-candidato/ · deps: USP-001 · gate: —
-- [ ] USP-025 — Candidatar-se a uma vaga · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-025-candidatar-se/ · deps: USP-009, USP-020 · gate: —
-- [ ] USP-026 — Cancelar candidatura · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-026-cancelar-candidatura/ · deps: USP-025 · gate: —
-- [ ] USP-027 — Empresa ver lista de candidatos da vaga · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-027-empresa-ver-candidatos/ · deps: USP-025, USP-012 · gate: —
-- [ ] USP-028 — Empresa buscar candidatos (busca ativa) · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-028-empresa-buscar-candidatos/ · deps: USP-009, USP-012 · gate: —
-- [ ] USP-040 — Extração automática de CV via IA generativa · epic: extracao-cv-ia · dir: .specs/features/extracao-cv-ia/usp-040-extracao-cv/ · deps: USP-009 · gate: —
+- [x] USP-025 — Candidatar-se a uma vaga · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-025-candidatar-se/ · deps: USP-009, USP-020 · gate: —
+- [x] USP-026 — Cancelar candidatura · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-026-cancelar-candidatura/ · deps: USP-025 · gate: —
+- [x] USP-027 — Empresa ver lista de candidatos da vaga · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-027-empresa-ver-candidatos/ · deps: USP-025, USP-012 · gate: —
+- [x] USP-028 — Empresa buscar candidatos (busca ativa) · epic: candidaturas-busca-candidatos · dir: .specs/features/candidaturas-busca-candidatos/usp-028-empresa-buscar-candidatos/ · deps: USP-009, USP-012 · gate: —
+- [x] USP-040 — Extração automática de CV via IA generativa · epic: extracao-cv-ia · dir: .specs/features/extracao-cv-ia/usp-040-extracao-cv/ · deps: USP-009 · gate: —
 
 ---
 

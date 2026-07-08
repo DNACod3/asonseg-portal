@@ -4,6 +4,16 @@
 // ── Domínio ───────────────────────────────────────────────────────────────────
 export { MAX_VALIDADE_DIAS, validadeStatus, diasAteExpiracao } from './domain/validade';
 export type { ValidadeStatus } from './domain/validade';
+export {
+  isJobOpenForApplication,
+  isProfileApplicable,
+  canCancelApplication,
+} from './domain/application-rules';
+export type {
+  ApplicationJobInput,
+  ApplicationProfileInput,
+  CancelApplicationCheck,
+} from './domain/application-rules';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 export {
@@ -44,6 +54,8 @@ export type {
   ArchiveJobInput,
   ExtendJobValidityInput,
 } from './schemas/lifecycle.schema';
+export { applyToJobSchema, cancelApplicationSchema } from './schemas/application.schema';
+export type { ApplyToJobInput, CancelApplicationInput } from './schemas/application.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-draft';
@@ -58,6 +70,8 @@ export {
   enqueueExpiryReminder,
   type JobExpiryReminderPayload,
 } from './actions/enqueue-expiry-reminder';
+export { applyToJob, type ApplyToJobResult } from './actions/apply-to-job';
+export { cancelApplication, type CancelApplicationResult } from './actions/cancel-application';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
@@ -87,6 +101,13 @@ export {
   type PublishedJobRow,
   type ListActivePublishedJobsResult,
 } from './queries/list-active-published-jobs';
+export { getMyActiveApplication } from './queries/get-my-application';
+export {
+  listJobApplicants,
+  resolveCvUrl,
+  APPLICANTS_PAGE_SIZE,
+  type EmployerCandidatesResult,
+} from './queries/list-job-applicants';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
@@ -116,4 +137,13 @@ export {
 } from './components/job-search-filters';
 export { JobCard } from './components/job-card';
 export { JobList } from './components/job-list';
-export { JobDetailView } from './components/job-detail';
+export { JobDetailView, type JobDetailViewProps } from './components/job-detail';
+export { ApplyToJobButton, type ApplyToJobButtonProps } from './components/apply-to-job-button';
+export {
+  CancelApplicationButton,
+  type CancelApplicationButtonProps,
+} from './components/cancel-application-button';
+export {
+  JobApplicantsList,
+  type JobApplicantsListProps,
+} from './components/job-applicants-list';

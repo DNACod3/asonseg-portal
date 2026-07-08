@@ -93,6 +93,42 @@ export { NullCompanyResponsibilityAdapter } from './adapters/null-company-respon
 export { viewPersonForStaff, viewStaffPersonNames } from './views/view-person-for-staff';
 export type { StaffPersonView } from './views/view-person-for-staff';
 
+// Busca ativa de candidatos pela Empresa (USP-028 / CAN-04).
+export { firstNameOf } from './domain/candidate-display';
+export {
+  viewCandidateForSearch,
+  QUALIFICATIONS_SUMMARY_MAX,
+} from './views/view-candidate-for-search';
+export type {
+  SearchCandidateRow,
+  SearchCandidateView,
+} from './views/view-candidate-for-search';
+export {
+  searchCandidates,
+  SEARCH_PAGE_SIZE,
+  SEARCH_TERM_MAX,
+} from './queries/search-candidates';
+export type {
+  SearchCandidatesFilters,
+  SearchCandidatesResult,
+} from './queries/search-candidates';
+export {
+  CandidateSearchForm,
+  type CandidateSearchFormProps,
+  type CandidateSearchFilterValues,
+} from './components/candidate-search-form';
+export {
+  CandidateSearchList,
+  type CandidateSearchListProps,
+} from './components/candidate-search-list';
+
+// View de candidato para a Empresa dona da vaga (USP-027 / CAN-03).
+export { viewCandidateForEmployer } from './views/view-candidate-for-employer';
+export type {
+  EmployerCandidateRow,
+  EmployerCandidateView,
+} from './views/view-candidate-for-employer';
+
 // Componentes de UI da inativação (USP-007) e reativação (USP-045).
 export { InactivatePersonDialog } from './components/inactivate-person-dialog';
 export { ReactivatePersonDialog } from './components/reactivate-person-dialog';

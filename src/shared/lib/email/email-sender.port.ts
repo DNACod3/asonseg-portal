@@ -59,6 +59,16 @@ export interface ResponsibleRemovedEmailData {
   empresaNome: string;
 }
 
+/** Dados do template de confirmação de candidatura a uma vaga (USP-025 / CAN-025-02). */
+export interface ApplicationConfirmationEmailData {
+  /** Nome do candidato (saudação). */
+  candidatoNome: string;
+  /** Título da vaga à qual o candidato se candidatou. */
+  vagaTitulo: string;
+  /** Nome fantasia (ou rótulo anonimizado) da Empresa da vaga. */
+  empresaNome: string;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -68,7 +78,8 @@ export type EmailMessage =
   | { to: string; template: 'password-reset'; data: PasswordResetEmailData }
   | { to: string; template: 'credential-claim-welcome'; data: CredentialClaimWelcomeEmailData }
   | { to: string; template: 'responsible-link-pending'; data: ResponsibleLinkPendingEmailData }
-  | { to: string; template: 'responsible-removed'; data: ResponsibleRemovedEmailData };
+  | { to: string; template: 'responsible-removed'; data: ResponsibleRemovedEmailData }
+  | { to: string; template: 'application-confirmation'; data: ApplicationConfirmationEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Prisma } from '@prisma/client';
 import type { CurrentPerson } from '@/modules/identity';
@@ -6,12 +6,17 @@ import { JobDetailView } from '../components/job-detail';
 import { viewJobDetail, type JobDetail, type JobDetailRow } from '../views/job-detail.view';
 
 /**
- * Renderização do detalhe da vaga (USP-022 — #277 / D-002/D-003/D-005). Os fluxos
- * autenticados NÃO têm E2E por decisão de pirâmide do projeto (não semear sessão Supabase,
- * ver `e2e/candidato.spec.ts`): aqui travamos, em jsdom, que o `viewer` se propaga até o
- * render — `viewJobDetail(row, viewer)` → `<JobDetailView>` — produzindo o nome correto e o
- * CTA por papel (E-001/E-002/E-004/P-002/P-003). O E2E cobre só o caminho anônimo.
+ * Renderização do detalhe da vaga (USP-022/025 — #277 / D-002/D-003/D-005). Os
+ * fluxos autenticados NÃO têm E2E por decisão de pirâmide do projeto (não semear
+ * sessão Supabase, ver `e2e/candidato.spec.ts`): aqui travamos, em jsdom, que o
+ * `viewer` se propaga até o render — `viewJobDetail(row, viewer)` → `<JobDetailView>`
+ * — produzindo o nome correto e o CTA por papel (E-001/E-002/E-004/P-002/P-003). O
+ * E2E cobre só o caminho anônimo. `next/navigation` é mockado: quando `job.canApply`
+ * e `myApplicationId` é `null`, o slot renderiza o `ApplyToJobButton` real (USP-025),
+ * que usa `useRouter()`.
  */
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const REAL_NAME = 'Lojas Guadalupe';
 const SETOR = 'Comércio e Vendas';
@@ -92,18 +97,26 @@ describe('JobDetailView', () => {
 });
 
 /**
- * Restyle Design System (USP-022 / T1 / U22-STYLE-01). O `JobDetailView` passou a usar
- * os primitivos `Card/FormCard/FormSectionTitle/Badge/Button` de `@/shared/ui` — este
- * bloco trava que a mudança foi só de apresentação: os 3 CTAs continuam com a
- * estrutura/papel corretos e o CTA "Candidatar-se" continua display-only (U22-MN-04).
+ * Restyle Design System (USP-022 / T1 / U22-STYLE-01) + wiring real do CTA de
+ * candidatura (USP-025 — supersede U22-MN-04, que garantia "candidatar-se"
+ * display-only enquanto o caminho de escrita não existia; ver
+ * `apply-to-job-button.spec.tsx` para os estados de clique do botão em si).
+ * Este bloco trava que a mudança de estilo foi só de apresentação nos outros 2
+ * CTAs, e que o slot de candidatura alterna corretamente entre o
+ * `ApplyToJobButton` real (sem candidatura ativa) e o texto "já candidatou"
+ * (com candidatura ativa) conforme `myApplicationId` (CAN-025-06).
  */
-describe('JobDetailView — restyle Design System (USP-022)', () => {
-  it('U22-MN-04: "Candidatar-se" é type="button" e não dispara nenhuma action (display-only)', () => {
+describe('JobDetailView — restyle Design System (USP-022) + CTA de candidatura (USP-025)', () => {
+  it('sem candidatura ativa: renderiza o ApplyToJobButton real (type="button")', () => {
     render(<JobDetailView job={viewJobDetail(row(), candidato)} />);
     const cta = screen.getByRole('button', { name: /candidatar-se/i });
     expect(cta).toHaveAttribute('type', 'button');
-    expect(cta).not.toHaveAttribute('onclick');
-    expect(cta).not.toHaveAttribute('formaction');
+  });
+
+  it('@ac-can-025-06 com candidatura ativa: mostra "já se candidatou" e nenhum botão', () => {
+    render(<JobDetailView job={viewJobDetail(row(), candidato)} myApplicationId="app-1" />);
+    expect(screen.queryByRole('button', { name: /candidatar-se/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/você já se candidatou a esta vaga/i)).toBeInTheDocument();
   });
 
   it('metadados renderizam como Badge (papel/estrutura do primitivo DS)', () => {
