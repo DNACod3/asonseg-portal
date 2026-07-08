@@ -206,6 +206,7 @@ model Person {
   clientProfile        ClientProfile?
   authoredJobs         Job[]
   applications         Application[]
+  cvUploadAttempts     CvUploadAttempt[]
 
   @@map("persons")
 }
@@ -648,6 +649,20 @@ model AuthAttempt {
   @@index([email, ip, attemptedAt], name: "auth_attempts_lockout_idx")
   @@index([attemptedAt], name: "auth_attempts_retention_idx")
   @@map("auth_attempts")
+}
+
+/// Tentativas de upload de CV por candidato — cota diária (USP-040 / CVE-07).
+/// Espelha o padrão durável de `auth_attempts`. Uma linha por upload VÁLIDO
+/// (criada no tx de CV_UPLOADED); a contagem diária (America/Sao_Paulo) barra o 4º.
+model CvUploadAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  personId  String   @map("person_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, createdAt])
+  @@map("cv_upload_attempts")
 }
 
 // ── Auditoria (US #12 — ADR-0023 / ADR-T-0004) ────────────────────────────
