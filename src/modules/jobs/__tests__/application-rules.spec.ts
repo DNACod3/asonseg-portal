@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { isJobOpenForApplication, isProfileApplicable } from '../domain/application-rules';
+import {
+  isJobOpenForApplication,
+  isProfileApplicable,
+  canCancelApplication,
+} from '../domain/application-rules';
 
 // FACTS (USP-025 / CAN-025-04 / CAN-025-E1) — regras puras de elegibilidade de
 // candidatura. Espelham o `where` on-read de `search-jobs.ts` (buildWhere):
@@ -74,5 +78,21 @@ describe('isProfileApplicable — regra pura (CAN-025-04)', () => {
 
   it('@ac-can-025-04 perfil ACTIVE → true', () => {
     expect(isProfileApplicable({ publicationStatus: 'ACTIVE' })).toBe(true);
+  });
+});
+
+// FACTS (USP-026 / CAN-026-E1 / CAN-026-MN-02) — regra pura de elegibilidade
+// de cancelamento. A checagem de dono/existência NÃO é desta função (é da
+// query escopada em cancelApplication) — aqui só o estado da linha.
+describe('canCancelApplication — regra pura (CAN-026-E1)', () => {
+  it('candidatura ativa (cancelledAt null) → { ok: true }', () => {
+    expect(canCancelApplication({ cancelledAt: null })).toEqual({ ok: true });
+  });
+
+  it('@ac-can-026-e1 candidatura já cancelada → { ok: false, reason: ALREADY_CANCELLED }', () => {
+    expect(canCancelApplication({ cancelledAt: new Date('2026-07-01T00:00:00Z') })).toEqual({
+      ok: false,
+      reason: 'ALREADY_CANCELLED',
+    });
   });
 });

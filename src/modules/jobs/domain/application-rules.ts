@@ -40,5 +40,15 @@ export function isProfileApplicable(profile: ApplicationProfileInput | null): bo
   return profile != null && profile.publicationStatus === 'ACTIVE';
 }
 
-// (a regra de cancelamento `canCancelApplication` é adicionada pela USP-026 neste
-// mesmo arquivo — ver design.md da USP-025, Components §2.)
+/** Resultado discriminado da elegibilidade de cancelamento (USP-026). */
+export type CancelApplicationCheck = { ok: true } | { ok: false; reason: 'ALREADY_CANCELLED' };
+
+/**
+ * WHEN a candidatura já está cancelada (`cancelledAt != null`) THEN SHALL NOT
+ * permitir novo cancelamento (CAN-026-E1/MN-02). A checagem de dono/existência é
+ * responsabilidade da query escopada em `cancelApplication` — esta regra pura só
+ * decide sobre o estado de uma linha já pertencente ao candidato.
+ */
+export function canCancelApplication(app: { cancelledAt: Date | null }): CancelApplicationCheck {
+  return app.cancelledAt == null ? { ok: true } : { ok: false, reason: 'ALREADY_CANCELLED' };
+}
