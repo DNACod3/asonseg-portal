@@ -36,6 +36,14 @@ export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
             <div className="flex items-center gap-2">
               <p className="font-semibold text-fg">{row.title}</p>
               <Badge variant={row.badgeVariant}>{row.statusLabel}</Badge>
+              {/* USP-024 / E-004 / P-003: sinal in-portal de validade próxima, independente do e-mail. */}
+              {row.expiraEmDias != null && (
+                <Badge variant="orange">
+                  {row.expiraEmDias === 0
+                    ? 'expira hoje'
+                    : `expira em ${row.expiraEmDias} dia${row.expiraEmDias === 1 ? '' : 's'}`}
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-fg-muted">
               {row.validUntil ? `Válida até ${formatDate(row.validUntil)}` : 'Sem data de validade'}

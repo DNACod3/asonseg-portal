@@ -1,5 +1,14 @@
 import type { BadgeProps } from '@/shared/ui';
+import { diasAteExpiracao } from '../domain/validade';
 import type { CompanyJobRow } from '../queries/list-company-jobs';
+
+/**
+ * Janela de antecedência do badge "expira em N dias" (USP-024 / E-004 / P-003) —
+ * sinal in-portal que não depende do e-mail. O upstream não fixa um número exato
+ * de dias; escolhido 7 (mesma ordem de grandeza do aviso D-3 por e-mail, mas o
+ * badge é um sinal mais cedo e sempre visível, não um evento único).
+ */
+const EXPIRY_BADGE_WINDOW_DAYS = 7;
 
 /** Rótulo PT-BR + variante de `Badge` por status (USP-023 / T8, painel de gestão). */
 const STATUS_LABEL: Record<CompanyJobRow['status'], string> = {
@@ -61,10 +70,25 @@ export interface CompanyJobRowView {
   validUntil: Date | null;
   publishedAt: Date | null;
   actions: CompanyJobRowActions;
+  /**
+   * Dias até a expiração (USP-024 / E-004), só para vaga `ACTIVE` com `validUntil`
+   * dentro da janela de aviso ({@link EXPIRY_BADGE_WINDOW_DAYS}) — `null` fora dela
+   * (vaga não-ACTIVE, sem `validUntil`, ou validade confortavelmente distante).
+   * O painel renderiza "expira em N dias" quando não-nulo (P-003, sinal in-portal).
+   */
+  expiraEmDias: number | null;
 }
 
 /** Projeta uma linha crua de `listCompanyJobs` para o formato de exibição do painel. */
 export function viewCompanyJobRow(row: CompanyJobRow): CompanyJobRowView {
+  // `diasAteExpiracao` espera um instante real como "hoje" (converte para SP
+  // internamente via date-fns-tz) — `new Date()`, não `hojeSaoPaulo()` (que já
+  // devolve o dia-calendário embalado em meia-noite UTC; reprocessá-lo pelo fuso
+  // de SP deslocaria um dia para trás, o mesmo erro que `validadeStatus` evita
+  // nas chamadas existentes, ex. `publish-job.schema.ts`).
+  const expiraEmDias =
+    row.status === 'ACTIVE' && row.validUntil ? diasAteExpiracao(row.validUntil, new Date()) : null;
+
   return {
     id: row.id,
     title: row.title,
@@ -74,5 +98,6 @@ export function viewCompanyJobRow(row: CompanyJobRow): CompanyJobRowView {
     validUntil: row.validUntil,
     publishedAt: row.publishedAt,
     actions: actionsForStatus(row.status),
+    expiraEmDias: expiraEmDias != null && expiraEmDias >= 0 && expiraEmDias <= EXPIRY_BADGE_WINDOW_DAYS ? expiraEmDias : null,
   };
 }
