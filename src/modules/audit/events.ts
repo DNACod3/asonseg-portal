@@ -80,9 +80,17 @@ export const AuditEvent = {
   APPLICATION_VIEWED_BY_EMPLOYER: 'APPLICATION_VIEWED_BY_EMPLOYER',
 
   // ── Serviços ──────────────────────────────────────────────────────────────
+  // Rascunho salvo (USP-029 / SVC-01) — não passa pela FSM (status nasce DRAFT);
+  // a submissão à moderação reusa CONTENT_SUBMITTED_TO_MODERATION via transitionContent.
+  SERVICE_DRAFT_SAVED: 'SERVICE_DRAFT_SAVED',
   SERVICE_PUBLISHED: 'SERVICE_PUBLISHED',
   SERVICE_PAUSED: 'SERVICE_PAUSED',
   SERVICE_ARCHIVED: 'SERVICE_ARCHIVED',
+  /** Despausar (`PAUSED→ACTIVE`, `AUTHOR_ACTION`) — distingue de aprovação (USP-032). */
+  SERVICE_UNPAUSED: 'SERVICE_UNPAUSED',
+  /** Editar serviço ativo → rascunho + nova moderação (USP-032). Não exige justificativa
+   *  (espelha JOB_EDITED_AFTER_APPROVAL — sem atrito, só o log antes/depois). */
+  SERVICE_EDITED_AFTER_APPROVAL: 'SERVICE_EDITED_AFTER_APPROVAL',
 
   // ── Manifestações de interesse ────────────────────────────────────────────
   INTEREST_MANIFESTED: 'INTEREST_MANIFESTED',
