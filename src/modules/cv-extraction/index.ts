@@ -25,3 +25,9 @@ export { DAILY_CV_UPLOAD_LIMIT, startOfDaySaoPaulo, isOverDailyLimit } from './d
 
 // ── Adapter fake (teste/E2E) ────────────────────────────────────────────────
 export { FakeCVExtractor } from './adapters/fake-cv-extractor';
+
+// ── Schemas Zod (confirmação + upload) ──────────────────────────────────────
+export { confirmCvFieldsSchema } from './schemas/confirm-cv-fields.schema';
+export type { ConfirmCvFieldsInput, ConfirmCvFieldsData } from './schemas/confirm-cv-fields.schema';
+export { cvUploadFileSchema, parseCvUploadFormData } from './schemas/upload-cv-file.schema';
+export type { CvUploadFileInput } from './schemas/upload-cv-file.schema';
