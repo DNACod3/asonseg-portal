@@ -10,4 +10,8 @@ import { z } from 'zod';
 export const applyToJobSchema = z.object({ jobId: z.string().uuid('Vaga inválida.') });
 export type ApplyToJobInput = z.infer<typeof applyToJobSchema>;
 
-// (`cancelApplicationSchema` é adicionado pela USP-026 neste mesmo arquivo.)
+/** Cancelar uma candidatura própria (USP-026). */
+export const cancelApplicationSchema = z.object({
+  applicationId: z.string().uuid('Candidatura inválida.'),
+});
+export type CancelApplicationInput = z.infer<typeof cancelApplicationSchema>;

@@ -163,14 +163,21 @@ skipIfNoDb('applyToJob — integração', () => {
   });
 
   it('@ac-can-025-mn-02 sem consentimento ativo → CONSENT_REQUIRED, 0 escrita', async () => {
+    // Contagem global do outbox ANTES/DEPOIS (delta), não um valor absoluto: a
+    // tabela `outbox` é compartilhada por toda a suíte de integração (outros
+    // arquivos também escrevem nela) — um `toBe(0)` absoluto seria frágil à
+    // ordem de execução dos arquivos. O que a asserção garante é que ESTA
+    // chamada não enfileirou nada, que é o que CAN-025-MN-02 exige.
+    const outboxBefore = await prisma.outbox.count({});
+
     mockPerson = personOf(candidateNoConsentId, 'Apply Int Candidato SemConsent');
     const res = await applyToJob({ jobId });
     expect(res).toMatchObject({ ok: false, error: { code: 'CONSENT_REQUIRED' } });
 
     const appCount = await prisma.application.count({ where: { jobId, candidatePersonId: candidateNoConsentId } });
     expect(appCount).toBe(0);
-    const outboxCount = await prisma.outbox.count({});
-    expect(outboxCount).toBe(0);
+    const outboxAfter = await prisma.outbox.count({});
+    expect(outboxAfter).toBe(outboxBefore);
   });
 
   it('@ac-can-025-mn-03a perfil DRAFT → PRECONDITION_FAILED, 0 escrita', async () => {

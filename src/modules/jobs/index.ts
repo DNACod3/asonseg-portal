@@ -54,8 +54,8 @@ export type {
   ArchiveJobInput,
   ExtendJobValidityInput,
 } from './schemas/lifecycle.schema';
-export { applyToJobSchema } from './schemas/application.schema';
-export type { ApplyToJobInput } from './schemas/application.schema';
+export { applyToJobSchema, cancelApplicationSchema } from './schemas/application.schema';
+export type { ApplyToJobInput, CancelApplicationInput } from './schemas/application.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-draft';
@@ -71,6 +71,7 @@ export {
   type JobExpiryReminderPayload,
 } from './actions/enqueue-expiry-reminder';
 export { applyToJob, type ApplyToJobResult } from './actions/apply-to-job';
+export { cancelApplication, type CancelApplicationResult } from './actions/cancel-application';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
