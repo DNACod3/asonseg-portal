@@ -1,134 +1,138 @@
-# USP-020 — Publicar vaga — Design
+# USP-020 — Publicar vaga — Refactor (Fase 2 / Design System) — Design
 
-> **Modo ICE (thin adapter).** Resolve TD §4.4/§4.5/§4.6 + ADRs + runbooks para o concreto do código.
-> Padrão de referência: módulo `companies` (`actions/edit-company.ts`, `actions/create-company.ts`) e
-> `persons` (`adapters/prisma-candidate-profile-status.ts`, USP-009 — 1º conteúdo real na FSM).
+**Spec**: `.specs/features/vagas/usp-020-publicar-vaga/spec.md`
+**Status**: Draft
 
-## 0. Reconciliação importante (TD doc × schema implementado)
+> **Disciplina (AD-015).** Restyle **style-only**: muda-se **markup/classes**; não se tocam handlers,
+> schemas, actions, navegação, `metadata` ou cache. Os testes existentes da USP-020 são os **testes de
+> preservação** (não podem ficar vermelhos). Ver `docs/arch/project-guideline.md` (§10 UI, §18 DoD) e
+> AD-014 (fundação de DS em `src/shared/ui`).
 
-O TD §4.5 descreve `content_items` + `content_transitions` + `jobs` como tabelas separadas. **O schema
-realmente implementado divergiu** (USP-009): **não há** `content_items`/`content_transitions`. O `status`
-mora **na própria entidade** (coluna `ContentStatus`), e o histórico vive em `audit_log` (append-only, ADR-0023).
-→ **Job segue o padrão de `CandidateProfile`**: model próprio com coluna `status ContentStatus`, sem supertipo.
+## 0. Comportamento preservado (fonte da verdade = código, não este doc)
 
-A FSM (`@/modules/moderation`) **já suporta JOB** — `ContentKind.JOB` existe e `TRANSITIONS[JOB]` inclui
-`DRAFT → IN_MODERATION (AUTHOR_ACTION)`. O que falta é só **um adapter de status para Job** + registro no container.
+A USP-020 já está implementada; o restyle **não re-deriva** nada abaixo — apenas o preserva:
 
-## 1. Modelo de dados (#162)
+- **Server Actions** (`src/modules/jobs/actions/create-job-draft.ts`, `submit-job-for-moderation.ts`):
+  `safeParse` (Zod) → `getCurrentPerson()` → **gate P-006** (`personCompanyGrant` responsável `ACTIVE`,
+  senão `FORBIDDEN`) → `withAudit('JOB_DRAFT_SAVED', tx.job.create status DRAFT)`; submit chama
+  `transitionContent(JOB → IN_MODERATION, 'AUTHOR_ACTION')` (grava `CONTENT_SUBMITTED_TO_MODERATION`, L-004);
+  dedup P-003 via `isJobDedupViolation` (P2002) → `CONFLICT`; retorno `ActionResult` (nunca `throw`).
+- **Schema/domínio** (`schemas/publish-job.schema.ts`, `domain/validade.ts`): `publishJobSchema` /
+  `draftJobSchema` / `submitJobSchema`; `validadeStatus` (America/Sao_Paulo, teto 180d, E-004/E-005).
+- **FSM/adapter** (`adapters/prisma-job-status.ts` + `shared/container.ts`): `status ContentStatus` na
+  entidade (AD-009); concorrência otimista `updateMany where status=from`.
+- **Rota** `(app)/empresa/[empresaId]/vagas/nova/page.tsx`: `dynamic='force-dynamic'` (ADR-0030),
+  `requireActivePerson()`, **gate P-006 na borda** (`notFound()` se não-responsável).
 
-Novo model `Job` em `prisma/schema.prisma` (1:1 lógico com a FSM via coluna `status`):
+Nada disso muda. O delta é 100% de apresentação.
 
-```prisma
-/// Vaga publicada por uma Empresa (USP-020). Conteúdo moderável: nasce em DRAFT
-/// e transiciona via `transitionContent()` (ContentKind.JOB). Visibilidade pública
-/// (status ACTIVE + validade >= hoje + Empresa verificada) é filtrada on-read na USP-021.
-model Job {
-  id                 String        @id @default(uuid()) @db.Uuid
-  companyId          String        @map("company_id") @db.Uuid
-  authorPersonId     String        @map("author_person_id") @db.Uuid
-  title              String
-  areaId             String        @map("area_id") @db.Uuid
-  description        String        @db.Text
-  requirements       String        @db.Text
-  benefits           String?       @db.Text
-  salary             String?
-  workRegime         String        @map("work_regime")            // CLT, PJ, estágio… (string livre no MVP)
-  location           String
-  validUntil         DateTime      @map("valid_until") @db.Date   // validade (date); on-read >= hoje (USP-024)
-  status             ContentStatus @default(DRAFT)
-  publishedAt        DateTime?     @map("published_at") @db.Timestamptz(6)  // preenchido na 1ª ativação (USP-016)
-  lastStatusChangeAt DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
-  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+## 1. Architecture Overview
 
-  company Company @relation(fields: [companyId], references: [id])
-  area    JobArea @relation(fields: [areaId], references: [id])
-  author  Person  @relation(fields: [authorPersonId], references: [id])
-
-  // Dedup EXATA (P-003 / ADR-0021): impede 2 vagas idênticas vivas da mesma Empresa.
-  // Índice parcial — só estados "vivos" contam (rascunho/moderação/ativo); arquivada/rejeitada não bloqueiam.
-  @@unique([companyId, areaId, title], name: "job_dedup_alive")
-  @@index([status])
-  @@index([companyId])
-  @@map("jobs")
-}
+```mermaid
+graph TD
+    A["(app)/empresa/[empresaId]/vagas/nova/page.tsx (Server, casca)"] -->|StepIcon+FormHeader+FormCard| B[JobForm 'use client']
+    B -->|Label/Input/Textarea/FormRow/Button| C[@/shared/ui]
+    B -->|handleSubmit → inalterado| D[createJobDraft / submitJobForModeration]
 ```
 
-**Relações reversas a adicionar:** `Company.jobs Job[]`, `JobArea.jobs Job[]`, `Person.authoredJobs Job[]`.
+Superfície de restyle: **1 Client Component** (`job-form.tsx`) + **1 casca de página** (Server Component).
+Nenhum outro arquivo do módulo `jobs` é tocado.
 
-**Decisão (AD-4, resolvida 2026-06-16 — dono do intent):** a vaga liga-se à Empresa **só por FK `companyId`** + leitura **on-read** — **sem snapshot** dos campos da Empresa. "Snapshot" em E-001 era linguagem solta (= registrar o vínculo, não congelar dados). Coerente com F2/P-002 (vaga some quando a Empresa é rebaixada) e USP-021/022/024.
+## 2. Code Reuse Analysis
 
-**Já existem (NÃO recriar):** `JobArea` (taxonomia US #111), `Region`, enum `ContentStatus`.
+### Primitivos do DS a adotar (barrel `@/shared/ui`, AD-014)
 
-**Decisão de design (AD-1) — dedup parcial:** a UNIQUE deve valer só para status "vivos"
-(`DRAFT, IN_MODERATION, AWAITING_ADJUSTMENTS, ACTIVE, PAUSED`). Prisma não suporta `@@unique` com `WHERE`
-declarativo → criar o índice parcial **na migration via SQL bruto** (`CREATE UNIQUE INDEX ... WHERE status IN (...)`),
-seguindo o padrão dos índices parciais já usados no projeto (cf. `company_responsibles` / ADR-0021).
+| Primitivo | Props/variantes relevantes | Substitui (markup cru atual) |
+| --- | --- | --- |
+| `Label` | `htmlFor` (Radix Label) | `<label className={labelClass}>` (`text-gray-700`) |
+| `Input` | `forwardRef` (RHF `register` compatível) | `<input className={inputClass}>` (`border-gray-300`, `focus:ring-blue-200`) |
+| `Textarea` | `forwardRef`, `resize-y` | `<textarea className={inputClass}>` (descrição/requisitos/benefícios) |
+| `Button` | `variant` primary/secondary/outline; `size`; `asChild` | `<button className="bg-blue-600 …">` (enviar) e botão cinza (rascunho) |
+| `FormRow` | `cols={2}` | par `salaryMin`/`salaryMax` (hoje em `<fieldset>`) e outros pares |
+| `FormCard` / `FormSectionTitle` | wrapper de seção + `<h2 font-heading>` | seção de salário (`<fieldset><legend>`) e envelope do form |
+| `Badge` | `variant` gray/blue | rótulo opcional de status/obrigatório (se houver) |
 
-## 2. Domínio + validação (#163)
+### Padrão de restyle já validado (reusar)
 
-`src/modules/jobs/domain/validade.ts` + `src/modules/jobs/schemas/publish-job.schema.ts`.
+`src/modules/identity/components/RegisterPersonForm.tsx` + `LoginForm.tsx` (Fase 1, AD-015) são o **padrão
+de restyle de form RHF**: `<label>/<input>/<button>` → `Label`/`Input`/`Button`; caixa de erro em token
+`danger`; nenhuma classe de paleta crua. `@/shared/ui` é a fonte única (import via barrel).
 
-- **Constante** `MAX_VALIDADE_DIAS = 180` (tunável; E-005/P-005/L-002).
-- Regra pura `validadeStatus(validUntil, hojeSP): 'ok' | 'passado' | 'excede_teto'` — **timezone America/Sao_Paulo**
-  via `date-fns-tz` (helper de `shared/lib` time utils). Comparar **datas** (não timestamps): vence ≤ hoje → bloqueia (E-004).
-- Zod `publishJobSchema`: `title` (≥2), `areaId` (uuid), `description`/`requirements` (não vazios),
-  `workRegime`, `location`, `validUntil` (coerce date, refine `> hoje` e `<= hoje+180d`), `benefits?`/`salary?` opcionais (L-003).
-- **ADR-0028 (sanitização):** aplicar o helper de sanitização de PII óbvia (regex) no conteúdo textual antes de persistir,
-  se já existir no projeto; senão deixar o gancho marcado (defesa em profundidade — a moderação humana é a barreira final).
-- **Dois schemas/derivados:** rascunho aceita campos parciais (só `title` obrigatório); submit exige tudo (L-003).
+### Selects e date picker (decisão)
 
-## 3. Server Actions (#164)
+O DS **não exporta** Select/DatePicker. `areaId`/`regionId` permanecem `<select>` nativos; `validUntil`
+permanece `<input type="date" min max>`; ambos recebem **classes de token** equivalentes ao `Input`
+(`border-border bg-surface focus:ring-primary`) — sem criar primitivo novo (fora do escopo, ver spec
+Assumptions). O `salaryVisible` permanece checkbox nativo com `accent-primary`.
 
-Padrão **verbatim** do runbook-server-action + `companies/actions/edit-company.ts`. Retorno `ActionResult<T>` (nunca `throw`).
+## 3. Refactor deltas — `job-form.tsx` (Client Component)
 
-### `createJobDraft(input)` — `src/modules/jobs/actions/create-job-draft.ts`
-1. `safeParse` (schema de rascunho) → `VALIDATION`.
-2. `getCurrentPerson()` → `UNAUTHENTICATED`.
-3. **Gate P-006:** `prisma.personCompanyGrant.findFirst({ personId, companyId, grantType:'RESPONSIBLE', status:'ACTIVE', revokedAt:null })` → ausente ⇒ `FORBIDDEN`. (mesmo padrão de `edit-company.ts`.)
-4. `withAudit('JOB_DRAFT_SAVED', tx => tx.job.create({ data: { …, status: 'DRAFT', authorPersonId, companyId } }))`.
-5. `ok({ jobId, status })`. Trata P2002 → `CONFLICT` (dedup, P-003).
+Trocas **1:1 de marcação/classe**, preservando cada `register(...)`, `handleSubmit(onPublish)`,
+`onSaveDraft`, `applyFieldErrors`, `useTransition`, `useRouter` e o mapa de erros PT-BR:
 
-### `submitJobForModeration(input)` — `src/modules/jobs/actions/submit-job-for-moderation.ts`
-1. `safeParse` (schema completo, com validade) → `VALIDATION` (cobre E-004/E-005).
-2. `getCurrentPerson()` → `UNAUTHENTICATED`.
-3. Carrega o Job; **gate P-006** (responsável ativo da `job.companyId`); autor só submete vaga própria Empresa.
-4. **Upsert dos campos** da vaga (se veio do form direto, cria em DRAFT primeiro) numa tx; depois:
-5. `transitionContent({ contentKind: ContentKind.JOB, contentId: jobId, to: IN_MODERATION, trigger: 'AUTHOR_ACTION', actorPersonId })`
-   — a FSM já valida `DRAFT → IN_MODERATION` e grava `CONTENT_SUBMITTED_TO_MODERATION` no audit (TD §4.6, E-001).
-6. P2002 (dedup) → `CONFLICT`; resultado da transição propagado (`INVALID_TRANSITION` se status mudou).
+1. **Constantes de classe crua** (`inputClass`/`errorClass`/`labelClass`) → **remover**; usar primitivos.
+2. `<label className={labelClass}>` → `<Label htmlFor=…>` (todos os campos).
+3. `<input …>` de texto/número/date → `<Input …>` (mantendo `type`, `min`, `max`, `step`, `register`).
+4. `<textarea rows=…>` (descrição, requisitos, benefícios) → `<Textarea rows=… />`.
+5. `<select>` (área, região) → `<select>` com classes de token (mesma aparência de `Input`).
+6. Erro de campo `errorClass` (`text-red-600`) → `text-danger text-xs mt-1` (token).
+7. Banner topo: `serverError` (`role="alert"`) → caixa com token `danger` (padrão `LoginForm`); `success`
+   (`role="status"`) → token `success`. Texto e `role` **preservados**.
+8. `<fieldset><legend>` do salário → `FormSectionTitle` + `FormRow cols={2}` para `salaryMin`/`salaryMax`;
+   checkbox `salaryVisible` com `accent-primary` + `Label`.
+9. Botões: "Enviar para moderação" → `<Button type="submit" variant="primary">`; "Salvar rascunho" →
+   `<Button type="button" variant="secondary" onClick={onSaveDraft}>`. `disabled`/`isPending` preservados.
+10. Envelope do form `flex flex-col gap-5 max-w-lg` → manter layout, converter cores/spacing a tokens
+    (`gap-…` do DS); envolver em `FormCard` se a casca não o fizer (ver §4 — evita card duplo).
 
-> **Atomicidade (ADR-0020):** persistência da vaga + transição + audit numa única transação Prisma.
-> Como `transitionContent` abre seu próprio `withAudit`, a action pode (a) persistir o draft, então (b) chamar
-> `transitionContent`; ou (c) — preferível p/ submit direto do form — persistir+transicionar dentro de UMA tx
-> reusando o repo. **Decisão AD-2 (confirmar com Tech Lead):** para o MVP, criar/atualizar o Job em DRAFT e em
-> seguida `transitionContent` (2 transações curtas) é aceitável — o draft órfão (sem submit) é um estado válido (E-003).
+**Preservado sem tocar:** todos os `name`/`register`, os dois caminhos de submit, o `companyId` hidden, o
+`isoDateOffset(1..180)` do date picker, o default `salaryVisible=true`, o mapeamento `ActionResult`→PT-BR.
 
-### Wiring da FSM para JOB — `src/modules/jobs/adapters/prisma-job-status.ts` + container
-- `PrismaJobStatusRepository implements ContentStatusRepository` — espelha `PrismaCandidateProfileStatusRepository`
-  (`loadStatus` lê `job.status`; `updateStatus` faz `tx.job.updateMany({ where:{id, status: from}, data:{ status: to, lastStatusChangeAt } })` com concorrência otimista, ADR-0011 R3).
-- Registrar no `shared/container.ts`: adicionar `[ContentKind.JOB]: new PrismaJobStatusRepository()` ao mapa `byKind` do `DispatchingContentStatusRepository`.
+## 4. Refactor deltas — `(app)/empresa/[empresaId]/vagas/nova/page.tsx` (Server Component)
 
-### Eventos de auditoria (TD §4.6)
-- `CONTENT_SUBMITTED_TO_MODERATION` **já existe** no catálogo (usado por `transitionContent` para `IN_MODERATION`).
-- `JOB_DRAFT_SAVED` — **novo**, adicionar a `src/modules/audit/events.ts` (rascunho não passa pela FSM).
+1. `<main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-10">` → manter container,
+   compor **`StepIcon variant="blue"`** (ícone de maleta/vaga do protótipo) + **`FormHeader title="Publicar
+   vaga" description=…`** + **`FormCard`** ao redor do `<JobForm/>`.
+2. Cores/spacing de qualquer texto auxiliar (título/subtítulo antigos) → tokens; remover paleta crua.
+3. **Preservado sem tocar:** `dynamic='force-dynamic'`, `requireActivePerson()`, o **gate P-006 → `notFound()`**,
+   os `Promise.all` de `company`/`listApprovedJobAreas`/`listActiveRegions`, o `metadata` (se houver), e o
+   `notFound()` de company inexistente.
 
-## 4. UI (#165) — `src/app/(app)/empresa/[id]/vagas/nova` + `src/modules/jobs/components/`
+> **Card duplo:** decidir se o `FormCard` fica na casca (page) ou dentro do `JobForm`. Recomendado: casca
+> provê `FormCard`; `JobForm` provê só os campos (espelha `cadastro/page.tsx` + `RegisterPersonForm`).
 
-- Form **React Hook Form + `@hookform/resolvers/zod`** com `publishJobSchema` (padrão das outras features).
-- Campos: título, **select de área** (carrega `JobArea` aprovadas via query do módulo), descrição, requisitos,
-  benefícios (opt), salário (opt), regime, local, **validade** (date picker; min=amanhã, max=hoje+180d).
-- Dois botões: **"Salvar rascunho"** (`createJobDraft`, E-003) e **"Enviar para moderação"** (`submitJobForModeration`).
-- Server Component carrega Empresas das quais a Pessoa é responsável ativa (escolher "publicar em nome de Empresa X", P-006).
-- Erros do `ActionResult` mapeados para mensagens PT-BR claras (E-004/E-005/CONFLICT).
+## 5. Data Models
 
-## 5. Fora de escopo (downstream — não implementar aqui)
+Nenhum. O restyle não toca schema/migração (os campos AD-011 já existem).
 
-- Verificação atômica da 1ª vaga (P-001/E-002) → hook `COMPANY_VERIFY_HOOK` (stub hoje) ativa na **aprovação** (USP-017).
-- Filtro on-read de visibilidade pública (P-002/P-007) → USP-021. Expiração automática (USP-024). Checklist legal (P-004) → USP-016.
+## 6. Error Handling Strategy
 
-## Decisões abertas (confirmar com Tech Lead no PR)
+| Cenário | Tratamento (preservado) | Delta de estilo |
+| --- | --- | --- |
+| Validade passada / > 180d | `VALIDATION` do Zod (`validadeStatus`) → erro no campo `validUntil` | erro em `text-danger` |
+| Não-responsável (P-006) | `FORBIDDEN` do action | banner `danger` |
+| Vaga duplicada (P-003) | `CONFLICT` (P2002) | banner `danger` |
+| Sucesso | `success`/redirect | banner `success` |
 
-- **AD-1:** índice parcial de dedup via SQL na migration (estados vivos). ✔ recomendado.
-- **AD-2:** submit = draft + `transitionContent` em 2 transações curtas (vs. 1 tx única). ✔ recomendado p/ MVP.
-- **AD-3:** `workRegime` como string livre no MVP (enum fechado fica p/ quando o catálogo D-007 definir regimes).
+## 7. Risks & Concerns
+
+| Concern | Location | Impact | Mitigation |
+| --- | --- | --- | --- |
+| Trocar `<input>` por `Input` pode perder o forward de `ref` do RHF se o primitivo não encaminhar `ref` | `src/shared/ui/input.tsx` | `register()` deixaria de funcionar (mudança de comportamento) | `Input`/`Textarea` são `forwardRef` (DS-19, confirmado no inventário); RTL de preservação (T2) trava o submit com payload igual. |
+| Converter o Server Component de página em client por engano ao adicionar interatividade | `vagas/nova/page.tsx` | Quebra `force-dynamic`/guard de sessão | Casca permanece Server Component; só `JobForm` é `'use client'`. |
+| Guarda estática de paleta crua gerar falso-positivo em comentários/strings de dados | arquivos tocados | Ruído no gate | Guarda restrita a `className`/JSX; allowlist se necessário (padrão `ds-*` da Fase 1). |
+| `salaryVisible`/faixa salarial reestilizados alterarem o default ou o binding | `job-form.tsx` | Mudança de contrato (L-003) | RTL trava presença de todos os campos + default; must-not U20-MN-05. |
+
+> Nenhum concern de segurança/perf novo — o restyle não toca dados nem authz.
+
+## 8. Tech Decisions (não óbvias)
+
+| Decisão | Escolha | Rationale |
+| --- | --- | --- |
+| Onde vive o `FormCard` | Na casca de página, não no `JobForm` | Espelha `cadastro/page.tsx` + `RegisterPersonForm` (AD-015); evita card duplo. |
+| Selects/date/checkbox | Nativos com classes de token (sem novo primitivo) | DS não exporta Select/DatePicker; criar um é foundation work fora do escopo. |
+| Teste do restyle do form | RTL de preservação (`job-form.spec.tsx`, novo) | Client Component RHF; trava campos + submit + must-nots U20-MN-05; padrão `RegisterPersonForm.test.tsx`. |
+| Teste da casca de página | Gate de build | Padrão do repo p/ Server Component restilizado (AD-015). |
+
+> **Decisões de projeto:** nenhuma nova convenção — este design **consome** AD-014/AD-015. Nada a
+> acrescentar em `STATE.md`.
