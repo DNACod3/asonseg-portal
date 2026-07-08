@@ -35,6 +35,7 @@ const { createSupabaseStorageClient, STORAGE_BUCKETS } = await import(
 );
 const { CV_EXTRACTOR_TOKEN } = await import('../ports/cv-extractor.port');
 const { extractCvFromUpload } = await import('../actions/extract-cv');
+const { DAILY_CV_EXTRACTION_LIMIT } = await import('../domain/rate-limit');
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
@@ -77,6 +78,7 @@ skipIfNoDb('USP-040 / CVE-02 — extractCvFromUpload (integração)', () => {
   let personRevokedId = '';
   let personFallbackId = '';
   let personNoUploadId = '';
+  let personRateLimitedId = '';
   const uploadedPaths: string[] = [];
 
   beforeAll(async () => {
@@ -120,6 +122,7 @@ skipIfNoDb('USP-040 / CVE-02 — extractCvFromUpload (integração)', () => {
     personHappyId = await seedCandidateWithCv('Happy', true);
     personRevokedId = await seedCandidateWithCv('Revogado', false);
     personFallbackId = await seedCandidateWithCv('Fallback', true);
+    personRateLimitedId = await seedCandidateWithCv('RateLimit', true);
 
     const noUpload = await prisma.person.create({
       data: { fullName: 'Candidato Sem Upload Int', status: 'ATIVO' },
@@ -130,14 +133,21 @@ skipIfNoDb('USP-040 / CVE-02 — extractCvFromUpload (integração)', () => {
   });
 
   afterAll(async () => {
-    const allPersonIds = [personHappyId, personRevokedId, personFallbackId, personNoUploadId];
+    const allPersonIds = [
+      personHappyId,
+      personRevokedId,
+      personFallbackId,
+      personNoUploadId,
+      personRateLimitedId,
+    ];
     const storage = createSupabaseStorageClient().from(STORAGE_BUCKETS.CVS);
     if (uploadedPaths.length > 0) {
       await storage.remove(uploadedPaths);
     }
+    // cv_extraction_attempts cai por cascade (onDelete: Cascade) ao deletar a Pessoa.
     await prisma.candidateProfile.deleteMany({ where: { personId: { in: allPersonIds } } });
     await prisma.consent.deleteMany({
-      where: { personId: { in: [personHappyId, personRevokedId, personFallbackId] } },
+      where: { personId: { in: [personHappyId, personRevokedId, personFallbackId, personRateLimitedId] } },
     });
     await prisma.person.deleteMany({ where: { id: { in: allPersonIds } } });
   });
@@ -241,6 +251,24 @@ skipIfNoDb('USP-040 / CVE-02 — extractCvFromUpload (integração)', () => {
 
   it('precondição: sem cvStoragePath bloqueia com PRECONDITION_FAILED', async () => {
     mockPerson = baseMockPerson(personNoUploadId);
+
+    const res = await extractCvFromUpload();
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe('PRECONDITION_FAILED');
+    expect(extractSpy).not.toHaveBeenCalled();
+  });
+
+  it('CVE-07: teto diário de extrações atingido bloqueia com PRECONDITION_FAILED e NÃO chama o extractor', async () => {
+    mockPerson = baseMockPerson(personRateLimitedId);
+    extractSpy.mockResolvedValue(OK_RESULT);
+
+    // Satura a cota do dia com tentativas duráveis (mesma tabela consumida pela action).
+    await prisma.cvExtractionAttempt.createMany({
+      data: Array.from({ length: DAILY_CV_EXTRACTION_LIMIT }, () => ({
+        personId: personRateLimitedId,
+      })),
+    });
 
     const res = await extractCvFromUpload();
     expect(res.ok).toBe(false);

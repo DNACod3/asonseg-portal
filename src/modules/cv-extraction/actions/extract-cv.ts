@@ -13,6 +13,7 @@ import {
 } from '@/shared/lib/supabase/supabase-storage';
 import { CV_EXTRACTOR_TOKEN, type CvExtractedFields } from '../ports/cv-extractor.port';
 import { detectCvMime } from '../domain/mime';
+import { startOfDaySaoPaulo, isOverDailyExtractionLimit } from '../domain/rate-limit';
 
 export interface ExtractCvResult {
   extracted: CvExtractedFields | null;
@@ -61,6 +62,24 @@ export async function extractCvFromUpload(): Promise<ActionResult<ExtractCvResul
     );
   }
 
+  // 3.5 Rate limit durável de EXTRAÇÃO (CVE-07 / custo LLM): `extractCvFromUpload`
+  //     é Server Action independente cujas pré-condições (sessão + CV enviado +
+  //     consent) não se consomem por chamada — sem este teto, um candidato
+  //     autenticado poderia invocá-la em loop e gerar chamadas Anthropic pagas
+  //     ilimitadas. Conta por dia-calendário em São Paulo; a linha de tentativa
+  //     é criada no tx de CV_EXTRACTION_REQUESTED (abaixo), consumindo a cota
+  //     mesmo em falha/fallback da IA.
+  const now = new Date();
+  const extractionsToday = await prisma.cvExtractionAttempt.count({
+    where: { personId: person.id, createdAt: { gte: startOfDaySaoPaulo(now) } },
+  });
+  if (isOverDailyExtractionLimit(extractionsToday)) {
+    return fail(
+      'PRECONDITION_FAILED',
+      'Limite de extrações de currículo por IA atingido hoje. Tente novamente amanhã.',
+    );
+  }
+
   try {
     // 4. Download dos bytes do Storage. Falha aqui (arquivo ausente/corrompido)
     //    nunca chegou a solicitar extração — cai no mesmo fallback gracioso.
@@ -84,7 +103,10 @@ export async function extractCvFromUpload(): Promise<ActionResult<ExtractCvResul
     // 5. Solicitação de extração (auditoria — nunca o conteúdo do arquivo).
     await withAudit(
       AuditEvent.CV_EXTRACTION_REQUESTED,
-      async (_tx, audit) => {
+      async (tx, audit) => {
+        // Consome a cota diária na MESMA tx da auditoria da solicitação: toda
+        // extração que chega a chamar o LLM (sucesso, falha ou fallback) conta.
+        await tx.cvExtractionAttempt.create({ data: { personId: person.id } });
         audit.entityType = 'candidate_profile';
         audit.entityId = person.id;
       },

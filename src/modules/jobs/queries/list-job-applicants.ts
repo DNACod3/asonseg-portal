@@ -136,12 +136,15 @@ export async function listJobApplicants(
     prisma.application.count({ where }),
   ]);
 
-  const applicants: EmployerCandidateView[] = [];
-  for (const row of rows) {
-    const cvStoragePath = row.candidate.candidateProfile?.cvStoragePath ?? null;
-    const cvSignedUrl = await resolveCvUrl(cvStoragePath);
-    applicants.push(
-      viewCandidateForEmployer({
+  // Assinaturas de CV resolvidas em paralelo (P-004): são chamadas independentes
+  // ao Storage, fora da transação de auditoria — `Promise.all` mantém a ordem
+  // `appliedAt asc` das linhas e evita ~N round-trips seriais por página.
+  // `resolveCvUrl` nunca lança (degrada para `null`), então nenhum item derruba os demais.
+  const applicants: EmployerCandidateView[] = await Promise.all(
+    rows.map(async (row) => {
+      const cvStoragePath = row.candidate.candidateProfile?.cvStoragePath ?? null;
+      const cvSignedUrl = await resolveCvUrl(cvStoragePath);
+      return viewCandidateForEmployer({
         candidatePersonId: row.candidate.id,
         fullName: row.candidate.fullName,
         emailLogin: row.candidate.emailLogin,
@@ -151,9 +154,9 @@ export async function listJobApplicants(
         cvStoragePath,
         cvUploadedAt: row.candidate.candidateProfile?.cvUploadedAt ?? null,
         cvSignedUrl,
-      }),
-    );
-  }
+      });
+    }),
+  );
 
   const hdrs = await headers();
   const rawIp = clientIp(hdrs);

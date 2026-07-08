@@ -10,7 +10,7 @@ import { z } from 'zod';
  * em `persons/components/candidate-form.tsx` — verificado empiricamente via
  * `npm run build`).
  */
-const EDUCATION_LEVELS_CV = [
+export const EDUCATION_LEVELS_CV = [
   'ENSINO_FUNDAMENTAL',
   'ENSINO_MEDIO',
   'ENSINO_TECNICO',

@@ -207,6 +207,7 @@ model Person {
   authoredJobs         Job[]
   applications         Application[]
   cvUploadAttempts     CvUploadAttempt[]
+  cvExtractionAttempts CvExtractionAttempt[]
 
   @@map("persons")
 }
@@ -472,7 +473,7 @@ model Job {
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company Company  @relation(fields: [companyId], references: [id])
-  area    JobArea? @relation(fields: [areaId], references: [id])
+  area    JobArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
   author  Person   @relation(fields: [authorPersonId], references: [id])
   region  Region?  @relation(fields: [regionId], references: [id])
 
@@ -663,6 +664,22 @@ model CvUploadAttempt {
 
   @@index([personId, createdAt])
   @@map("cv_upload_attempts")
+}
+
+/// Espelha `CvUploadAttempt`, mas para a EXTRAÇÃO via IA (USP-040 / CVE-07):
+/// uma linha por extração solicitada (criada no tx de `CV_EXTRACTION_REQUESTED`).
+/// A contagem diária (America/Sao_Paulo) barra chamadas em loop ao LLM — sem
+/// ela, `extractCvFromUpload` (Server Action independente) poderia ser invocada
+/// repetidamente sobre o mesmo upload, gerando custo Anthropic ilimitado.
+model CvExtractionAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  personId  String   @map("person_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, createdAt])
+  @@map("cv_extraction_attempts")
 }
 
 // ── Auditoria (US #12 — ADR-0023 / ADR-T-0004) ────────────────────────────

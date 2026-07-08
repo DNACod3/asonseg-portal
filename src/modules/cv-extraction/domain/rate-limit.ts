@@ -9,6 +9,15 @@ import { APP_TIME_ZONE } from '@/shared/lib/time';
 export const DAILY_CV_UPLOAD_LIMIT = 3;
 
 /**
+ * Rate limit de EXTRAÇÃO de CV via IA (USP-040 / CVE-07): teto diário de
+ * chamadas ao LLM por candidato. Maior que o de upload (3) para acomodar
+ * re-extrações legítimas do mesmo arquivo (retry após falha da IA), mas ainda
+ * finito — barra a invocação em loop de `extractCvFromUpload` que geraria
+ * custo Anthropic ilimitado.
+ */
+export const DAILY_CV_EXTRACTION_LIMIT = 5;
+
+/**
  * Início do dia-calendário em São Paulo, como instante UTC real (não o truque
  * de "meia-noite UTC" usado para colunas `@db.Date` — aqui comparamos contra
  * `createdAt` `@db.Timestamptz`, então precisamos do instante verdadeiro em
@@ -22,4 +31,9 @@ export function startOfDaySaoPaulo(now: Date): Date {
 /** `true` se `count` já atingiu (ou excedeu) {@link DAILY_CV_UPLOAD_LIMIT} — bloqueia o próximo upload. */
 export function isOverDailyLimit(count: number): boolean {
   return count >= DAILY_CV_UPLOAD_LIMIT;
+}
+
+/** `true` se `count` já atingiu (ou excedeu) {@link DAILY_CV_EXTRACTION_LIMIT} — bloqueia a próxima extração. */
+export function isOverDailyExtractionLimit(count: number): boolean {
+  return count >= DAILY_CV_EXTRACTION_LIMIT;
 }
