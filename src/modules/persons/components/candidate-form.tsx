@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
 // Import direto do módulo `'use server'` (não do barrel `@/modules/identity`):
 // este é um Client Component e o barrel reexporta código server-only
 // (`container.ts` via captchaVerifier, `supabase/server.ts` via session), que o
@@ -17,10 +18,11 @@ import { EDUCATION_LEVELS, EDUCATION_LEVEL_LABELS } from '../domain/candidate';
 import { activateCandidateRole } from '../actions/activate-candidate-role';
 import { submitCandidateForModeration } from '../actions/submit-candidate-for-moderation';
 
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
-const errorClass = 'mt-1 text-xs text-red-600';
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+// `<select>` nativo não tem primitivo no DS (só Input/Textarea) — estilo por
+// token, mesma superfície visual do `Input` (AD-014, padrão `job-form.tsx`).
+const selectClass =
+  'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60';
+const errorClass = 'mt-1 text-xs text-danger';
 
 export interface CandidateFormProps {
   /** Áreas de interesse do catálogo (taxonomia JobArea). */
@@ -43,6 +45,10 @@ export interface CandidateFormProps {
  * ação "Enviar para moderação" (`submitCandidateForModeration` → IN_MODERATION).
  *
  * O anexo/extração de CV (CAD-02) é da USP-040 — ponto de integração marcado abaixo.
+ *
+ * Fundação de Design System (AD-014/AD-015/AD-016, Fase 3 unidade U1): restilizado
+ * com as primitivas (`Input`/`Label`/`Textarea`/`Button`/`LgpdBox`) e tokens — fluxo
+ * (RHF/Zod/gate do consentimento/actions/`transitionContent`) preservado sem alteração.
  */
 export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus }: CandidateFormProps) {
   const router = useRouter();
@@ -107,14 +113,12 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
   const inModeration = status === 'IN_MODERATION';
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg">
+    <div className="flex max-w-lg flex-col gap-6">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {/* Escolaridade */}
         <div>
-          <label className={labelClass} htmlFor="educationLevel">
-            Escolaridade
-          </label>
-          <select id="educationLevel" className={inputClass} defaultValue="" {...register('educationLevel')}>
+          <Label htmlFor="educationLevel">Escolaridade</Label>
+          <select id="educationLevel" className={selectClass} defaultValue="" {...register('educationLevel')}>
             <option value="" disabled>
               Selecione…
             </option>
@@ -129,12 +133,10 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
 
         {/* Área de interesse principal */}
         <div>
-          <label className={labelClass} htmlFor="primaryAreaOfInterestId">
-            Área de interesse principal
-          </label>
+          <Label htmlFor="primaryAreaOfInterestId">Área de interesse principal</Label>
           <select
             id="primaryAreaOfInterestId"
-            className={inputClass}
+            className={selectClass}
             defaultValue=""
             {...register('primaryAreaOfInterestId')}
           >
@@ -154,34 +156,26 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
 
         {/* Telefone */}
         <div>
-          <label className={labelClass} htmlFor="phone">
-            Telefone
-          </label>
-          <input
-            id="phone"
-            type="tel"
-            placeholder="(11) 98888-7777"
-            className={inputClass}
-            {...register('phone')}
-          />
+          <Label htmlFor="phone">Telefone</Label>
+          <Input id="phone" type="tel" placeholder="(11) 98888-7777" {...register('phone')} />
           {errors.phone && <p className={errorClass}>{errors.phone.message}</p>}
         </div>
 
         {/* Resumo profissional (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="headline">
-            Resumo profissional <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <input id="headline" type="text" className={inputClass} {...register('headline')} />
+          <Label htmlFor="headline">
+            Resumo profissional <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <Input id="headline" type="text" {...register('headline')} />
           {errors.headline && <p className={errorClass}>{errors.headline.message}</p>}
         </div>
 
         {/* Experiência (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="experienceText">
-            Experiência <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <textarea id="experienceText" rows={3} className={inputClass} {...register('experienceText')} />
+          <Label htmlFor="experienceText">
+            Experiência <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <Textarea id="experienceText" rows={3} {...register('experienceText')} />
           {errors.experienceText && <p className={errorClass}>{errors.experienceText.message}</p>}
         </div>
 
@@ -189,18 +183,17 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
 
         {/* Termo de consentimento JOB_APPLICATION (CAD-05) — exigido na 1ª ativação. */}
         {!alreadyCandidate && (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p className="font-medium mb-2">Termo de uso para candidatura a vagas</p>
+          <LgpdBox title="Termo de uso para candidatura a vagas">
             <div
-              className="max-h-40 overflow-y-auto text-xs text-gray-600 whitespace-pre-wrap mb-3 border border-gray-200 rounded p-2 bg-white"
+              className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
               aria-label="Conteúdo do termo de candidatura a vagas"
             >
               {term.body}
             </div>
-            <label className="flex items-start gap-2 cursor-pointer">
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
               <input
                 type="checkbox"
-                className="mt-0.5 accent-blue-600"
+                className="mt-0.5 accent-primary"
                 checked={consentChecked}
                 onChange={(e) => setConsentChecked(e.target.checked)}
               />
@@ -209,49 +202,46 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
                 {term.version}) e autorizo o tratamento dos meus dados para essa finalidade.
               </span>
             </label>
-          </div>
+          </LgpdBox>
         )}
 
         {serverError && (
           <div
             role="alert"
-            className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            className="rounded-lg bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
           >
             {serverError}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isPending || !consentChecked}
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
+        <Button type="submit" variant="primary" disabled={isPending || !consentChecked}>
           {isPending ? 'Salvando…' : 'Salvar cadastro'}
-        </button>
+        </Button>
       </form>
 
       {/* Fluxo rascunho → moderação (CAD-03). */}
       {isDraft && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
-          <p className="text-amber-800 mb-3">
-            Seu perfil está em <strong>rascunho</strong>. Envie para moderação para ficar visível nas
-            buscas de empresas após a aprovação do coordenador.
+        <div className="rounded-md border border-border bg-background p-4 text-sm">
+          <p className="mb-3 text-fg-muted">
+            Seu perfil está em <strong className="text-fg">rascunho</strong>. Envie para moderação para
+            ficar visível nas buscas de empresas após a aprovação do coordenador.
           </p>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={onSubmitForModeration}
             disabled={isPending}
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
           >
             {isPending ? 'Enviando…' : 'Enviar para moderação'}
-          </button>
+          </Button>
         </div>
       )}
 
       {inModeration && (
         <div
           role="status"
-          className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+          className="rounded-md border border-primary bg-[color-mix(in_srgb,var(--color-primary)_10%,transparent)] px-4 py-3 text-sm text-primary"
         >
           Seu perfil está <strong>em moderação</strong>. Você será avisado quando for aprovado.
         </div>

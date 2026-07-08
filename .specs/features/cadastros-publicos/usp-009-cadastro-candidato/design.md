@@ -1,151 +1,134 @@
-# USP-009 — Cadastro de candidato — Design
+# USP-009 — Cadastro de candidato — Design (REFACTOR ao Design System)
 
-> Deriva de [`spec.md`](./spec.md). Contratos confirmados no código em 2026-06-10 (módulos `consents`, `audit`, `identity`, `shared` **e `moderation`** já existem — USP-016 mergeada).
+> Deriva de [`spec.md`](./spec.md). **Alvo: refactor style-only** das duas telas de candidato às primitivas de `@/shared/ui` (AD-014), preservando comportamento — mesmo molde das unidades de refactor das Fases 1/2 (AD-015/AD-016).
+> **Status:** Draft.
 
-## 1. Visão geral da arquitetura
+## 0. Restrições ativas do projeto (STATE.md `## Decisions`) — CONFORMAR
 
-Camadas (de baixo para cima), uma por sub-task:
+Este design **conforma** (não supera) às decisões ativas:
 
-```
-#36  schema       prisma: model CandidateProfile (usa ContentStatus da USP-016) + relações + migration
-        ↓
-#41  domain+schemas  persons/domain (EducationLevel, regras puras) + persons/schemas (Zod PT-BR)
-        ↓
-#44  server-action   persons/actions: activateCandidateRole · submitCandidateForModeration
-        ↓                (usa consents · audit · identity · moderation: transitionContent
-        ↓                 + ContentKind.CANDIDATE_PROFILE + adapter ContentStatusRepository)
-#46  ui              (app)/candidato/page.tsx + components/candidate-form.tsx (RHF + zodResolver)
-```
+- **AD-014** — Fundação do DS: tokens em `globals.css`/`tailwind.config.ts`; primitivas em `src/shared/ui/` (barrel). Dark via `[data-theme]` (sem `dark:`). **DS-MN-02:** nada de hex cru / paleta fixa em `shared/ui` — aqui estendemos o mesmo princípio aos **consumidores** de candidato (CAD-MN-03).
+- **AD-015 / AD-016** — Padrão de refactor: restyle é **style-only** (markup/classes); comportamento preservado ancorado nos **testes verdes existentes como testes negativos**; mudanças não-estilo só se forem **consistência pura** e documentadas. Import de action `'use server'` direto no Client Component é o escape-hatch RSC canônico (AD-013/T-A1).
 
-Princípio: cada camada só depende das de baixo. A UI (#46) nunca toca Prisma; chama Server Actions.
-As Server Actions (#44) nunca fazem `prisma.update` de status — usam `transitionContent()`.
+Nenhuma decisão exige superação. Nenhum ADR de `docs/arch/` é contrariado (o restyle não altera contratos).
 
-## 2. Modelo de dados (#36)
+## 1. Estado atual (implementação a refatorar)
 
-`CandidateProfile` conforme `technical-design.md §2.2` (relação 1:1 com `Person`, FK opcional `JobArea`):
+USP-009 está implementada e verde. Mapa dos arquivos e do que muda:
 
-```prisma
-model CandidateProfile {
-  personId                String        @id @map("person_id") @db.Uuid
-  headline                String?
-  primaryAreaOfInterestId String?       @map("primary_area_of_interest_id") @db.Uuid
-  educationLevel          String?       @map("education_level")
-  educationArea           String?       @map("education_area")
-  experienceText          String?       @map("experience_text") @db.Text
-  skillsText              String?       @map("skills_text") @db.Text
-  coursesText             String?       @map("courses_text") @db.Text
-  availability            String?
-  cvStoragePath           String?       @map("cv_storage_path")
-  cvSha256                String?       @map("cv_sha256")
-  cvUploadedAt            DateTime?     @map("cv_uploaded_at") @db.Timestamptz(6)
-  cvLastConfirmedAt       DateTime?     @map("cv_last_confirmed_at") @db.Timestamptz(6)
-  publicationStatus       ContentStatus @default(DRAFT) @map("publication_status")
-  lastStatusChangeAt      DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
-  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
-  person                  Person        @relation(fields: [personId], references: [id])
-  primaryAreaOfInterest   JobArea?      @relation(fields: [primaryAreaOfInterestId], references: [id])
-  @@index([publicationStatus])
-  @@map("candidate_profiles")
-}
-```
-
-**Decisões:**
-- `educationLevel`/`educationArea` ficam como `String?` no DB (alinhado ao design doc); o **enum** `EducationLevel` vive no `domain/` (#41) e valida na fronteira. Evita migration por mudança de taxonomia.
-- Relações reversas a adicionar: `Person.candidateProfile CandidateProfile?` e `JobArea.candidateProfiles CandidateProfile[]` (GAP-4).
-- **`ContentStatus` já existe** no `schema.prisma` e em `@/modules/moderation` (entregue pela USP-016) — #36 **referencia** o enum, **não redeclara** (GAP-3 resolvido). `publicationStatus ContentStatus @default(DRAFT)`.
-
-## 3. Domain & Schemas (#41)
-
-- `persons/domain/candidate.ts`: `enum EducationLevel` (taxonomia de escolaridade), tipo `CandidateProfileInput`, regras **puras sem IO** (ex.: `normalizePhone(raw): string`).
-- `persons/schemas/candidate.ts`: Zod 3.x.
-  - **Obrigatórios:** `educationLevel` (enum), `primaryAreaOfInterestId` (uuid), `phone` (telefone BR normalizável). Mensagens PT-BR.
-  - **Opcionais:** `headline`, `educationArea`, `experienceText`, `skillsText`, `coursesText`, `availability`.
-  - Tipos derivados via `z.infer`. Export via barrel `@/modules/persons`.
-
-## 4. Server Actions (#44) — sequência canônica
-
-Retorno sempre `ActionResult<T>` (`{ ok:true, data } | { ok:false, error }`), **nunca `throw`**.
-
-### `activateCandidateRole(input)` — CAD-01, CAD-05
-
-```
-1. safeParse(candidateSchema, input)            → erro VALIDATION (fieldErrors PT-BR)
-2. getCurrentPerson() (Pessoa autenticada da sessão) → erro UNAUTHENTICATED se nula
-   Ação **self-scoped (P-002)**: opera só sobre a Pessoa da sessão, sem `personId`
-   no input → sem alvo controlável pelo atacante (sem IDOR). Não há `requirePermission`
-   dedicado: `candidate:self-activate` não existe no enum `PermissionId` e o
-   project-guideline §4 admite a omissão justificada do passo 2 para ações P-002.
-3. requireActiveConsent(personId, 'PORTAL_ACCESS') && (…, 'JOB_APPLICATION')
-                                                 → erro CONSENT_REQUIRED se ABSENT/OUTDATED/REVOKED
-   (+ 'CV_AI_EXTRACTION' apenas quando houver anexo de CV — CAD-02 parcial)
-4. pré-condição idempotência: se CandidateProfile já existe → não duplica (upsert/early-return)
-5. withAudit('CANDIDATE_ROLE_ACTIVATED', async (tx) => {
-       upsert CandidateProfile { publicationStatus: DRAFT }
-       garantir Role CANDIDATE ativo para a Person
-   })
-```
-
-Consentimento: o aceite vem do form (#46); `grantConsent()` (módulo `consents`) registra cada
-finalidade **antes** ou dentro da mesma transação da ativação. Decisão: registrar consentimento via
-`grantConsent` no fluxo do form e o `activateCandidateRole` apenas **verifica** com `requireActiveConsent` (passo 3). Isso mantém a Action idempotente e a coleta de consentimento explícita no cliente.
-
-### `submitCandidateForModeration(personId)` — CAD-03
-
-`transitionContent()` (USP-016) **já audita** a transição internamente (emite `CONTENT_SUBMITTED_TO_MODERATION` via `eventTypeFor(to, trigger)`) e roda status+audit na **mesma transação**. Logo a Action **não** envolve seu próprio `withAudit` para a transição — apenas valida permissão/propriedade e delega:
-
-```ts
-1. getCurrentPerson() (self-scoped P-002) → UNAUTHENTICATED se nula; a propriedade é
-   implícita: `contentId = person.id` da sessão (sem `personId` no input → sem IDOR)
-2. pré-condição: perfil existe (a validação DRAFT→IN_MODERATION é feita pela máquina de estados)
-3. return transitionContent({
-       contentKind: ContentKind.CANDIDATE_PROFILE,
-       contentId: personId,            // CandidateProfile.personId é o @id
-       to: ContentStatus.IN_MODERATION,
-       trigger: 'AUTHOR_ACTION',       // DRAFT→IN_MODERATION não exige justificativa
-       actorPersonId: personId,
-   })  // → ActionResult<{from, to}>; trata erros NOT_FOUND / INVALID_TRANSITION
-```
-
-**Trabalho de integração com `moderation` (GAP-1 — herdado pela #44, ver AD-005 da USP-016):**
-1. **`ContentKind.CANDIDATE_PROFILE`** — adicionar ao enum em `moderation/domain/content-status.ts` e declarar as transições em `TRANSITIONS` (mínimo: `DRAFT→IN_MODERATION` `AUTHOR_ACTION`; e as de retorno/aprovação/rejeição que o coordenador usará — espelham as comuns de JOB/CV/SERVICE).
-2. **Adapter concreto** `PrismaCandidateProfileStatusRepository implements ContentStatusRepository` (`loadStatus`/`updateStatus` com concorrência otimista) sobre a tabela `candidate_profiles` — análogo a `PrismaModerationContentRepository`, mas lendo/escrevendo `publicationStatus`.
-3. **Despacho por `ContentKind` no `container.ts`** — hoje há **um único** `ContentStatusRepository` apontando para `_moderation_fixture`. Introduzir dispatch (factory/strategy por `ContentKind`) e registrar o adapter de candidato. Os tipos JOB/CV/SERVICE continuam na fixture até suas próprias USPs.
-
-> **NUNCA** substituir `transitionContent` por `prisma.candidateProfile.update({ publicationStatus })` direto.
-
-## 5. UI (#46)
-
-- `src/app/(app)/candidato/page.tsx`: `export const dynamic = 'force-dynamic'`; SSR com `requireActivePerson()` (padrão de `(app)/consentimentos/page.tsx`).
-- `src/modules/persons/components/candidate-form.tsx`: React Hook Form + `zodResolver(candidateSchema)`, shadcn/ui + Tailwind, textos PT-BR.
-  - Checkbox de aceite `PORTAL_ACCESS` + `JOB_APPLICATION` → **bloqueia submit** sem aceite.
-  - Submit → `activateCandidateRole` → trata `ActionResult` (toast PT-BR sucesso/erro).
-  - Botão "Enviar para moderação" → `submitCandidateForModeration`; reflete status (DRAFT → IN_MODERATION).
-  - Placeholder para o componente de upload/extração de CV (USP-040).
-
-## 6. Contratos confirmados (não reinventar)
-
-| Símbolo | Path | Assinatura |
+| Arquivo | Papel | Muda? |
 |---|---|---|
-| `ActionResult<T>` / `ActionError` | `src/shared/errors.ts` | `{ok:true,data} \| {ok:false,error:{code,message,fieldErrors?}}` |
-| `requirePermission` | `src/modules/identity/server/require-permission.ts` | `(permission, {scopeArea?}) → ActionResult<{person}>` (barrel `@/modules/identity`) |
-| `requireActiveConsent` | `src/modules/consents/server/require-active-consent.ts` | `(personId, purpose, client=prisma) → ConsentCheck` |
-| `grantConsent` | `@/modules/consents` (barrel) | action + `grantConsentSchema` |
-| `withAudit` | `src/modules/audit/withAudit.ts` | `<T>(event: AuditEventName, fn:(tx,audit)=>Promise<T>, ctx?) → Promise<T>` |
-| `transitionContent` | `@/modules/moderation` (`actions/transition-content.ts`) | `({contentKind, contentId, to, trigger, justification?, actorPersonId}) → ActionResult<{from,to}>` — **já audita** a transição |
-| `ContentKind` / `ContentStatus` | `@/modules/moderation` (`domain/content-status.ts`) | `ContentKind`: JOB/CV/SERVICE (**add CANDIDATE_PROFILE**) · `ContentStatus`: DRAFT…INACTIVATED (no schema) |
-| `ContentStatusRepository` + token | `@/modules/moderation` (`ports/content-status.port.ts`) | `loadStatus(kind,id)` · `updateStatus(tx,kind,id,from,to)→boolean` · `CONTENT_STATUS_REPOSITORY_TOKEN` |
-| Eventos | `src/modules/audit/events.ts` | `CONTENT_SUBMITTED_TO_MODERATION` ✅ (emitido por `transitionContent`) · `CANDIDATE_ROLE_ACTIVATED` **a adicionar** (GAP-2, só ativação) |
-| Finalidades | `src/modules/consents/.../purposes.ts` | `PORTAL_ACCESS`, `JOB_APPLICATION`, `CV_AI_EXTRACTION` ✅ existem |
-| Página `(app)` | `src/app/(app)/consentimentos/page.tsx` | padrão `force-dynamic` + `requireActivePerson()` |
-| Teste integração | `src/modules/companies/__tests__/create-company.int.test.ts` | vitest, mock `next/headers` + `identity/server/session`, cleanup cascata |
+| `src/app/(app)/candidato/page.tsx` | Server Component: `requireActivePerson`, carrega `jobAreas`/`profile`/`term`, renderiza `<CandidateForm>` | ✅ **Restyle** (header→`StepIcon`/`FormHeader`/`FormCard`; caixa de erro→token) |
+| `src/modules/persons/components/candidate-form.tsx` | Client Component RHF+Zod: campos, gate de consentimento, submit, fluxo rascunho→moderação | ✅ **Restyle** (primitivas + `selectClass` + caixas por token) |
+| `src/modules/persons/schemas/candidate.ts` | Zod (obrigatórios + mensagens PT-BR) | ❌ inalterado |
+| `src/modules/persons/domain/candidate.ts` | `EDUCATION_LEVELS`, labels, `normalizePhone` | ❌ inalterado |
+| `src/modules/persons/actions/activate-candidate-role.ts` | Server Action (Zod→`getCurrentPerson`→`requireActiveConsent`→`withAudit` upsert DRAFT) | ❌ inalterado (já canônico) |
+| `src/modules/persons/actions/submit-candidate-for-moderation.ts` | Server Action (→`transitionContent` IN_MODERATION) | ❌ inalterado (já canônico) |
+| `src/modules/persons/adapters/prisma-candidate-profile-status.ts` | `ContentStatusRepository` do CandidateProfile | ❌ inalterado |
 
-## 7. Riscos
+**Suítes verdes (âncora de preservação — testes negativos):**
+- `persons/__tests__/candidate-schema.test.ts` (unit, Zod/domain)
+- `persons/__tests__/candidate-actions.test.ts` (unit, actions mockadas — 13 casos)
+- `persons/__tests__/candidate-actions.int.test.ts` (integração, Postgres real — 9 casos, CAD-01/03/05)
+- `persons/__tests__/CandidateForm.test.tsx` (component — 5 casos: gate de consentimento, erros de validação, happy path, status)
+- `e2e/candidato.spec.ts` (E2E — confinamento de rota autenticada)
 
-- **R1 (médio):** o despacho do `ContentStatusRepository` por `ContentKind` exige refatorar o `container.ts` (hoje singleton único sobre `_moderation_fixture`). Risco de regressão para JOB/CV/SERVICE se o dispatch não preservar o adapter de fixture como default. Mitigar com teste de integração do dispatch e mantendo a fixture como fallback dos kinds ainda não aterrissados.
-- **R2 (baixo):** `CandidateProfile` é o **primeiro** conteúdo real a sair da fixture; as transições de `CANDIDATE_PROFILE` em `TRANSITIONS` precisam espelhar corretamente as comuns (devolução/rejeição exigem justificativa) para a fila do coordenador funcionar.
-- **R3 (baixo):** taxonomia de escolaridade/áreas como `String?` no DB pode gerar dado inconsistente se a UI não restringir — mitigado pelo enum no domain + Zod.
+## 2. Arquitetura do refactor
 
-> **Resolvido:** o risco de dependência de `moderation` inexistente (era R1 na versão anterior) deixou de existir — USP-016 mergeada em 2026-06-10.
+```mermaid
+graph TD
+    P["(app)/candidato/page.tsx<br/>restyle: StepIcon+FormHeader+FormCard"] --> F["CandidateForm (client)<br/>restyle: Input/Label/Textarea/Button/LgpdBox"]
+    F -->|inalterado| A1["activateCandidateRole (server action)"]
+    F -->|inalterado| A2["submitCandidateForModeration → transitionContent"]
+    F -->|inalterado| A3["activateAdditionalRole (identity, USP-006)"]
+    F --> DS["@/shared/ui (barrel DS)"]
+    P --> DS
+```
 
-> 💡 Diagramas inline em mermaid. Para renderização/validação (SVG/PNG, temas), considere instalar a skill `mermaid-studio`.
+Princípio: **só a camada de apresentação muda**. Nenhuma aresta de dados/ação é criada, removida ou reconfigurada. A UI continua chamando exatamente as mesmas actions com os mesmos argumentos.
+
+## 3. Code Reuse Analysis
+
+### Primitivas e padrões a reusar (referências verbatim de código já mergeado)
+
+| Componente/padrão | Location | Como usar |
+|---|---|---|
+| `Button`, `Input`, `Label`, `Textarea`, `LgpdBox` | `@/shared/ui` (barrel) | Substituem `<button>`/`<input>`/`<label>`/`<textarea>` + caixa de consentimento |
+| `StepIcon`, `FormHeader`, `FormCard` | `@/shared/ui` | Cabeçalho + moldura da página (padrão de tela de cadastro) |
+| **Padrão de form RHF+Zod restilizado** | `src/modules/companies/components/create-company-form.tsx` | **Template exato**: `LgpdBox` com termo + checkbox `accent-primary` gateando o submit; caixa de erro `role="alert"` tintada em `danger`; `Button variant="primary" disabled={isPending \|\| !consentChecked}` |
+| **Padrão de `<select>` no DS** | `src/modules/jobs/components/job-form.tsx` (L26-31) | `selectClass` por token (não há primitiva `Select`); `errorClass='mt-1 text-xs text-danger'`; caixas tintadas por `color-mix` sobre tokens |
+| Página de cadastro no DS | `src/app/(app)/empresa/cadastrar/page.tsx` | `StepIcon variant="orange"` + `FormHeader` + `FormCard` envolvendo o form |
+
+### Integration Points
+
+| Sistema | Método de integração | Muda? |
+|---|---|---|
+| Server Actions (`persons`, `identity`) | Import direto do arquivo `'use server'` no client (escape-hatch RSC, comentário já presente no arquivo) | ❌ inalterado |
+| Taxonomia `JobArea` (props `jobAreas`) | Carregada no Server Component, passada por prop | ❌ inalterado |
+| Termo `JOB_APPLICATION` (prop `term`) | `loadTerm`+`stripTermFrontMatter` no Server Component | ❌ inalterado |
+
+## 4. Componentes e mapeamento de restyle
+
+### 4.1 `candidate-form.tsx` (CAD-R1, owner de CAD-MN-01/02)
+
+- **Imports:** adicionar `import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';`. Remover as constantes locais `inputClass`/`labelClass`/`errorClass` de paleta fixa (`text-red-600`, `border-gray-300`, `focus:ring-blue-200`, `text-gray-700`). Manter `errorClass = 'mt-1 text-xs text-danger'` (token) e `selectClass` (token) copiados de `job-form.tsx`.
+- **Campos:**
+  - `Escolaridade`, `Área de interesse principal`: `<Label htmlFor>` + `<select className={selectClass} {...register}>` (mantém `<option>`s, `EDUCATION_LEVELS`/`jobAreas`).
+  - `Telefone`: `<Label>` + `<Input type="tel">`.
+  - `Resumo profissional` (opcional): `<Label>` + `<Input>`; o sufixo "(opcional)" vira `<span className="font-normal text-fg-muted">` (era `text-gray-400`).
+  - `Experiência` (opcional): `<Label>` + `<Textarea rows={3}>`.
+  - Erros: `{errors.x && <p className={errorClass}>...}` (token `text-danger`).
+- **Placeholder de CV (USP-040):** comentário mantido no mesmo ponto.
+- **Termo de consentimento (CAD-05 / CAD-MN-01):** trocar a `<div>` cinza por `<LgpdBox title="Termo de uso para candidatura a vagas">` envolvendo: caixa interna do corpo do termo (`max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted`, `aria-label` preservado) + `<label className="flex cursor-pointer items-start gap-2 text-sm text-fg">` com `<input type="checkbox" className="mt-0.5 accent-primary" checked={consentChecked} onChange=...>`. **Condicional `!alreadyCandidate` preservada.** Um único checkbox (mantém `getByRole('checkbox')`).
+- **Erro do servidor (`role="alert"`):** `rounded-sm bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger` (era `bg-red-50 border-red-200 text-red-700`).
+- **Botão submit:** `<Button type="submit" variant="primary" disabled={isPending || !consentChecked}>` — texto `{isPending ? 'Salvando…' : 'Salvar cadastro'}` preservado (mantém `getByRole('button', {name:/salvar cadastro/i})`).
+- **Caixa "rascunho" (CAD-03):** superfície neutra (sem token amber): `rounded-md border border-border bg-background p-4 text-sm` com texto `text-fg`/`text-fg-muted`; botão interno `<Button type="button" variant="primary" size="sm" onClick={onSubmitForModeration} disabled={isPending}>` texto `{isPending ? 'Enviando…' : 'Enviar para moderação'}` (mantém `getByRole('button', {name:/enviar para moderação/i})`).
+- **Caixa "em moderação" (`role="status"`):** `rounded-md border border-primary bg-[color-mix(in_srgb,var(--color-primary)_10%,transparent)] px-4 py-3 text-sm text-primary` (era `bg-blue-50 border-blue-200 text-blue-800`). `role="status"` e texto "em moderação" preservados (mantém `getByRole('status')`).
+- **Invariantes de DOM a preservar (contrato dos testes):** associações `htmlFor↔id` de escolaridade/área/telefone (`getByLabelText`); rótulos dos botões; um único `checkbox`; `role="alert"`/`role="status"`; render do corpo do termo. Toda a lógica (`useForm`, `onSubmit`, `onSubmitForModeration`, `startTransition`, `router.refresh`, estados `consentChecked`/`status`/`serverError`) **intacta**.
+
+### 4.2 `(app)/candidato/page.tsx` (CAD-R2)
+
+- Manter `export const dynamic = 'force-dynamic'`, `requireActivePerson()`, os `Promise.all` de `jobAreas`/`profile`, o `loadTerm('JOB_APPLICATION')` com `try/catch TermLoaderError`, e a passagem de props ao `<CandidateForm>` — **inalterados**.
+- **Layout:** trocar `<main class="... max-w-3xl ...">` + `<header><h1 text-gray-900><p text-gray-600>` por: `<main class="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">` + `<StepIcon variant="orange">{userIcon}</StepIcon>` + `<FormHeader title="Cadastro de candidato" description="…"/>` + `<FormCard><CandidateForm .../></FormCard>` (padrão `empresa/cadastrar`).
+- **Caixa de termo indisponível (`role="alert"`):** tintada em `danger` por token (era `bg-red-50 border-red-200 text-red-700`).
+- `userIcon`: SVG inline (silhueta de usuário/candidato) com `stroke="currentColor"`, sem dependência externa.
+
+### 4.3 Sem mudança de backend (decisão de consistência)
+
+As Server Actions/schemas/domain/adapter **já** seguem os padrões canônicos (`getCurrentPerson()`/ADR-0030, `transitionContent`, `withAudit`, `ActionResult`, export por barrel). O import direto das actions `'use server'` no Client Component é o escape-hatch RSC já documentado no próprio arquivo (idêntico a `job-form.tsx`; AD-013/T-A1). **Portanto, nenhuma mudança de código não-estilo é necessária ou justificada** — mantém o refactor 100% style-only e minimiza risco de regressão.
+
+## 5. Data Models
+
+Nenhum. Sem migração, sem mudança de schema.
+
+## 6. Error Handling Strategy
+
+Inalterada (é a mesma lógica). Apenas a **apresentação** dos estados de erro/sucesso/status passa a usar tokens:
+
+| Estado | Antes | Depois | Impacto ao usuário |
+|---|---|---|---|
+| Erro do servidor (form) | `role="alert"` vermelho fixo | `role="alert"` tintado em `danger` | Mesma mensagem PT-BR, cor por tema |
+| Perfil em rascunho | caixa âmbar | caixa neutra de superfície + CTA `primary` | Mesma afordância "enviar para moderação" |
+| Em moderação | `role="status"` azul fixo | `role="status"` tintado em `primary` | Mesmo texto |
+| Termo indisponível (página) | `role="alert"` vermelho fixo | `role="alert"` tintado em `danger` | Mesma mensagem |
+
+## 7. Risks & Concerns
+
+| Concern | Location | Impact | Mitigation |
+|---|---|---|---|
+| Restyle pode quebrar queries de teste (`getByLabelText`/`getByRole`/`getByText`) | `CandidateForm.test.tsx` | Falha de suíte = regressão de contrato-DOM | Preservar `htmlFor↔id`, rótulos de botão, único checkbox, `role="alert"/"status"`, corpo do termo. O teste **não** é editado; se ficar vermelho, corrige-se o componente. |
+| DS não tem token `warning`/`info` para as caixas âmbar/azul | `candidate-form.tsx` | Escolha arbitrária de cor → deriva | Mapeamento fixado nas assumptions (neutra p/ rascunho; `primary` tintado p/ moderação) — determinístico, espelha `job-form.tsx`. |
+| Deriva de paleta fixa reintroduzida por descuido | ambos os arquivos | Perda de consistência DS (light/dark) | Guard estático CAD-MN-03 (T3) falha o gate se qualquer utilidade de paleta fixa permanecer. |
+| Página adota novo layout (`max-w-lg` centralizado vs `max-w-3xl`) | `candidato/page.tsx` | Mudança visual de layout | É a intenção (paridade com telas de cadastro); E2E só checa redirect (não o conteúdo), sem `page.test.tsx` — sem quebra de teste. |
+
+## 8. Tech Decisions (não óbvias)
+
+| Decisão | Escolha | Rationale |
+|---|---|---|
+| `<select>` no DS | `selectClass` por token (nativo) | DS não tem `Select`; padrão do projeto (`job-form.tsx`, `job-search-filters.tsx`) |
+| Caixa "rascunho" sem token amber | superfície neutra + CTA `primary` | Sem token `warning`; preserva afordância sem inventar cor |
+| Caixa "em moderação" | `color-mix` sobre `--color-primary` | Espelha padrão de caixa tintada de `job-form.tsx`; preserva azul/informativo |
+| Negativa de deriva de DS | guard estático (readFileSync + regex), não lint rule | Mesmo padrão de guarda do projeto (`no-external-verify.test.ts`, AD-013/016); dá ao Verifier um sensor discriminante |
+| Backend | **sem mudança** | Já canônico; style-only minimiza risco (AD-015/016) |
+
+> **Project-level decisions:** nenhuma nova convenção de projeto — este design **consome** AD-014 e **aplica** o padrão de refactor AD-015/016. Não há novo `AD-NNN` a registrar por esta unidade (a decisão de fase é do orquestrador).
