@@ -33,6 +33,10 @@ export default defineConfig({
     // CI). É seguro: o guard de `shared/env.ts` mira `VERCEL_ENV` (deploy real),
     // e nem o dev local nem o CI são deploy Vercel — só num deploy de
     // produção/preview a flag travaria o boot.
-    env: { RATE_LIMIT_DISABLED: 'true' },
+    //
+    // CV_EXTRACTOR_FAKE (USP-040 / A-12): liga o `FakeCVExtractor` no lugar do
+    // adapter Anthropic real — mesmo guard de `VERCEL_ENV` (nunca ativo num
+    // deploy real). Sem chamada real ao LLM no E2E.
+    env: { RATE_LIMIT_DISABLED: 'true', CV_EXTRACTOR_FAKE: 'true' },
   },
 });
