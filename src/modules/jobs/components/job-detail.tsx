@@ -3,6 +3,7 @@ import { formatDate } from '@/shared/lib/time';
 import { Badge, Button, FormCard, FormSectionTitle } from '@/shared/ui';
 import type { JobDetail } from '../views/job-detail.view';
 import { ApplyToJobButton } from './apply-to-job-button';
+import { CancelApplicationButton } from './cancel-application-button';
 
 const brl = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -34,12 +35,11 @@ function Section({ title, content }: Readonly<{ title: string; content: string |
 }
 
 /**
- * Bloco de chamada à ação por papel (USP-022/025 / E-002/E-004/P-003). O
+ * Bloco de chamada à ação por papel (USP-022/025/026 / E-002/E-004/P-003). O
  * serializer (`viewJobDetail`) já decidiu o papel — aqui só renderiza. Quando
  * `job.canApply`, o botão é o `ApplyToJobButton` real (USP-025 — dispara a
- * candidatura); enquanto não há `myApplicationId`, mostra "Candidatar-se". Já
- * havendo uma candidatura ativa, mostra o estado "já candidatado" (o botão de
- * cancelar é da USP-026).
+ * candidatura) enquanto não há `myApplicationId`; havendo uma candidatura
+ * ativa, mostra o `CancelApplicationButton` real (USP-026 — CAN-026-03).
  */
 function ApplyCta({
   job,
@@ -47,7 +47,12 @@ function ApplyCta({
 }: Readonly<{ job: JobDetail; myApplicationId: string | null }>) {
   if (job.canApply) {
     if (myApplicationId) {
-      return <p className="text-sm font-medium text-fg">Você já se candidatou a esta vaga.</p>;
+      return (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-fg">Você já se candidatou a esta vaga.</p>
+          <CancelApplicationButton applicationId={myApplicationId} />
+        </div>
+      );
     }
     return <ApplyToJobButton jobId={job.id} />;
   }

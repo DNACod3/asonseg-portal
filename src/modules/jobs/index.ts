@@ -133,3 +133,7 @@ export { JobCard } from './components/job-card';
 export { JobList } from './components/job-list';
 export { JobDetailView, type JobDetailViewProps } from './components/job-detail';
 export { ApplyToJobButton, type ApplyToJobButtonProps } from './components/apply-to-job-button';
+export {
+  CancelApplicationButton,
+  type CancelApplicationButtonProps,
+} from './components/cancel-application-button';
