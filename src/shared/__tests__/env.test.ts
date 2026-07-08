@@ -95,4 +95,35 @@ describe('shared/env parseEnv', () => {
     const enabled = parseEnv({ ...validEnv, AUTH_LOGIN_ENABLED: 'true' });
     expect(enabled.AUTH_LOGIN_ENABLED).toBe(true);
   });
+
+  it('CV_EXTRACTOR_FAKE tem default false e aceita string "true" como booleano', () => {
+    const noFlag = { ...validEnv };
+    delete (noFlag as Record<string, unknown>).CV_EXTRACTOR_FAKE;
+    expect(parseEnv(noFlag).CV_EXTRACTOR_FAKE).toBe(false);
+
+    const enabled = parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'true' });
+    expect(enabled.CV_EXTRACTOR_FAKE).toBe(true);
+  });
+
+  it('CV_EXTRACTOR_FAKE=true é aceito fora de um deploy Vercel real (dev/CI/E2E)', () => {
+    expect(() =>
+      parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'true' }),
+    ).not.toThrow();
+    expect(() =>
+      parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'true', VERCEL_ENV: 'development' }),
+    ).not.toThrow();
+  });
+
+  it('CV_EXTRACTOR_FAKE=true lança num deploy Vercel real (production/preview) — USP-040', () => {
+    expect(() =>
+      parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'true', VERCEL_ENV: 'production' }),
+    ).toThrow(/CV_EXTRACTOR_FAKE/);
+    expect(() =>
+      parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'true', VERCEL_ENV: 'preview' }),
+    ).toThrow(/CV_EXTRACTOR_FAKE/);
+    // false no mesmo deploy real continua válido (regressão do guard RATE_LIMIT_DISABLED).
+    expect(() =>
+      parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'false', VERCEL_ENV: 'production' }),
+    ).not.toThrow();
+  });
 });

@@ -4,7 +4,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages';
 import mammoth from 'mammoth';
 import { env } from '@/shared/env';
-import { EDUCATION_LEVELS } from '@/modules/persons';
 import type {
   CVExtractor,
   CvExtractionInput,
@@ -30,10 +29,28 @@ import { estimateExtractionCostUsd } from '../domain/cost';
  */
 const MAX_OUTPUT_TOKENS = 1024;
 
+/**
+ * Espelha `EDUCATION_LEVELS` de `persons/domain/candidate.ts` — duplicado
+ * intencionalmente (não importado) para manter este adapter livre de
+ * dependência de outro módulo: um import (mesmo por caminho profundo)
+ * formaria um ciclo com `shared/container.ts` (que registra este adapter) na
+ * cadeia de inicialização, e a guarda F0-MN-02 (`no-deep-module-imports.test.ts`)
+ * restringe deep-imports entre módulos aos 3 pontos já revisados de fronteira
+ * client/server. `confirmCvFields` (T11/T14) valida o valor final contra o
+ * enum real — esta lista só orienta o prompt.
+ */
+const EDUCATION_LEVELS_FOR_PROMPT = [
+  'ENSINO_FUNDAMENTAL',
+  'ENSINO_MEDIO',
+  'ENSINO_TECNICO',
+  'ENSINO_SUPERIOR',
+  'POS_GRADUACAO',
+] as const;
+
 const EXTRACTION_PROMPT = `Você é um extrator de dados de currículos (CVs). Analise o documento anexo e extraia SOMENTE os 5 campos abaixo, respondendo com um único objeto JSON válido, sem nenhum texto antes ou depois:
 
 {
-  "educationLevel": "<um destes valores exatos: ${EDUCATION_LEVELS.join(', ')}, ou null se não identificável>",
+  "educationLevel": "<um destes valores exatos: ${EDUCATION_LEVELS_FOR_PROMPT.join(', ')}, ou null se não identificável>",
   "educationArea": "<área de formação, texto livre, ou null>",
   "experienceText": "<resumo da experiência profissional, texto livre, ou null>",
   "skillsText": "<habilidades, texto livre, ou null>",
