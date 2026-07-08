@@ -93,6 +93,13 @@ export { NullCompanyResponsibilityAdapter } from './adapters/null-company-respon
 export { viewPersonForStaff, viewStaffPersonNames } from './views/view-person-for-staff';
 export type { StaffPersonView } from './views/view-person-for-staff';
 
+// View de candidato para a Empresa dona da vaga (USP-027 / CAN-03).
+export { viewCandidateForEmployer } from './views/view-candidate-for-employer';
+export type {
+  EmployerCandidateRow,
+  EmployerCandidateView,
+} from './views/view-candidate-for-employer';
+
 // Componentes de UI da inativação (USP-007) e reativação (USP-045).
 export { InactivatePersonDialog } from './components/inactivate-person-dialog';
 export { ReactivatePersonDialog } from './components/reactivate-person-dialog';
