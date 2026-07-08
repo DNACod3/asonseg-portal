@@ -35,3 +35,7 @@ export type { CvUploadFileInput } from './schemas/upload-cv-file.schema';
 // ── Server Action: upload (CVE-01) ──────────────────────────────────────────
 export { uploadCv } from './actions/upload-cv';
 export type { UploadCvResult } from './actions/upload-cv';
+
+// ── Server Action: extração (CVE-02) ────────────────────────────────────────
+export { extractCvFromUpload } from './actions/extract-cv';
+export type { ExtractCvResult } from './actions/extract-cv';
