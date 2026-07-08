@@ -69,6 +69,17 @@ export interface ApplicationConfirmationEmailData {
   empresaNome: string;
 }
 
+/** Dados do template de notificação de manifestação de interesse (USP-033 / AC-033-1).
+ *  Enviado só ao prestador — o cliente não recebe e-mail (contato é revelado on-screen). */
+export interface ServiceInterestNotificationEmailData {
+  /** Nome do prestador (saudação). */
+  prestadorNome: string;
+  /** Título do serviço no qual houve manifestação. */
+  servicoTitulo: string;
+  /** Nome do cliente que manifestou interesse. */
+  clienteNome: string;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -79,7 +90,8 @@ export type EmailMessage =
   | { to: string; template: 'credential-claim-welcome'; data: CredentialClaimWelcomeEmailData }
   | { to: string; template: 'responsible-link-pending'; data: ResponsibleLinkPendingEmailData }
   | { to: string; template: 'responsible-removed'; data: ResponsibleRemovedEmailData }
-  | { to: string; template: 'application-confirmation'; data: ApplicationConfirmationEmailData };
+  | { to: string; template: 'application-confirmation'; data: ApplicationConfirmationEmailData }
+  | { to: string; template: 'service-interest-notification'; data: ServiceInterestNotificationEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {
