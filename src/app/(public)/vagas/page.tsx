@@ -9,6 +9,7 @@ import {
   type SearchJobsFilters,
   type JobSearchFilterValues,
 } from '@/modules/jobs';
+import { Button, FormHeader } from '@/shared/ui';
 
 // ADR-0013/ADR-0019: listagem pública com ISR de 30min. A revalidação on-demand
 // (`revalidatePath('/vagas')`) já é disparada por `transitionContent` quando uma
@@ -100,18 +101,15 @@ export default async function VagasPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Vagas de emprego</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Oportunidades abertas na região norte de Florianópolis. Use os filtros para encontrar a
-          vaga ideal.
-        </p>
-      </header>
+      <FormHeader
+        title="Vagas de emprego"
+        description="Oportunidades abertas na região norte de Florianópolis. Use os filtros para encontrar a vaga ideal."
+      />
 
       <JobSearchFilters areas={areas} regions={regions} values={values} />
 
       <section className="flex flex-col gap-4">
-        <p className="text-sm text-gray-500" aria-live="polite">
+        <p className="text-sm text-fg-muted" aria-live="polite">
           {result.total === 0
             ? 'Nenhuma vaga encontrada'
             : `${result.total} ${result.total === 1 ? 'vaga encontrada' : 'vagas encontradas'}`}
@@ -122,25 +120,19 @@ export default async function VagasPage({
         {totalPages > 1 && (
           <nav className="flex items-center justify-between pt-2" aria-label="Paginação">
             {page > 1 ? (
-              <a
-                href={pageHref(page - 1)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                ← Anterior
-              </a>
+              <Button variant="outline" asChild>
+                <a href={pageHref(page - 1)}>← Anterior</a>
+              </Button>
             ) : (
               <span />
             )}
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-fg-muted">
               Página {page} de {totalPages}
             </span>
             {page < totalPages ? (
-              <a
-                href={pageHref(page + 1)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Próxima →
-              </a>
+              <Button variant="outline" asChild>
+                <a href={pageHref(page + 1)}>Próxima →</a>
+              </Button>
             ) : (
               <span />
             )}

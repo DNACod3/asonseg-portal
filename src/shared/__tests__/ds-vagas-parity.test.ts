@@ -71,6 +71,13 @@ const FILES: FileGuard[] = [
     forbiddenPatterns: [/method="post"/],
     requiredPatterns: [/method="get"/, /<details\b/],
   },
+  {
+    label: 'Página busca de vagas (USP-021)',
+    path: 'src/app/(public)/vagas/page.tsx',
+    requiredPrimitives: [/<FormHeader\b/, /<Button\b/],
+    // Preservação (U21-MN-02/03): revalidate ISR + searchJobs(filters, viewer) intocados.
+    requiredPatterns: [/export const revalidate = 1800/, /searchJobs\(filters, viewer\)/],
+  },
 ];
 
 describe('DS parity — vagas (USP-020/021/022, Fase 2)', () => {
