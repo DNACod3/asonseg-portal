@@ -3,6 +3,17 @@
 > **Modo ICE — esta spec é um ADAPTADOR.** Não re-deriva requisitos: resolve os ponteiros do
 > card da USP-011 na matriz de conexões para os artefatos-fonte (intent + expectations). A fonte
 > da verdade é `docs/IDSD/ice-portal-asonseg/`.
+> **Fase 4 · Unidade U1 — reconciliação (não é refactor, não é net-new de código).**
+
+## Situação (2026-07-08): USP-011 JÁ IMPLEMENTADA — esta unidade é uma RECONCILIAÇÃO
+
+Toda a fronteira de escopo desta US está **implementada e verde**: o schema `ClientProfile` (`prisma/schema.prisma`, migration `usp011_client_profile`), a regra pura `decideClientActivation` (`persons/domain/client.ts`), o helper transacional idempotente `ensureClientRole(tx, …)` (`persons/actions/ensure-client-role.ts`), o evento `CLIENT_ROLE_ACTIVATED` no catálogo, os exports no barrel `@/modules/persons`, e os testes (`client-domain.test.ts`, `ensure-client-role.int.test.ts`). Os status de board `#119 In progress` / `#120 Backlog` desta spec estavam **defasados** — ambos estão **DONE**.
+
+**Portanto esta unidade U1 não produz código novo nem refatora estilo** (USP-011 **não tem UI** — não há superfície de Design System a reestilizar). O trabalho de Fase 4 é **verificar** que o helper + schema + evento seguem íntegros e verdes, e **fixar por escrito** a decisão de escopo abaixo, para que a USP-033 (unidade separada da Fase 4) o consuma com segurança. Se a verificação achar um gap, aí sim vira task de correção (fix→re-verify).
+
+## Decisão de escopo (Fase 4) — o papel cliente NÃO tem cadastro self-service
+
+**Decidido e alinhado ao intent + expectations + comentário do schema `ClientProfile`:** o papel cliente é o **mais leve** — **não** há tela/formulário de cadastro próprio, **não** há Server Action standalone. Ele é **ativado automaticamente** na 1ª manifestação de interesse (USP-033), **dentro** da transação de `services.manifestarInteresse` (ADR-0020), que compõe: ativação do papel CLIENT + persistência do consentimento da finalidade 4 (`SERVICE_HIRING`) + criação da manifestação — tudo atômico. A **exibição do termo** e o **aceite explícito** (P-002) e o **gate jurídico D-002** vivem na **USP-033 / no release**, não aqui. O entregável desta US é o **helper reutilizável** `ensureClientRole(tx, …)` + o **perfil leve** `ClientProfile` (sem `publicationStatus`/moderação — CLIENT não é moderado, ADR-0011/0008) + o **evento de auditoria**. Introduzir qualquer UI de "cadastrar-se como cliente" **contraria** o intent (fricção zero) e está **fora de escopo**.
 
 ## Card (matriz de conexões)
 
@@ -57,10 +68,7 @@ Por isso P-002/E-001(UI) e o gate jurídico **D-002** são verificados na USP-03
 
 ## Gate de entrada (kickoff) — veredito
 
-- **Bloqueios ativos:** nenhum. `#118` está **Ready**; `#120` depende de `#119` (sequência de dev, não "Blocked" de board).
-- **D-002 (jurídico):** gate de **produção** do termo da finalidade 4 — **não** bloqueia o desenvolvimento desta US.
-- **Fundação já existe:** `Role.CLIENT`, `ConsentPurpose.SERVICE_HIRING`, `PURPOSE_ROLE_MAP.SERVICE_HIRING→CLIENT`,
-  `PersonRoleGrant`, `RoleGrantStatus`, `requireActiveConsent`, `grantConsent`, `withAudit`, `getCurrentPerson`,
-  `activateAdditionalRole` (padrão de referência), `loadTerm`. **Falta criar:** `ClientProfile` + migration,
-  `CLIENT_ROLE_ACTIVATED`, `ensureClientRole` + domínio puro de idempotência, testes/facts.
-- **Veredito:** ✅ liberado para Tasks.
+- **Bloqueios ativos:** nenhum. Sinais de bloqueio do gate ICE (Q-aberta dono/técnico, ADR Proposed, pré-condição, premissa aberta): **nenhum** — a matriz aponta `Q-abertas: —`.
+- **D-002 (jurídico):** gate de **produção** do termo da finalidade 4 — **não** bloqueia o desenvolvimento desta US (verifica-se na USP-033/release).
+- **Estado da implementação (reconciliado 2026-07-08):** **DONE e verde**. `ClientProfile` + migration ✅, `CLIENT_ROLE_ACTIVATED` no catálogo ✅, `decideClientActivation` (domínio) ✅, `ensureClientRole(tx, …)` ✅, exports no barrel `@/modules/persons` ✅, testes `client-domain.test.ts` + `ensure-client-role.int.test.ts` ✅. Fundação consumida (`Role.CLIENT`, `ConsentPurpose.SERVICE_HIRING`, `PersonRoleGrant`, `requireActiveConsent`, `withAudit`, `getCurrentPerson`) intacta.
+- **Veredito:** ✅ liberado — como **reconciliação/verificação** (ver [tasks.md](./tasks.md)); nenhum código novo esperado salvo se a verificação achar gap.

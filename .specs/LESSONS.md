@@ -66,6 +66,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: validation.md#Edge Cases — p95≤30s latency AC (cv-extraction)
 - last seen: 2026-07-08T17:08:52Z
 
+### L-010 — Concurrency race tests that fire two calls via Promise.all inside one Node process can be masked by an app-level UX pre-check when run in a warmed-up test suite; assert on final DB row count or bypass the pre-check layer to prove the DB constraint itself, not just the end-to-end ActionResult shape.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/modules/services,integration-tests,concurrency` · harmful: 0
+- features: manifestacao-interesse-servico/usp-033
+- evidence: SVC033-MN-03 / manifest-interest.int.test.ts:343-357 (src/modules/services,integration-tests,concurrency)
+- last seen: 2026-07-08T22:23:32Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

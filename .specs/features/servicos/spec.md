@@ -97,10 +97,10 @@ Prestadores de serviço — pessoas físicas (PF) ou empresas representadas por 
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| SVC-01 | USP-029 | Design | Pending |
-| SVC-02 | USP-030 | Design | Pending |
-| SVC-03 | USP-031 | Design | Pending |
-| SVC-04 | USP-032 | Design | Pending |
+| SVC-01 | USP-029 | Tasks | Planned (spec/design/tasks em `usp-029-publicar-servico/`) |
+| SVC-02 | USP-030 | Tasks | Planned (spec/design/tasks em `usp-030-buscar-servicos/`) |
+| SVC-03 | USP-031 | Tasks | Planned (spec/design/tasks em `usp-031-detalhe-servico/`) |
+| SVC-04 | USP-032 | Tasks | Planned (spec/design/tasks em `usp-032-editar-servico/`) |
 
 ## Success Criteria
 
