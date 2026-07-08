@@ -94,6 +94,8 @@ export const AuditEvent = {
   REFERRAL_RESULT_REGISTERED: 'REFERRAL_RESULT_REGISTERED',
 
   // ── Extração de CV (ADR-0012) ─────────────────────────────────────────────
+  /** Upload do arquivo de CV validado (MIME real + tamanho) e armazenado (USP-040 / CVE-01). */
+  CV_UPLOADED: 'CV_UPLOADED',
   CV_EXTRACTION_REQUESTED: 'CV_EXTRACTION_REQUESTED',
   CV_EXTRACTION_COMPLETED: 'CV_EXTRACTION_COMPLETED',
   CV_EXTRACTION_FAILED: 'CV_EXTRACTION_FAILED',

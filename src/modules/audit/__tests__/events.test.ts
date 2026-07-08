@@ -66,4 +66,9 @@ describe('audit/events', () => {
     expect(AuditEvent.CATEGORY_SUGGESTION_REJECTED).toBe('CATEGORY_SUGGESTION_REJECTED');
     expect(requiresJustification(AuditEvent.CATEGORY_SUGGESTION_REJECTED)).toBe(false);
   });
+
+  it('inclui CV_UPLOADED (USP-040 / ADR-0012) e NÃO exige justificativa', () => {
+    expect(AuditEvent.CV_UPLOADED).toBe('CV_UPLOADED');
+    expect(requiresJustification(AuditEvent.CV_UPLOADED)).toBe(false);
+  });
 });
