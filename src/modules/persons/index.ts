@@ -95,6 +95,14 @@ export type { StaffPersonView } from './views/view-person-for-staff';
 
 // Busca ativa de candidatos pela Empresa (USP-028 / CAN-04).
 export { firstNameOf } from './domain/candidate-display';
+export {
+  viewCandidateForSearch,
+  QUALIFICATIONS_SUMMARY_MAX,
+} from './views/view-candidate-for-search';
+export type {
+  SearchCandidateRow,
+  SearchCandidateView,
+} from './views/view-candidate-for-search';
 
 // View de candidato para a Empresa dona da vaga (USP-027 / CAN-03).
 export { viewCandidateForEmployer } from './views/view-candidate-for-employer';
