@@ -10,6 +10,16 @@ import type { CurrentPerson } from '@/modules/identity';
  * must-nots SVC033-MN-02 (sem consent → sem escrita, papel não ativado),
  * SVC033-MN-03 (unicidade ativa sob corrida), SVC033-MN-04 (auto-manifestação
  * bloqueada) e SVC033-MN-05 (serviço/autor não-elegível → sem escrita).
+ *
+ * **SVC033-MN-03 — nota de rigor do sensor (fix pós-Verifier):** o teste
+ * tagueado `@svc033-mn-03` bypassa a Server Action e raceia dois
+ * `prisma.serviceInterest.create` brutos, para que a ÚNICA coisa capaz de
+ * barrar a 2ª linha ativa seja o índice único parcial do banco
+ * (`uq_service_interest_active`). O teste "corrida via Server Action" (sem a
+ * tag) continua existindo para documentar o mapeamento P2002→CONFLICT da
+ * action, mas não é usado como sensor de discriminação: sob o timing de um
+ * connection pool aquecido (execução do arquivo inteiro), o pré-check de UX da
+ * action pode serializar a corrida e mascarar a ausência do índice.
  */
 
 vi.mock('@/modules/identity/server/session', () => ({
@@ -49,14 +59,16 @@ skipIfNoDb('manifestInterest — integração', () => {
   let serviceBId = ''; // 2º serviço ACTIVE do autor (AC-033-3)
   let servicePausedId = ''; // serviço PAUSED (MN-05a)
   let serviceInactiveAuthorId = ''; // serviço ACTIVE de autor inativado (MN-05b)
-  let serviceRaceId = ''; // serviço dedicado à corrida (MN-03)
+  let serviceRaceId = ''; // serviço dedicado à corrida via Server Action (documenta o mapeamento de erro)
+  let serviceRawRaceId = ''; // serviço dedicado à corrida BRUTA no Prisma (sensor real do índice, MN-03)
 
   let clientHappyId = ''; // sem papel/consent — happy path + duplicata + AC-033-3
   let clientNoConsentId = ''; // sem consent, sem aceite (MN-02)
   let clientActiveConsentId = ''; // já com CLIENT ACTIVE + consent SERVICE_HIRING
   let clientPausedId = ''; // manifesta em serviço PAUSED (MN-05a)
   let clientInactiveAuthorId = ''; // manifesta em serviço de autor inativado (MN-05b)
-  let clientRaceId = ''; // corrida (MN-03)
+  let clientRaceId = ''; // corrida via Server Action (documenta o mapeamento de erro)
+  let clientRawRaceId = ''; // corrida BRUTA no Prisma (sensor real do índice, MN-03)
 
   async function cleanup() {
     const stalePeople = await prisma.person.findMany({
@@ -97,7 +109,7 @@ skipIfNoDb('manifestInterest — integração', () => {
     });
     inactiveAuthorId = inactiveAuthor.id;
 
-    const [service, serviceB, servicePaused, serviceInactiveAuthor, serviceRace] = await Promise.all([
+    const [service, serviceB, servicePaused, serviceInactiveAuthor, serviceRace, serviceRawRace] = await Promise.all([
       prisma.service.create({
         data: { authorPersonId: authorId, title: 'Serviço Manifest Int', status: 'ACTIVE', publishedAt: new Date() },
         select: { id: true },
@@ -123,12 +135,17 @@ skipIfNoDb('manifestInterest — integração', () => {
         data: { authorPersonId: authorId, title: 'Serviço Manifest Int Corrida', status: 'ACTIVE', publishedAt: new Date() },
         select: { id: true },
       }),
+      prisma.service.create({
+        data: { authorPersonId: authorId, title: 'Serviço Manifest Int Corrida Bruta', status: 'ACTIVE', publishedAt: new Date() },
+        select: { id: true },
+      }),
     ]);
     serviceId = service.id;
     serviceBId = serviceB.id;
     servicePausedId = servicePaused.id;
     serviceInactiveAuthorId = serviceInactiveAuthor.id;
     serviceRaceId = serviceRace.id;
+    serviceRawRaceId = serviceRawRace.id;
 
     async function clientWithPortalAccess(fullName: string) {
       const p = await prisma.person.create({ data: { fullName, status: 'ATIVO' }, select: { id: true } });
@@ -138,35 +155,55 @@ skipIfNoDb('manifestInterest — integração', () => {
       return p.id;
     }
 
+    // Já nasce com CLIENT ACTIVE + consent SERVICE_HIRING persistido (mesmo
+    // seed de `clientActiveConsentId`). Usado por `clientRaceId` (fix pós-Verifier,
+    // iteração 1): racear `manifestInterest` para um cliente SEM papel ainda
+    // dispara `ensureClientRole` nas DUAS transações concorrentes — cada uma
+    // lendo/criando/atualizando o MESMO `PersonRoleGrant` do zero — o que expôs
+    // um deadlock genuíno do Postgres (40P01) entre as duas transações,
+    // ortogonal ao que este teste documenta (o mapeamento P2002→CONFLICT do
+    // `ServiceInterest`). Pré-ativar o papel torna `ensureClientRole` um no-op
+    // idempotente nas duas chamadas, isolando a corrida à camada que o teste
+    // realmente quer exercitar.
+    async function clientWithActiveClientRole(fullName: string) {
+      const personId = await clientWithPortalAccess(fullName);
+      await prisma.consent.create({
+        data: {
+          personId,
+          purpose: 'SERVICE_HIRING',
+          termVersion: 'v1.0',
+          termContentHash: 'manifest-int-hash',
+        },
+      });
+      const grant = await prisma.personRoleGrant.create({
+        data: { personId, role: 'CLIENT', status: 'ACTIVE' },
+        select: { id: true },
+      });
+      await prisma.clientProfile.create({ data: { personId } });
+      await prisma.auditLog.create({
+        data: {
+          action: 'CLIENT_ROLE_ACTIVATED',
+          actorPersonId: personId,
+          entityType: 'person_role_grant',
+          entityId: grant.id,
+          after: { role: 'CLIENT', status: 'ACTIVE', via: 'seed' },
+        },
+      });
+      return personId;
+    }
+
     clientHappyId = await clientWithPortalAccess('Manifest Int Cliente Happy');
     clientNoConsentId = await clientWithPortalAccess('Manifest Int Cliente SemConsent');
     clientPausedId = await clientWithPortalAccess('Manifest Int Cliente Pausado');
     clientInactiveAuthorId = await clientWithPortalAccess('Manifest Int Cliente AutorInativo');
-    clientRaceId = await clientWithPortalAccess('Manifest Int Cliente Corrida');
+    clientRaceId = await clientWithActiveClientRole('Manifest Int Cliente Corrida');
+    // Corrida bruta (MN-03): não precisa de consent/papel — bypassa a Server Action
+    // por completo, então nenhuma das pré-condições dela é exercida aqui.
+    clientRawRaceId = (
+      await prisma.person.create({ data: { fullName: 'Manifest Int Cliente Corrida Bruta', status: 'ATIVO' }, select: { id: true } })
+    ).id;
 
-    clientActiveConsentId = await clientWithPortalAccess('Manifest Int Cliente ConsentAtivo');
-    await prisma.consent.create({
-      data: {
-        personId: clientActiveConsentId,
-        purpose: 'SERVICE_HIRING',
-        termVersion: 'v1.0',
-        termContentHash: 'manifest-int-hash',
-      },
-    });
-    const grant = await prisma.personRoleGrant.create({
-      data: { personId: clientActiveConsentId, role: 'CLIENT', status: 'ACTIVE' },
-      select: { id: true },
-    });
-    await prisma.clientProfile.create({ data: { personId: clientActiveConsentId } });
-    await prisma.auditLog.create({
-      data: {
-        action: 'CLIENT_ROLE_ACTIVATED',
-        actorPersonId: clientActiveConsentId,
-        entityType: 'person_role_grant',
-        entityId: grant.id,
-        after: { role: 'CLIENT', status: 'ACTIVE', via: 'seed' },
-      },
-    });
+    clientActiveConsentId = await clientWithActiveClientRole('Manifest Int Cliente ConsentAtivo');
   });
 
   afterAll(async () => {
@@ -340,7 +377,15 @@ skipIfNoDb('manifestInterest — integração', () => {
     expect(consentCount).toBe(1); // sem duplicar consent
   });
 
-  it('@svc033-mn-03 corrida: duas manifestações concorrentes do mesmo cliente → 1 ok, 1 CONFLICT (índice único parcial)', async () => {
+  it('corrida via Server Action: duas manifestações concorrentes do mesmo cliente → 1 ok, 1 CONFLICT (mapeamento de erro)', async () => {
+    // NOTA (fix pós-Verifier, iteração 1): este teste documenta o mapeamento
+    // P2002→CONFLICT de `manifestInterest`, mas NÃO é o sensor de discriminação
+    // de SVC033-MN-03 sozinho. O pré-check de UX da action (`manifest-interest.ts`,
+    // "não é a garantia") pode — sob o timing de um connection pool já aquecido
+    // dentro do arquivo inteiro — serializar a corrida e produzir o mesmo shape
+    // `1 ok + 1 CONFLICT` mesmo que o índice parcial do banco seja removido. O
+    // sensor real do índice é o teste seguinte (`@svc033-mn-03`), que bypassa a
+    // action e a exercita diretamente via `prisma.serviceInterest.create`.
     mockPerson = personOf(clientRaceId, 'Manifest Int Cliente Corrida');
     const results = await Promise.all([
       manifestInterest({ serviceId: serviceRaceId, consentAccepted: true }),
@@ -354,5 +399,47 @@ skipIfNoDb('manifestInterest — integração', () => {
       where: { serviceId: serviceRaceId, clientPersonId: clientRaceId, cancelledAt: null },
     });
     expect(activeCount).toBe(1);
+  });
+
+  it('@svc033-mn-03 sensor do índice: 2 inserts BRUTOS concorrentes (bypassando o pré-check da action) → 1 sucesso, 1 P2002; DB fica com exatamente 1 linha ativa', async () => {
+    // Sensor autoritativo do must-not: nenhuma camada de aplicação (pré-check de
+    // UX, `findFirst` antes do insert) participa aqui — os dois `create` vão
+    // direto ao Prisma/Postgres. A ÚNICA coisa que pode impedir a segunda linha
+    // ativa é o índice único parcial `uq_service_interest_active`
+    // (`WHERE cancelled_at IS NULL`, migração `usp033_service_interest`).
+    // Determinístico em execução de arquivo inteiro (não depende de `-t` isolado):
+    // ao remover o índice num banco de teste, este teste fica vermelho de forma
+    // confiável (ambos os `create` cumprem, gerando 2 linhas ativas); com o
+    // índice presente, fica verde de forma confiável (1 cumpre, 1 rejeita P2002).
+    const results = await Promise.allSettled([
+      prisma.serviceInterest.create({
+        data: { serviceId: serviceRawRaceId, clientPersonId: clientRawRaceId },
+        select: { id: true },
+      }),
+      prisma.serviceInterest.create({
+        data: { serviceId: serviceRawRaceId, clientPersonId: clientRawRaceId },
+        select: { id: true },
+      }),
+    ]);
+
+    const fulfilled = results.filter((r): r is PromiseFulfilledResult<{ id: string }> => r.status === 'fulfilled');
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+
+    const rejection = rejected[0]?.reason as { code?: string } | undefined;
+    expect(rejection?.code).toBe('P2002');
+
+    // A garantia real, verificada diretamente no banco — não apenas no shape do
+    // resultado da Promise (que ambas as camadas de defesa produziriam igual).
+    const activeCount = await prisma.serviceInterest.count({
+      where: { serviceId: serviceRawRaceId, clientPersonId: clientRawRaceId, cancelledAt: null },
+    });
+    expect(activeCount).toBe(1);
+
+    const totalCount = await prisma.serviceInterest.count({
+      where: { serviceId: serviceRawRaceId, clientPersonId: clientRawRaceId },
+    });
+    expect(totalCount).toBe(1); // nem existe uma 2ª linha cancelada — o insert rejeitado nunca chegou a existir
   });
 });
