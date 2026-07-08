@@ -72,6 +72,11 @@ export {
 export { getActiveJobDetail } from './queries/get-job-detail';
 export { getPausedJobNotice, type PausedJobNotice } from './queries/get-paused-job-notice';
 export {
+  listCompanyJobs,
+  COMPANY_JOBS_PAGE_SIZE,
+  type CompanyJobRow,
+} from './queries/list-company-jobs';
+export {
   listActivePublishedJobs,
   PUBLISHED_JOBS_PAGE_SIZE,
   type PublishedJobRow,
@@ -89,8 +94,14 @@ export {
   type JobDetail,
   type JobDetailRow,
 } from './views/job-detail.view';
+export {
+  viewCompanyJobRow,
+  type CompanyJobRowView,
+  type CompanyJobRowActions,
+} from './views/company-job-row.view';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
+export { CompanyJobList, type CompanyJobListProps } from './components/company-job-list';
 export { JobForm, type JobFormProps } from './components/job-form';
 export {
   JobSearchFilters,
