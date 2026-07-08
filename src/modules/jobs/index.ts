@@ -27,10 +27,26 @@ export type {
   SubmitJobInput,
   SubmitJobData,
 } from './schemas/publish-job.schema';
+export {
+  jobIdSchema,
+  pauseJobSchema,
+  unpauseJobSchema,
+  archiveJobSchema,
+  extendJobValiditySchema,
+} from './schemas/lifecycle.schema';
+export type {
+  JobIdInput,
+  PauseJobInput,
+  UnpauseJobInput,
+  ArchiveJobInput,
+  ExtendJobValidityInput,
+} from './schemas/lifecycle.schema';
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-draft';
 export { submitJobForModeration, type SubmitJobResult } from './actions/submit-job-for-moderation';
+export { pauseJob, type PauseJobResult } from './actions/pause-job';
+export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
