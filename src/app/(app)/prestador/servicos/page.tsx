@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
 import { listProviderServices, viewProviderServiceRow, ServiceManagementList } from '@/modules/services';
@@ -26,6 +27,9 @@ export default async function GestaoServicosPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
       <FormHeader title="Meus serviços" description="Gestão dos serviços que você publicou." />
+      <Link href="/prestador/manifestacoes" className="text-sm text-primary hover:underline">
+        Ver manifestações de interesse recebidas →
+      </Link>
       <ServiceManagementList rows={rows} />
     </main>
   );

@@ -148,6 +148,10 @@ export {
   CancelInterestButton,
   type CancelInterestButtonProps,
 } from './components/cancel-interest-button';
+export {
+  ProviderInterestsList,
+  type ProviderInterestsListProps,
+} from './components/provider-interests-list';
 export { ServicoIndisponivel } from './components/servico-indisponivel';
 export { ServiceManagementList } from './components/service-management-list';
 export { ServiceActions } from './components/service-actions';
