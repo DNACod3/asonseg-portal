@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { formatDate } from '@/shared/lib/time';
 import { Badge, Button, Card } from '@/shared/ui';
+import { CompanyJobActions } from './company-job-actions';
 import type { CompanyJobRowView } from '../views/company-job-row.view';
 
 export interface CompanyJobListProps {
@@ -9,14 +10,11 @@ export interface CompanyJobListProps {
 }
 
 /**
- * Lista de gestão de vagas da Empresa (USP-023 / T8 — painel). Cada vaga mostra
- * status (`Badge`) e ações contextuais por status (spec.md — Painel de gestão).
- *
- * T8 entrega a lista com "Editar"/"Enviar para moderação" navegáveis (rotas
- * reais); as ações leves de ciclo de vida (pausar/despausar/prorrogar/arquivar)
- * aparecem como placeholders — a T9 as cabeia aos Server Actions
- * (`pauseJob`/`unpauseJob`/`extendJobValidity`/`archiveJob`) num componente
- * cliente com confirmação para arquivar (padrão `EditCompanyForm`).
+ * Lista de gestão de vagas da Empresa (USP-023 / T8-T9 — painel). Cada vaga mostra
+ * status (`Badge`) e ações contextuais por status (spec.md — Painel de gestão):
+ * "Editar"/"Enviar para moderação" são navegação (rotas reais); pausar/despausar/
+ * prorrogar/arquivar são cabeadas aos Server Actions via `CompanyJobActions`
+ * (componente cliente, T9) com confirmação hand-rolled para arquivar.
  */
 export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
   if (rows.length === 0) {
@@ -44,37 +42,20 @@ export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {row.actions.canEdit && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Editar</Link>
-              </Button>
-            )}
-            {row.actions.canSubmit && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Enviar para moderação</Link>
-              </Button>
-            )}
-            {row.actions.canPause && (
-              <Button variant="outline" size="sm" disabled aria-disabled title="Ação disponível em breve">
-                Pausar
-              </Button>
-            )}
-            {row.actions.canUnpause && (
-              <Button variant="outline" size="sm" disabled aria-disabled title="Ação disponível em breve">
-                Despausar
-              </Button>
-            )}
-            {row.actions.canExtend && (
-              <Button variant="outline" size="sm" disabled aria-disabled title="Ação disponível em breve">
-                Prorrogar
-              </Button>
-            )}
-            {row.actions.canArchive && (
-              <Button variant="danger" size="sm" disabled aria-disabled title="Ação disponível em breve">
-                Arquivar
-              </Button>
-            )}
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-2">
+              {row.actions.canEdit && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Editar</Link>
+                </Button>
+              )}
+              {row.actions.canSubmit && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Enviar para moderação</Link>
+                </Button>
+              )}
+            </div>
+            <CompanyJobActions jobId={row.id} actions={row.actions} />
           </div>
         </Card>
       ))}

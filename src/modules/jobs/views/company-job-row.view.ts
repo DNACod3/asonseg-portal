@@ -42,11 +42,12 @@ function actionsForStatus(status: CompanyJobRow['status']): CompanyJobRowActions
       return { canEdit: true, canPause: true, canUnpause: false, canArchive: true, canExtend: true, canSubmit: false };
     case 'PAUSED':
       return { canEdit: true, canPause: false, canUnpause: true, canArchive: true, canExtend: false, canSubmit: false };
-    case 'DRAFT':
-    case 'AWAITING_ADJUSTMENTS':
-      return { canEdit: true, canPause: false, canUnpause: false, canArchive: false, canExtend: false, canSubmit: true };
     default:
-      // ARCHIVED/EXPIRED/IN_MODERATION/REJECTED/INACTIVATED: sem ações de reativação aqui.
+      // DRAFT/AWAITING_ADJUSTMENTS/ARCHIVED/EXPIRED/IN_MODERATION/REJECTED/INACTIVATED:
+      // fora do escopo de ações desta US — `editJob` só aceita vaga ACTIVE (E-001), e o
+      // fluxo de rascunho (criar/reenviar) já existe em `/vagas/nova` (USP-020). Nenhuma
+      // ação leve aqui evita um link/botão morto (submeter rascunho por `jobId` fica para
+      // uma US de gestão de rascunho, fora do escopo de USP-023).
       return { canEdit: false, canPause: false, canUnpause: false, canArchive: false, canExtend: false, canSubmit: false };
   }
 }

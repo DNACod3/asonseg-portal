@@ -102,6 +102,7 @@ export {
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { CompanyJobList, type CompanyJobListProps } from './components/company-job-list';
+export { JobEditForm, type JobEditFormProps } from './components/job-edit-form';
 export { JobForm, type JobFormProps } from './components/job-form';
 export {
   JobSearchFilters,
