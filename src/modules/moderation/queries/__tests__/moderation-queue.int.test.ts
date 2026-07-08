@@ -2,7 +2,7 @@
 // Requer Postgres local. Degrada com graça sem banco.
 
 import { randomUUID } from 'node:crypto';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ContentStatus as PrismaContentStatus } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
 import { ContentKind, viewModerationQueue } from '@/modules/moderation';
@@ -135,5 +135,75 @@ describe.skipIf(!hasDb)('USP-017 #157 — fila popula companyUnverified de vagas
     expect(item).toBeDefined();
     expect(item?.companyUnverified).toBe(true);
     expect(item?.companyId).toBe(company.id);
+  });
+});
+
+// USP-029/T029-4 — serviços REAIS (model `services`) na fila, sem companyUnverified/companyId.
+describe.skipIf(!hasDb)('USP-029/T029-4 — fila inclui serviços reais', () => {
+  const createdPersonIds: string[] = [];
+  const createdServiceIds: string[] = [];
+
+  // `Service.authorPersonId` tem FK real p/ `persons` (ao contrário do fixture,
+  // sem constraint) — o viewer precisa existir como Pessoa para o teste P-005.
+  beforeAll(async () => {
+    await prisma.person.upsert({
+      where: { id: VIEWER },
+      update: {},
+      create: { id: VIEWER, fullName: 'Viewer Fixture Int', status: 'ATIVO' },
+    });
+  });
+
+  afterEach(async () => {
+    if (createdServiceIds.length > 0) {
+      await prisma.service.deleteMany({ where: { id: { in: createdServiceIds } } });
+      createdServiceIds.length = 0;
+    }
+    if (createdPersonIds.length > 0) {
+      await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
+      createdPersonIds.length = 0;
+    }
+  });
+
+  afterAll(async () => {
+    await prisma.service.deleteMany({ where: { authorPersonId: VIEWER } });
+  });
+
+  it('serviço IN_MODERATION real aparece na fila sem companyUnverified/companyId', async () => {
+    const author = await prisma.person.create({
+      data: { fullName: 'Autor Serviço Real', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(author.id);
+    const service = await prisma.service.create({
+      data: {
+        authorPersonId: author.id,
+        title: 'Serviço Real Int',
+        status: PrismaContentStatus.IN_MODERATION,
+      },
+      select: { id: true },
+    });
+    createdServiceIds.push(service.id);
+
+    const queue = await viewModerationQueue({ viewerPersonId: VIEWER });
+    const item = queue.find((q) => q.contentId === service.id);
+    expect(item).toBeDefined();
+    expect(item?.contentKind).toBe('SERVICE');
+    expect(item?.companyUnverified).toBeUndefined();
+    expect(item?.companyId).toBeUndefined();
+  });
+
+  it('P-005: autor do serviço == viewer não aparece na fila', async () => {
+    const service = await prisma.service.create({
+      data: {
+        authorPersonId: VIEWER,
+        title: 'Serviço Próprio Int',
+        status: PrismaContentStatus.IN_MODERATION,
+      },
+      select: { id: true },
+    });
+    createdServiceIds.push(service.id);
+
+    const queue = await viewModerationQueue({ viewerPersonId: VIEWER });
+    expect(queue.find((q) => q.contentId === service.id)).toBeUndefined();
   });
 });

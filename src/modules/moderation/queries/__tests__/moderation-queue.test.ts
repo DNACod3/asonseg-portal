@@ -1,18 +1,21 @@
-// Unit de `viewModerationQueue` (#123 / USP-017) — une vagas reais (`jobs`) e o
-// store transitório (`_moderation_fixture`), filtra/ordena e mapeia para a View
-// Model, com Prisma e o View Model de staff mockados (sem banco). O caminho com
-// Postgres real está em `./moderation-queue.int.test.ts`.
+// Unit de `viewModerationQueue` (#123 / USP-017, estendido em USP-029) — une
+// vagas reais (`jobs`), serviços reais (`services`) e o store transitório
+// (`_moderation_fixture`), filtra/ordena e mapeia para a View Model, com Prisma
+// e o View Model de staff mockados (sem banco). O caminho com Postgres real
+// está em `./moderation-queue.int.test.ts`.
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ContentStatus as PrismaContentStatus } from '@prisma/client';
 
 const jobState = vi.hoisted(() => ({ findMany: vi.fn() }));
+const serviceState = vi.hoisted(() => ({ findMany: vi.fn() }));
 const fixtureState = vi.hoisted(() => ({ findMany: vi.fn() }));
 const personsState = vi.hoisted(() => ({ viewStaffPersonNames: vi.fn() }));
 
 vi.mock('@/shared/lib/prisma', () => ({
   prisma: {
     job: { findMany: (...a: unknown[]) => jobState.findMany(...a) },
+    service: { findMany: (...a: unknown[]) => serviceState.findMany(...a) },
     moderationFixtureContent: { findMany: (...a: unknown[]) => fixtureState.findMany(...a) },
   },
 }));
@@ -28,6 +31,7 @@ const AUTHOR = '11111111-1111-4111-8111-111111111111';
 beforeEach(() => {
   vi.clearAllMocks();
   jobState.findMany.mockResolvedValue([]);
+  serviceState.findMany.mockResolvedValue([]);
   fixtureState.findMany.mockResolvedValue([]);
   personsState.viewStaffPersonNames.mockResolvedValue(new Map([[AUTHOR, 'Maria da Silva']]));
 });
@@ -111,6 +115,54 @@ describe('viewModerationQueue', () => {
     expect(out.map((o) => o.contentId)).toEqual(['f1', 'j1']); // mais antigo primeiro
     expect(out[0]?.companyUnverified).toBeUndefined(); // fixture não tem Empresa
     expect(out[1]?.companyUnverified).toBe(false); // vaga de Empresa verificada
+  });
+
+  it('USP-029/T029-4: serviço IN_MODERATION aparece na fila, mapeado sem companyUnverified/companyId', async () => {
+    const at = new Date('2026-07-01T09:00:00Z');
+    serviceState.findMany.mockResolvedValue([
+      { id: 's1', title: 'Jardinagem', authorPersonId: AUTHOR, lastStatusChangeAt: at },
+    ]);
+
+    const out = await viewModerationQueue({ viewerPersonId: VIEWER });
+
+    expect(serviceState.findMany).toHaveBeenCalledTimes(1);
+    const serviceArg = serviceState.findMany.mock.calls[0]?.[0] as {
+      where: { status: string; authorPersonId: { not: string } };
+    };
+    expect(serviceArg.where.status).toBe(PrismaContentStatus.IN_MODERATION);
+    expect(serviceArg.where.authorPersonId).toEqual({ not: VIEWER }); // P-005 — autor ≠ moderador
+    expect(out).toEqual([
+      {
+        contentKind: 'SERVICE',
+        contentId: 's1',
+        title: 'Jardinagem',
+        authorName: 'Maria da Silva',
+        submittedAt: at,
+        companyUnverified: undefined,
+        companyId: undefined,
+      },
+    ]);
+  });
+
+  it('une e ordena vagas + serviços + fixture por submittedAt (mais antigo primeiro)', async () => {
+    jobState.findMany.mockResolvedValue([
+      {
+        id: 'j1',
+        title: 'Vaga nova',
+        authorPersonId: AUTHOR,
+        lastStatusChangeAt: new Date('2026-06-03T09:00:00Z'),
+        company: { id: 'co-1', isVerified: true },
+      },
+    ]);
+    serviceState.findMany.mockResolvedValue([
+      { id: 's1', title: 'Serviço meio', authorPersonId: AUTHOR, lastStatusChangeAt: new Date('2026-06-02T09:00:00Z') },
+    ]);
+    fixtureState.findMany.mockResolvedValue([
+      { id: 'f1', kind: 'CV', title: 'CV antigo', authorPersonId: AUTHOR, submittedAt: new Date('2026-06-01T09:00:00Z') },
+    ]);
+
+    const out = await viewModerationQueue({ viewerPersonId: VIEWER });
+    expect(out.map((o) => o.contentId)).toEqual(['f1', 's1', 'j1']); // mais antigo primeiro
   });
 
   it('autor sem nome resolvido vira authorName null (não quebra a fila)', async () => {
