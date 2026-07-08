@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 9,
+  "next_id": 10,
   "lessons": [
     {
       "id": "L-001",
@@ -150,6 +150,24 @@
       ],
       "created": "2026-07-08T02:18:35Z",
       "last_seen": "2026-07-08T02:18:35Z"
+    },
+    {
+      "id": "L-009",
+      "key": "spec_precision_gap::when a spec sets a p95 latency ac for a synchronous llm external call action add an explicit timing assertion or a documented deliberate decision to skip it instead of leaving it evidenced only by design intent max tokens caps sync framing",
+      "text": "When a spec sets a p95 latency AC for a synchronous LLM/external-call action, add an explicit timing assertion (or a documented, deliberate decision to skip it) instead of leaving it evidenced only by design intent (max_tokens caps, sync framing).",
+      "signal": "spec_precision_gap",
+      "scope": "cv-extraction",
+      "status": "candidate",
+      "features": [
+        "extracao-cv-ia/usp-040-extracao-cv"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md#Edge Cases — p95≤30s latency AC (cv-extraction)"
+      ],
+      "created": "2026-07-08T17:08:52Z",
+      "last_seen": "2026-07-08T17:08:52Z"
     }
   ]
 }
