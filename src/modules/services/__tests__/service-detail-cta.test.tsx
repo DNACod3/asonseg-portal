@@ -86,5 +86,6 @@ describe('ServiceDetailView — CTA de manifestação de interesse (USP-033)', (
     expect(screen.getByText('11999998888')).toBeInTheDocument();
     expect(screen.getByText('joao@example.com')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /entrar em contato/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancelar manifestação/i })).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { Badge, Button, FormCard, FormSectionTitle } from '@/shared/ui';
 import type { ServiceDetail } from '../views/service-detail.view';
 import type { ProviderContact } from '../views/provider-contact.view';
 import { ManifestInterestButton } from './manifest-interest-button';
+import { CancelInterestButton } from './cancel-interest-button';
 
 const brl = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -58,12 +59,11 @@ function PhotoGallery({ photos }: Readonly<{ photos: ServiceDetail['photos'] }>)
 }
 
 /**
- * CTA de manifestação de interesse (USP-033 — AC-031-3/AC-033-1..5). Três
- * caminhos por papel/estado (`service.canManifestInterest`, já decidido pelo
- * View Model): anônimo → link de cadastro; autenticado sem interesse ativo →
- * `ManifestInterestButton` real; autenticado com interesse ativo → contato do
- * prestador revelado (o botão "Cancelar manifestação", USP-034, é ligado aqui
- * mesmo, no bloco de contato).
+ * CTA de manifestação de interesse (USP-033/034 — AC-031-3/AC-033-1..5/AC-034-1).
+ * Três caminhos por papel/estado (`service.canManifestInterest`, já decidido
+ * pelo View Model): anônimo → link de cadastro; autenticado sem interesse
+ * ativo → `ManifestInterestButton` real; autenticado com interesse ativo →
+ * contato do prestador revelado + `CancelInterestButton` real (USP-034).
  */
 function ManifestInterestCta({
   service,
@@ -85,6 +85,7 @@ function ManifestInterestCta({
             <p className="text-fg-muted">{providerContact.phone ?? 'Telefone não informado'}</p>
             <p className="text-fg-muted">{providerContact.email ?? 'E-mail não informado'}</p>
           </div>
+          <CancelInterestButton interestId={myInterestId} />
         </div>
       );
     }

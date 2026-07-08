@@ -147,5 +147,6 @@ describe('ServicoDetalhePage — CTA seam (AC-031-3) e anônimo sem contato (SVC
     expect(screen.getByText('11988887777')).toBeInTheDocument();
     expect(screen.getByText('joao@example.com')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /entrar em contato/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancelar manifestação/i })).toBeInTheDocument();
   });
 });
