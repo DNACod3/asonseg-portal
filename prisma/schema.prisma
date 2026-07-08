@@ -64,8 +64,9 @@ model Region {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  providerProfiles ProviderProfile[]
-  jobs             Job[] // USP-021: vagas filtráveis por região
+  providerProfiles  ProviderProfile[]
+  jobs              Job[] // USP-021: vagas filtráveis por região
+  candidateProfiles CandidateProfile[] // USP-028: localização do candidato na busca ativa
 
   @@map("regions")
 }
@@ -550,6 +551,10 @@ model CandidateProfile {
   skillsText              String?       @map("skills_text") @db.Text
   coursesText             String?       @map("courses_text") @db.Text
   availability            String?
+  // USP-028: localização estruturada do candidato (espelha `ProviderProfile.regionId`).
+  // Nullable — a coleta no form de cadastro (USP-009) é follow-up fora do escopo;
+  // candidatos reais nascem sem região até lá (busca/exibição tratam null com graça).
+  regionId                String?       @map("region_id") @db.Uuid
   cvStoragePath           String?       @map("cv_storage_path")
   cvSha256                String?       @map("cv_sha256")
   cvUploadedAt            DateTime?     @map("cv_uploaded_at") @db.Timestamptz(6)
@@ -561,8 +566,10 @@ model CandidateProfile {
 
   person                Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   primaryAreaOfInterest JobArea? @relation(fields: [primaryAreaOfInterestId], references: [id])
+  region                Region?  @relation(fields: [regionId], references: [id])
 
   @@index([publicationStatus])
+  @@index([regionId])
   @@map("candidate_profiles")
 }
 
