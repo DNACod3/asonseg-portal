@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { formatDate } from '@/shared/lib/time';
 import { Badge, Button, FormCard, FormSectionTitle } from '@/shared/ui';
 import type { ServiceDetail } from '../views/service-detail.view';
+import type { ProviderContact } from '../views/provider-contact.view';
+import { ManifestInterestButton } from './manifest-interest-button';
 
 const brl = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -56,14 +58,41 @@ function PhotoGallery({ photos }: Readonly<{ photos: ServiceDetail['photos'] }>)
 }
 
 /**
- * CTA de manifestação de interesse (seam U3 — AC-031-3). A ação real e a
- * revelação de contato são USP-033; aqui é só a afordância por papel
- * (`canManifestInterest`, já decidida pelo View Model). Sem persistência.
+ * CTA de manifestação de interesse (USP-033 — AC-031-3/AC-033-1..5). Três
+ * caminhos por papel/estado (`service.canManifestInterest`, já decidido pelo
+ * View Model): anônimo → link de cadastro; autenticado sem interesse ativo →
+ * `ManifestInterestButton` real; autenticado com interesse ativo → contato do
+ * prestador revelado (o botão "Cancelar manifestação", USP-034, é ligado aqui
+ * mesmo, no bloco de contato).
  */
-function ManifestInterestCta({ service }: Readonly<{ service: ServiceDetail }>) {
+function ManifestInterestCta({
+  service,
+  myInterestId,
+  providerContact,
+  consentTerm,
+}: Readonly<{
+  service: ServiceDetail;
+  myInterestId: string | null;
+  providerContact: ProviderContact | null;
+  consentTerm?: { humanName: string; body: string };
+}>) {
   if (service.canManifestInterest) {
+    if (myInterestId && providerContact) {
+      return (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-lg border border-border bg-background p-4 text-sm">
+            <p className="font-medium text-fg">Contato do prestador</p>
+            <p className="text-fg-muted">{providerContact.phone ?? 'Telefone não informado'}</p>
+            <p className="text-fg-muted">{providerContact.email ?? 'E-mail não informado'}</p>
+          </div>
+        </div>
+      );
+    }
+    if (consentTerm) {
+      return <ManifestInterestButton serviceId={service.id} consentTerm={consentTerm} />;
+    }
     return (
-      <Button variant="primary" disabled title="Disponível em breve">
+      <Button variant="primary" disabled title="Indisponível no momento">
         Entrar em contato
       </Button>
     );
@@ -82,7 +111,26 @@ function ManifestInterestCta({ service }: Readonly<{ service: ServiceDetail }>) 
  * NUNCA contato — nenhum dado restrito chega aqui (SVC031-MN-01). O CTA de
  * manifestação de interesse é só afordância (seam U3).
  */
-export function ServiceDetailView({ service }: Readonly<{ service: ServiceDetail }>) {
+export interface ServiceDetailViewProps {
+  service: ServiceDetail;
+  /** Id da manifestação ATIVA do viewer neste serviço, já resolvida pela página
+   *  (Server Component — `getMyActiveServiceInterest`, USP-033). `null`/omitido =
+   *  ainda não manifestou (ou não é cliente). */
+  myInterestId?: string | null;
+  /** Contato do prestador, revelado só quando `myInterestId` existe (USP-033 —
+   *  SVC033-MN-01: nunca chega aqui sem manifestação ativa). */
+  providerContact?: ProviderContact | null;
+  /** Termo `SERVICE_HIRING` carregado server-side (página), usado pelo
+   *  `ManifestInterestButton` se o consentimento não estiver ativo (AC-033-4). */
+  consentTerm?: { humanName: string; body: string };
+}
+
+export function ServiceDetailView({
+  service,
+  myInterestId = null,
+  providerContact = null,
+  consentTerm,
+}: Readonly<ServiceDetailViewProps>) {
   const price = priceLabel(service.price);
   const meta = [service.category, service.region].filter(Boolean);
 
@@ -125,7 +173,12 @@ export function ServiceDetailView({ service }: Readonly<{ service: ServiceDetail
       )}
 
       <div className="border-t border-border pt-5">
-        <ManifestInterestCta service={service} />
+        <ManifestInterestCta
+          service={service}
+          myInterestId={myInterestId}
+          providerContact={providerContact}
+          consentTerm={consentTerm}
+        />
       </div>
     </FormCard>
   );

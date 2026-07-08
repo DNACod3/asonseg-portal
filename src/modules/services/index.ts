@@ -124,7 +124,11 @@ export { ServiceSearchFilters, type ServiceSearchFilterValues } from './componen
 export { ServiceList } from './components/service-list';
 export { ServiceCard } from './components/service-card';
 export { AsonsegDisclaimer } from './components/asonseg-disclaimer';
-export { ServiceDetailView } from './components/service-detail';
+export { ServiceDetailView, type ServiceDetailViewProps } from './components/service-detail';
+export {
+  ManifestInterestButton,
+  type ManifestInterestButtonProps,
+} from './components/manifest-interest-button';
 export { ServicoIndisponivel } from './components/servico-indisponivel';
 export { ServiceManagementList } from './components/service-management-list';
 export { ServiceActions } from './components/service-actions';

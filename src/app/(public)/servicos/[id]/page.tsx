@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getCurrentPerson } from '@/modules/identity';
+import { loadTerm, purposeMetadata, stripTermFrontMatter, TermLoaderError } from '@/modules/consents';
 import {
   getActiveServiceDetail,
+  getMyActiveServiceInterest,
+  getProviderContactForService,
   viewServiceDetail,
   serviceDetailJsonLd,
   serializeJsonLd,
@@ -80,6 +83,30 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
   const row = await getActiveServiceDetail(id, viewer);
   const service = row != null ? viewServiceDetail(row, viewer) : null;
 
+  // Bloco autenticado (USP-033 §D6): só resolvido quando há viewer E o serviço é
+  // detalhável. O contato só é buscado se já existir manifestação ATIVA
+  // (SVC033-MN-01 — nunca chega ao View Model sem entitlement).
+  let myInterestId: string | null = null;
+  let providerContact = null as Awaited<ReturnType<typeof getProviderContactForService>>;
+  let consentTerm: { humanName: string; body: string } | undefined;
+
+  if (viewer != null && service != null) {
+    const mine = await getMyActiveServiceInterest(id, viewer.id);
+    myInterestId = mine?.id ?? null;
+    if (myInterestId) {
+      providerContact = await getProviderContactForService(id, viewer.id);
+    }
+    try {
+      const term = await loadTerm('SERVICE_HIRING');
+      consentTerm = { humanName: purposeMetadata('SERVICE_HIRING').humanName, body: stripTermFrontMatter(term.content) };
+    } catch (err) {
+      if (!(err instanceof TermLoaderError)) throw err;
+      // Termo indisponível/adulterado: o CTA autenticado degrada para o estado
+      // desabilitado (mesma resiliência de `buildActivatableOptions`) — nunca
+      // bloqueia a leitura pública do detalhe.
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
       {/* JSON-LD Service sempre derivado da fonte única com viewer=null (SVC031-MN-03) —
@@ -95,7 +122,16 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
         ← Voltar para os serviços
       </Link>
 
-      {service != null ? <ServiceDetailView service={service} /> : <ServicoIndisponivel />}
+      {service != null ? (
+        <ServiceDetailView
+          service={service}
+          myInterestId={myInterestId}
+          providerContact={providerContact}
+          consentTerm={consentTerm}
+        />
+      ) : (
+        <ServicoIndisponivel />
+      )}
 
       <AsonsegDisclaimer />
     </main>

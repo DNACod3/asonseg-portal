@@ -11,17 +11,24 @@ import { render, screen } from '@testing-library/react';
 const guardState = vi.hoisted(() => ({
   getCurrentPerson: vi.fn(),
   getActiveServiceDetail: vi.fn(),
+  getMyActiveServiceInterest: vi.fn(),
+  getProviderContactForService: vi.fn(),
 }));
 
 vi.mock('@/modules/identity', () => ({
   getCurrentPerson: (...a: unknown[]) => guardState.getCurrentPerson(...a),
 }));
 
+// ManifestInterestButton (USP-033) usa useRouter() no bloco autenticado sem interesse.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 vi.mock('@/modules/services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/modules/services')>();
   return {
     ...actual,
     getActiveServiceDetail: (...a: unknown[]) => guardState.getActiveServiceDetail(...a),
+    getMyActiveServiceInterest: (...a: unknown[]) => guardState.getMyActiveServiceInterest(...a),
+    getProviderContactForService: (...a: unknown[]) => guardState.getProviderContactForService(...a),
   };
 });
 
@@ -49,6 +56,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   guardState.getCurrentPerson.mockResolvedValue(null);
   guardState.getActiveServiceDetail.mockResolvedValue(null);
+  guardState.getMyActiveServiceInterest.mockResolvedValue(null);
+  guardState.getProviderContactForService.mockResolvedValue(null);
 });
 
 describe('ServicoDetalhePage — AC-031-1: render de campos públicos', () => {
@@ -119,5 +128,24 @@ describe('ServicoDetalhePage — CTA seam (AC-031-3) e anônimo sem contato (SVC
     bodyWithoutScripts.querySelectorAll('script').forEach((s) => s.remove());
     expect(bodyWithoutScripts.textContent).not.toMatch(/[\w.+-]+@[\w-]+\.\w+/);
     expect(bodyWithoutScripts.textContent).not.toMatch(/\(\d{2}\)\s?\d{4,5}-\d{4}/);
+  });
+
+  it('@ac-033-5 autenticado com interesse ativo: revela o contato do prestador', async () => {
+    guardState.getCurrentPerson.mockResolvedValue({ id: 'viewer-1', roles: ['CLIENT'] });
+    guardState.getActiveServiceDetail.mockResolvedValue(ROW);
+    guardState.getMyActiveServiceInterest.mockResolvedValue({ id: 'interest-1' });
+    guardState.getProviderContactForService.mockResolvedValue({
+      displayName: 'João da Silva',
+      phone: '11988887777',
+      email: 'joao@example.com',
+    });
+
+    const ui = await ServicoDetalhePage({ params });
+    render(ui);
+
+    expect(screen.getByText(/contato do prestador/i)).toBeInTheDocument();
+    expect(screen.getByText('11988887777')).toBeInTheDocument();
+    expect(screen.getByText('joao@example.com')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /entrar em contato/i })).not.toBeInTheDocument();
   });
 });
