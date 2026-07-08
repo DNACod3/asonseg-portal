@@ -102,6 +102,12 @@ export {
   type ListActivePublishedJobsResult,
 } from './queries/list-active-published-jobs';
 export { getMyActiveApplication } from './queries/get-my-application';
+export {
+  listJobApplicants,
+  resolveCvUrl,
+  APPLICANTS_PAGE_SIZE,
+  type EmployerCandidatesResult,
+} from './queries/list-job-applicants';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
