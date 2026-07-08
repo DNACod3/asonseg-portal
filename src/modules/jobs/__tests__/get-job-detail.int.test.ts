@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { CurrentPerson } from '@/modules/identity';
+import { hojeSaoPaulo } from '@/shared/lib/time';
 
 /**
  * Testes de integração da query de detalhe `getActiveJobDetail` (USP-022 / #173).
@@ -21,9 +22,15 @@ const CNPJ_UNVERIFIED = '11444777000211';
 const SETOR = 'Detalhe Int';
 const REAL_NAME = 'Verificada Detalhe Int';
 
+/**
+ * `days` a partir do dia-calendário de São Paulo (não do relógio local do processo).
+ * `hojeSaoPaulo()` já normaliza "hoje" para meia-noite UTC do dia-calendário em SP; a
+ * partir daí a aritmética usa `setUTCDate` para permanecer imune ao fuso do runner —
+ * evita a janela 21h-00h BRT em que dia-calendário local e UTC divergem (L-006).
+ */
 function dateOffset(days: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
+  const d = hojeSaoPaulo();
+  d.setUTCDate(d.getUTCDate() + days);
   return d;
 }
 
