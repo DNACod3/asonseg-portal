@@ -10,6 +10,10 @@
 // ── Domínio ────────────────────────────────────────────────────────────────
 export { isServiceDedupViolation } from './domain/dedup';
 export {
+  isServiceOpenForInterest,
+  type ServiceInterestServiceInput,
+} from './domain/service-interest-rules';
+export {
   detectServicePhotoMime,
   isWithinServicePhotoSizeLimit,
   MAX_SERVICE_PHOTO_BYTES,
@@ -43,6 +47,10 @@ export {
   type ResumeServiceInput,
   type ArchiveServiceInput,
 } from './schemas/lifecycle.schema';
+export {
+  manifestInterestSchema,
+  type ManifestInterestInput,
+} from './schemas/service-interest.schema';
 
 // ── Actions ────────────────────────────────────────────────────────────────
 export { createServiceDraft, type CreateServiceDraftResult } from './actions/create-service-draft';
