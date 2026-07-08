@@ -68,6 +68,7 @@ export { pauseService, type PauseServiceResult } from './actions/pause-service';
 export { resumeService, type ResumeServiceResult } from './actions/resume-service';
 export { archiveService, type ArchiveServiceResult } from './actions/archive-service';
 export { manifestInterest, type ManifestInterestResult } from './actions/manifest-interest';
+export { cancelInterest, type CancelInterestResult } from './actions/cancel-interest';
 
 // ── Adapters ───────────────────────────────────────────────────────────────
 export { PrismaServiceStatusRepository } from './adapters/prisma-service-status';
