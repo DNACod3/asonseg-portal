@@ -47,6 +47,7 @@ export { createJobDraft, type CreateJobDraftResult } from './actions/create-job-
 export { submitJobForModeration, type SubmitJobResult } from './actions/submit-job-for-moderation';
 export { pauseJob, type PauseJobResult } from './actions/pause-job';
 export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
+export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
