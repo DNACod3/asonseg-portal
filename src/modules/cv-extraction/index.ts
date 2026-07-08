@@ -18,3 +18,7 @@ export { detectCvMime, isWithinCvSizeLimit, MAX_CV_BYTES } from './domain/mime';
 
 // ── Domínio: parse dos campos extraídos (CVE-02/CVE-05) ────────────────────
 export { parseExtractedFields } from './domain/extracted-fields';
+
+// ── Domínio: custo estimado + rate limit diário (CVE-07/CVE-08) ────────────
+export { estimateExtractionCostUsd } from './domain/cost';
+export { DAILY_CV_UPLOAD_LIMIT, startOfDaySaoPaulo, isOverDailyLimit } from './domain/rate-limit';
