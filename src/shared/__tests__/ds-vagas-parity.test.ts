@@ -40,6 +40,11 @@ const FILES: FileGuard[] = [
     // equivalente na fundação) — só label/textarea/button viram primitivo (U20-MN-04).
     forbiddenRawTags: [/<label\b/, /<textarea\b/, /<button\b/],
   },
+  {
+    label: 'Página publicar vaga (USP-020)',
+    path: 'src/app/(app)/empresa/[empresaId]/vagas/nova/page.tsx',
+    requiredPrimitives: [/<StepIcon\b/, /<FormHeader\b/, /<FormCard\b/],
+  },
 ];
 
 describe('DS parity — vagas (USP-020/021/022, Fase 2)', () => {
