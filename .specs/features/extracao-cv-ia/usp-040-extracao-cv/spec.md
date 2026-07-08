@@ -119,20 +119,20 @@ O que NUNCA pode acontecer, independente do caminho. Cada um exige um **teste ne
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| CVE-01 | USP-040 | Design | Pending |
-| CVE-02 | USP-040 | Design | Pending |
-| CVE-03 | USP-040 | Design | Pending |
-| CVE-04 | USP-040 | Design | Pending |
-| CVE-05 | USP-040 | Design | Pending |
-| CVE-06 | USP-040 | Design | Pending |
-| CVE-07 | USP-040 | Design | Pending |
-| CVE-08 | USP-040 | Design | Pending |
-| CVE-MN-01 | USP-040 | Design | Pending |
-| CVE-MN-02 | USP-040 | Design | Pending |
-| CVE-MN-03 | USP-040 | Design | Pending |
-| CVE-MN-04 | USP-040 | Design | Pending |
-| CVE-MN-05 | USP-040 | Design | Pending |
-| CVE-MN-06 | USP-040 | Design | Pending |
+| CVE-01 | USP-040 | Design | Implementing |
+| CVE-02 | USP-040 | Design | Implementing |
+| CVE-03 | USP-040 | Design | Implementing |
+| CVE-04 | USP-040 | Design | Implementing |
+| CVE-05 | USP-040 | Design | Implementing |
+| CVE-06 | USP-040 | Design | Implementing |
+| CVE-07 | USP-040 | Design | Implementing |
+| CVE-08 | USP-040 | Design | Implementing |
+| CVE-MN-01 | USP-040 | Design | Implementing |
+| CVE-MN-02 | USP-040 | Design | Implementing |
+| CVE-MN-03 | USP-040 | Design | Implementing |
+| CVE-MN-04 | USP-040 | Design | Implementing |
+| CVE-MN-05 | USP-040 | Design | Implementing |
+| CVE-MN-06 | USP-040 | Design | Implementing |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 **Coverage:** 14 total (8 ACs + 6 must-nots), a mapear a tasks em `tasks.md`.

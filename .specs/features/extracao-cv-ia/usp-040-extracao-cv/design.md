@@ -1,7 +1,7 @@
 # Extração de CV via IA Generativa (USP-040) Design
 
 **Spec**: `.specs/features/extracao-cv-ia/usp-040-extracao-cv/spec.md`
-**Status**: Draft
+**Status**: Implemented (pending independent Verifier review)
 
 > **Classificação de risco (bravi-spec-driven, Risk sizing floor): Large** — carrega must-nots (CVE-MN-01..06), toca efeitos externos irreversíveis (LLM externo + Storage) e é **fundacional** (cria o módulo `cv-extraction` e a porta `CVExtractor` que ADR-0012 antecipa). Spec completa + Design + Tasks formal obrigatórios.
 

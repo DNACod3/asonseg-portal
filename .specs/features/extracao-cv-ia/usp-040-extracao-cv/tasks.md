@@ -9,7 +9,7 @@ Implemente estas tasks com o skill **`idsd-spec-driven`** (a esteira do Portal u
 ---
 
 **Design**: `.specs/features/extracao-cv-ia/usp-040-extracao-cv/design.md`
-**Status**: Draft
+**Status**: Implemented (T1–T16 done — Implementer; pending independent Verifier review)
 
 ---
 
@@ -97,9 +97,9 @@ T12,T13,T14 → T15 → T16
 **Reuses**: catálogo/convenção existente + `requiresJustification`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] `AuditEvent.CV_UPLOADED === 'CV_UPLOADED'`; comentário cita ADR-0012.
-- [ ] Teste unit assevera presença no catálogo e `requiresJustification('CV_UPLOADED') === false`.
-- [ ] Gate quick passa: `npm run typecheck && npm test`.
+- [x] `AuditEvent.CV_UPLOADED === 'CV_UPLOADED'`; comentário cita ADR-0012.
+- [x] Teste unit assevera presença no catálogo e `requiresJustification('CV_UPLOADED') === false`.
+- [x] Gate quick passa: `npm run typecheck && npm test`.
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(audit): adiciona evento CV_UPLOADED (USP-040)`
 
@@ -110,9 +110,9 @@ T12,T13,T14 → T15 → T16
 **Reuses**: padrão `AuthAttempt` / `auth_attempts`
 **Tools**: MCP: `context7` (Prisma se preciso) · Skill: NONE
 **Done when**:
-- [ ] Migração aplica limpa (`npm run db:migrate`), sem arrastar drift pré-existente.
-- [ ] Teste de integração: insert + count por `personId`/janela; `onDelete: Cascade` verificado.
-- [ ] Gate full passa.
+- [x] Migração aplica limpa (`npm run db:migrate`), sem arrastar drift pré-existente.
+- [x] Teste de integração: insert + count por `personId`/janela; `onDelete: Cascade` verificado.
+- [x] Gate full passa.
 **Tests**: integration · **Gate**: build (inclui migração)
 **Commit**: `feat(persons): tabela cv_upload_attempts p/ rate limit de CV (USP-040)`
 
@@ -123,8 +123,8 @@ T12,T13,T14 → T15 → T16
 **Reuses**: shape de `identity/ports/captchaVerifier.ts` + `createToken`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Interface + tipos + token compilam; barrel exporta.
-- [ ] Gate build passa (`npm run typecheck && npm run build`).
+- [x] Interface + tipos + token compilam; barrel exporta.
+- [x] Gate build passa (`npm run typecheck && npm run build`).
 **Tests**: none · **Gate**: build
 
 ### T4: `domain/mime.ts` — detecção de MIME real + tamanho `[P]`
@@ -134,8 +134,8 @@ T12,T13,T14 → T15 → T16
 **Reuses**: —
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Testes 1:1: PDF real→pdf; `.pdf` com bytes não-PDF→null; DOC OLE2→doc; DOCX (zip+`word/`)→docx; bytes aleatórios/zip genérico→null; boundary de `MAX_CV_BYTES`.
-- [ ] Gate quick passa.
+- [x] Testes 1:1: PDF real→pdf; `.pdf` com bytes não-PDF→null; DOC OLE2→doc; DOCX (zip+`word/`)→docx; bytes aleatórios/zip genérico→null; boundary de `MAX_CV_BYTES`.
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick
 
 ### T5: `domain/extracted-fields.ts` — parse/validação dos 5 campos `[P]`
@@ -144,8 +144,8 @@ T12,T13,T14 → T15 → T16
 **Depends on**: T3
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Testes: JSON válido→5 campos; chaves extras ignoradas (edge case); JSON malformado→null; objeto vazio→null.
-- [ ] Gate quick passa.
+- [x] Testes: JSON válido→5 campos; chaves extras ignoradas (edge case); JSON malformado→null; objeto vazio→null.
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick
 
 ### T6: `domain/cost.ts` + `domain/rate-limit.ts` `[P]`
@@ -155,8 +155,8 @@ T12,T13,T14 → T15 → T16
 **Reuses**: `date-fns-tz` (TZ `America/Sao_Paulo`), regra pura estilo `identity/domain/lockout.ts`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Testes: custo (input+output×tarifa); fronteira de dia SP (23:59 vs 00:01 local); `isOverDailyLimit(2)=false`, `(3)=true`.
-- [ ] Gate quick passa.
+- [x] Testes: custo (input+output×tarifa); fronteira de dia SP (23:59 vs 00:01 local); `isOverDailyLimit(2)=false`, `(3)=true`.
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick
 
 ### T7: `adapters/fake-cv-extractor.ts` `[P]`
@@ -165,8 +165,8 @@ T12,T13,T14 → T15 → T16
 **Depends on**: T3
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Teste: retorna resultado configurado (ok e ok:false).
-- [ ] Gate quick passa.
+- [x] Teste: retorna resultado configurado (ok e ok:false).
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick
 
 ### T8: `adapters/anthropic-cv-extractor.ts`
@@ -176,9 +176,9 @@ T12,T13,T14 → T15 → T16
 **Reuses**: `env.ANTHROPIC_API_KEY/MODEL`; adapter thin estilo `turnstileCaptchaVerifier`
 **Tools**: MCP: `context7` (SDK Anthropic — usar skill claude-api p/ shape do `document`/`usage`) · Skill: `claude-api`
 **Done when**:
-- [ ] SDK mockado (`vi.mock('@anthropic-ai/sdk')`): PDF→content block `document`; DOCX→text block; mapeia `usage.input_tokens/output_tokens`→custo; SDK lança→`ok:false PROVIDER_ERROR`; JSON malformado→`ok:false MALFORMED`.
-- [ ] É o **único** arquivo de `src/` que importa `@anthropic-ai/sdk`.
-- [ ] Gate quick passa.
+- [x] SDK mockado (`vi.mock('@anthropic-ai/sdk')`): PDF→content block `document`; DOCX→text block; mapeia `usage.input_tokens/output_tokens`→custo; SDK lança→`ok:false PROVIDER_ERROR`; JSON malformado→`ok:false MALFORMED`.
+- [x] É o **único** arquivo de `src/` que importa `@anthropic-ai/sdk`.
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick
 
 ### T9: Wiring DI no container
@@ -188,9 +188,9 @@ T12,T13,T14 → T15 → T16
 **Reuses**: padrão de binding lazy + `eslint-disable no-restricted-imports` do container; guarda `RATE_LIMIT_DISABLED`/`VERCEL_ENV`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] `container.resolve(CV_EXTRACTOR_TOKEN)` retorna Anthropic por padrão; fake sob flag guardada.
-- [ ] Guard impede fake em `VERCEL_ENV` real (teste do env).
-- [ ] Gate build passa.
+- [x] `container.resolve(CV_EXTRACTOR_TOKEN)` retorna Anthropic por padrão; fake sob flag guardada.
+- [x] Guard impede fake em `VERCEL_ENV` real (teste do env).
+- [x] Gate build passa.
 **Tests**: none (config; coberto pelas integrações T12–T14) · **Gate**: build
 
 ### T10: Guarda estática — proibir import direto do SDK `[P]`
@@ -200,9 +200,9 @@ T12,T13,T14 → T15 → T16
 **Reuses**: template `companies/__tests__/no-external-verify.test.ts` + allowlist estilo `jobs/__tests__/no-out-of-band-status-write.test.ts`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Guarda verde no HEAD; falharia se outro arquivo importasse `@anthropic-ai`.
-- [ ] Sanity: arquivo allowlistado existe.
-- [ ] Gate quick passa.
+- [x] Guarda verde no HEAD; falharia se outro arquivo importasse `@anthropic-ai`.
+- [x] Sanity: arquivo allowlistado existe.
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick — **cobre CVE-MN-05**
 
 ### T11: Schema Zod `confirmCvFields` (+ guarda do arquivo no upload)
@@ -212,8 +212,8 @@ T12,T13,T14 → T15 → T16
 **Reuses**: `persons/schemas/candidate.ts`, `persons/domain/candidate.ts` (`EDUCATION_LEVELS`)
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Testes: aceita input válido; rejeita `educationLevel` inválido / campo acima do limite; upload sem `File`→erro.
-- [ ] Gate quick passa.
+- [x] Testes: aceita input válido; rejeita `educationLevel` inválido / campo acima do limite; upload sem `File`→erro.
+- [x] Gate quick passa.
 **Tests**: unit · **Gate**: quick
 
 ### T12: `actions/upload-cv.ts`
@@ -223,10 +223,10 @@ T12,T13,T14 → T15 → T16
 **Reuses**: `getCurrentPerson`, `requireActiveConsent`, `withAudit`, `createSupabaseStorageClient`, `STORAGE_BUCKETS.CVS`, `ok/fail`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Integração: happy (arquivo em `cvs/{personId}/…` + `CV_UPLOADED` + linha `CvUploadAttempt` + colunas `cv*` gravadas).
-- [ ] Negativos: MIME inválido→`VALIDATION` **e `storage.upload` NÃO chamado, `cvStoragePath` inalterado** (CVE-MN-02); >5MB→`VALIDATION`; sem consentimento→`CONSENT_REQUIRED` **sem storage** (CVE-MN-03); 4º upload no dia→`PRECONDITION_FAILED` **sem storage** (CVE-MN-04); storage falha→`fail` **sem `CV_UPLOADED`**; sem `candidate_profiles`→`PRECONDITION_FAILED`.
-- [ ] Retorno sempre `{ok}|{ok:false,error}` (nunca throw). Test count registrado.
-- [ ] Gate full passa.
+- [x] Integração: happy (arquivo em `cvs/{personId}/…` + `CV_UPLOADED` + linha `CvUploadAttempt` + colunas `cv*` gravadas).
+- [x] Negativos: MIME inválido→`VALIDATION` **e `storage.upload` NÃO chamado, `cvStoragePath` inalterado** (CVE-MN-02); >5MB→`VALIDATION`; sem consentimento→`CONSENT_REQUIRED` **sem storage** (CVE-MN-03); 4º upload no dia→`PRECONDITION_FAILED` **sem storage** (CVE-MN-04); storage falha→`fail` **sem `CV_UPLOADED`**; sem `candidate_profiles`→`PRECONDITION_FAILED`.
+- [x] Retorno sempre `{ok}|{ok:false,error}` (nunca throw). Test count registrado.
+- [x] Gate full passa.
 **Tests**: integration · **Gate**: full — **cobre CVE-01/06/07, CVE-MN-02/03/04**
 **Commit**: `feat(cv-extraction): upload de CV com validação MIME/tamanho, consentimento e rate limit (USP-040)`
 
@@ -237,12 +237,12 @@ T12,T13,T14 → T15 → T16
 **Reuses**: `container.resolve`, `withAudit`, storage `.download`, `requireActiveConsent`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Integração (fake via `container.register`): happy → `CV_EXTRACTION_REQUESTED`+`CV_EXTRACTION_COMPLETED` com tokens/duração/custo em `after`; retorna `{extracted, fromAi:true}`.
-- [ ] **CVE-MN-01**: após extract, colunas estruturadas de `candidate_profiles` **inalteradas** (nada persistido).
-- [ ] **CVE-MN-03**: revogar consentimento entre upload e extract → `CONSENT_REQUIRED`, **fake NÃO chamado**, sem `CV_EXTRACTION_COMPLETED`.
-- [ ] **CVE-MN-06 / CVE-05**: fake `{ok:false}` → `CV_EXTRACTION_FAILED` + `{ok:true, extracted:null, fallback:true}` **sem throw**.
-- [ ] Auditoria guarda **metadados**, nunca valores extraídos; sem `cvStoragePath`→`PRECONDITION_FAILED`.
-- [ ] Gate full passa.
+- [x] Integração (fake via `container.register`): happy → `CV_EXTRACTION_REQUESTED`+`CV_EXTRACTION_COMPLETED` com tokens/duração/custo em `after`; retorna `{extracted, fromAi:true}`.
+- [x] **CVE-MN-01**: após extract, colunas estruturadas de `candidate_profiles` **inalteradas** (nada persistido).
+- [x] **CVE-MN-03**: revogar consentimento entre upload e extract → `CONSENT_REQUIRED`, **fake NÃO chamado**, sem `CV_EXTRACTION_COMPLETED`.
+- [x] **CVE-MN-06 / CVE-05**: fake `{ok:false}` → `CV_EXTRACTION_FAILED` + `{ok:true, extracted:null, fallback:true}` **sem throw**.
+- [x] Auditoria guarda **metadados**, nunca valores extraídos; sem `cvStoragePath`→`PRECONDITION_FAILED`.
+- [x] Gate full passa.
 **Tests**: integration · **Gate**: full — **cobre CVE-02/03/05/08, CVE-MN-01/03/06**
 **Commit**: `feat(cv-extraction): extração via porta CVExtractor com auditoria de custo e fallback (USP-040)`
 
@@ -253,10 +253,10 @@ T12,T13,T14 → T15 → T16
 **Reuses**: `getCurrentPerson`, `withAudit`, `ok/fail`
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] Integração: persiste os 5 campos + `cvLastConfirmedAt` + `CV_USER_CONFIRMED_FIELDS`.
-- [ ] **CVE-MN-01 (companion)**: antes de confirmar, campos inalterados; só este caminho grava.
-- [ ] Zod inválido→`VALIDATION`; não autenticado→`UNAUTHENTICATED`; sem perfil→`PRECONDITION_FAILED`.
-- [ ] Gate full passa.
+- [x] Integração: persiste os 5 campos + `cvLastConfirmedAt` + `CV_USER_CONFIRMED_FIELDS`.
+- [x] **CVE-MN-01 (companion)**: antes de confirmar, campos inalterados; só este caminho grava.
+- [x] Zod inválido→`VALIDATION`; não autenticado→`UNAUTHENTICATED`; sem perfil→`PRECONDITION_FAILED`.
+- [x] Gate full passa.
 **Tests**: integration · **Gate**: full — **cobre CVE-04, CVE-MN-01**
 **Commit**: `feat(cv-extraction): confirmação humana persiste campos do CV (USP-040)`
 
@@ -267,8 +267,8 @@ T12,T13,T14 → T15 → T16
 **Reuses**: primitivas `@/shared/ui`, React Hook Form + Zod
 **Tools**: MCP: NONE · Skill: `frontend-design` (opcional)
 **Done when**:
-- [ ] Component tests: renderiza; marca prefill como IA (CVE-03); em `{fallback:true}` mostra mensagem amigável + campos vazios editáveis (CVE-MN-06); guarda de sessão da página.
-- [ ] Gate full passa.
+- [x] Component tests: renderiza; marca prefill como IA (CVE-03); em `{fallback:true}` mostra mensagem amigável + campos vazios editáveis (CVE-MN-06); guarda de sessão da página.
+- [x] Gate full passa.
 **Tests**: unit (component) · **Gate**: full — **cobre CVE-03 (UI)**
 **Commit**: `feat(cv-extraction): formulário de upload/prefill/confirmação de CV (USP-040)`
 
@@ -279,8 +279,8 @@ T12,T13,T14 → T15 → T16
 **Reuses**: setup Playwright (`RATE_LIMIT_DISABLED`, seed demo)
 **Tools**: MCP: NONE · Skill: NONE
 **Done when**:
-- [ ] `npm run test:e2e` verde para ambos os cenários.
-- [ ] Gate build + E2E passam.
+- [x] `npm run test:e2e` verde para ambos os cenários.
+- [x] Gate build + E2E passam.
 **Tests**: e2e · **Gate**: build (+ `npm run test:e2e`)
 **Commit**: `test(cv-extraction): E2E de extração de CV — happy e fallback (USP-040)`
 
