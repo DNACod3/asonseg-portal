@@ -4,6 +4,8 @@
 // ── Domínio ───────────────────────────────────────────────────────────────────
 export { MAX_VALIDADE_DIAS, validadeStatus, diasAteExpiracao } from './domain/validade';
 export type { ValidadeStatus } from './domain/validade';
+export { isJobOpenForApplication, isProfileApplicable } from './domain/application-rules';
+export type { ApplicationJobInput, ApplicationProfileInput } from './domain/application-rules';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 export {
