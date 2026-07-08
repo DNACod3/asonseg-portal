@@ -31,6 +31,8 @@ interface FileGuard {
   forbiddenRawTags?: RegExp[];
   /** Regexes de padrões proibidos além de tag/paleta (ex.: `nomeFantasia` — U21-MN-01). */
   forbiddenPatterns?: RegExp[];
+  /** Regexes de padrões exigidos além de primitivo DS (ex.: `method="get"` — U21-MN-05). */
+  requiredPatterns?: RegExp[];
 }
 
 const FILES: FileGuard[] = [
@@ -60,6 +62,15 @@ const FILES: FileGuard[] = [
     path: 'src/modules/jobs/components/job-list.tsx',
     requiredPrimitives: [/<Card\b/],
   },
+  {
+    label: 'JobSearchFilters (USP-021)',
+    path: 'src/modules/jobs/components/job-search-filters.tsx',
+    requiredPrimitives: [/<Card\b/, /<Input\b/, /<Label\b/, /<Button\b/],
+    forbiddenRawTags: [/<label\b/, /<button\b/],
+    // U21-MN-05: form GET + "Mais filtros" recolhível (progressive enhancement) preservados.
+    forbiddenPatterns: [/method="post"/],
+    requiredPatterns: [/method="get"/, /<details\b/],
+  },
 ];
 
 describe('DS parity — vagas (USP-020/021/022, Fase 2)', () => {
@@ -86,6 +97,14 @@ describe('DS parity — vagas (USP-020/021/022, Fase 2)', () => {
     const content = readFileSync(join(process.cwd(), path), 'utf-8');
     for (const re of forbiddenPatterns ?? []) {
       expect(content).not.toMatch(re);
+    }
+  });
+
+  const withRequiredPatterns = FILES.filter((f) => (f.requiredPatterns?.length ?? 0) > 0);
+  it.each(withRequiredPatterns)('$label ($path) preserva os padrões exigidos', ({ path, requiredPatterns }) => {
+    const content = readFileSync(join(process.cwd(), path), 'utf-8');
+    for (const re of requiredPatterns ?? []) {
+      expect(content).toMatch(re);
     }
   });
 });
