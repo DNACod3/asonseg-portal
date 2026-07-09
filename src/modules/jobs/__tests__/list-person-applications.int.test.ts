@@ -113,6 +113,18 @@ skipIfNoDb('listPersonApplications — integração', () => {
     expect(active?.jobId).toBe(jobId);
   });
 
+  it('ordena a candidatura ativa antes da histórica (NULLS FIRST)', async () => {
+    const rows = await listPersonApplications(targetPersonId);
+    expect(rows).toHaveLength(2);
+
+    // Ordenação documentada: ativas primeiro (cancelledAt asc, null primeiro),
+    // depois appliedAt desc. Asserção posicional — pega regressão para NULLS LAST.
+    expect(rows[0]?.active).toBe(true);
+    expect(rows[0]?.cancelledAt).toBeNull();
+    expect(rows[1]?.active).toBe(false);
+    expect(rows[1]?.cancelledAt).not.toBeNull();
+  });
+
   it('escopo candidatePersonId: candidatura de outra Pessoa não aparece', async () => {
     const rows = await listPersonApplications(targetPersonId);
     expect(rows.every((r) => r.jobId === jobId)).toBe(true);

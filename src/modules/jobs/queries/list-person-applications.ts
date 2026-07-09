@@ -50,7 +50,7 @@ const personApplicationSelect = {
 export async function listPersonApplications(personId: string): Promise<PersonApplicationRow[]> {
   const rows = await prisma.application.findMany({
     where: { candidatePersonId: personId },
-    orderBy: [{ cancelledAt: 'asc' }, { appliedAt: 'desc' }],
+    orderBy: [{ cancelledAt: { sort: 'asc', nulls: 'first' } }, { appliedAt: 'desc' }],
     take: PERSON_APPLICATIONS_PAGE_SIZE,
     select: personApplicationSelect,
   });
