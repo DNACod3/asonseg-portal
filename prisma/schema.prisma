@@ -173,6 +173,31 @@ enum CredentialClaimStatus {
   @@map("credential_claim_status")
 }
 
+/// Faixa de renda aproximada declarada na ficha socioeconômica (USP-036).
+/// "Aproximada" ⇒ faixa (não decimal livre) — evita renda exata, habilita relatórios.
+enum IncomeBracket {
+  NO_INCOME
+  UP_TO_1_MW
+  FROM_1_TO_2_MW
+  FROM_2_TO_3_MW
+  ABOVE_3_MW
+  UNDECLARED
+
+  @@map("income_bracket")
+}
+
+/// Situação de moradia declarada na ficha socioeconômica (USP-036).
+enum HousingSituation {
+  OWNED
+  RENTED
+  GRANTED
+  FAMILY
+  HOMELESS
+  OTHER
+
+  @@map("housing_situation")
+}
+
 /// Pessoa = entidade fundamental do domínio (ADR-0011).
 /// CPF e e-mail únicos por Pessoa; CPF nullable apenas quando a AS cria
 /// exceção documental via USP-002 (P-007 das expectations).
@@ -207,12 +232,15 @@ model Person {
   candidateProfile     CandidateProfile?
   providerProfile      ProviderProfile?
   clientProfile        ClientProfile?
+  socioeconomicRecord  SocioeconomicRecord?
   authoredJobs         Job[]
   applications         Application[]
   cvUploadAttempts     CvUploadAttempt[]
   cvExtractionAttempts CvExtractionAttempt[]
   authoredServices     Service[] // USP-029
   serviceInterests     ServiceInterest[] // USP-033/U3
+  referralsReceived    Referral[]            @relation("ReferredPerson") // USP-037
+  referralsCreated     Referral[]            @relation("Referrer") // USP-037
 
   @@map("persons")
 }
@@ -484,6 +512,7 @@ model Job {
   region  Region?  @relation(fields: [regionId], references: [id])
 
   applications Application[]
+  referrals    Referral[] // USP-037
 
   // Dedup EXATA (P-003 / ADR-0021): impede 2 vagas idênticas vivas da mesma Empresa.
   // UNIQUE parcial — só estados "vivos" contam — criada via SQL bruto na migration
@@ -511,9 +540,14 @@ model Application {
   // o boolean agora (sempre false na Fase 3). USP-037 adiciona a FK `viaReferralId` e
   // passa a setar este campo, sem re-migrar a coluna.
   viaEncaminhamento Boolean   @default(false) @map("via_encaminhamento")
+  // USP-037: vínculo 1:1 autoritativo com o `Referral` que originou esta candidatura.
+  // Invariante: viaReferralId != null ⟺ viaEncaminhamento = true. `viaEncaminhamento`
+  // é MANTIDO (USP-027 já lê o boolean para o badge) — nenhuma re-migração dele.
+  viaReferralId     String?   @unique @map("via_referral_id") @db.Uuid
 
-  candidate Person @relation(fields: [candidatePersonId], references: [id])
-  job       Job    @relation(fields: [jobId], references: [id])
+  candidate Person    @relation(fields: [candidatePersonId], references: [id])
+  job       Job       @relation(fields: [jobId], references: [id])
+  referral  Referral? @relation(fields: [viaReferralId], references: [id])
 
   // uq_application_active (SQL bruto nesta migração, Prisma não expressa índice
   // parcial no schema): UNIQUE (candidate_person_id, job_id) WHERE cancelled_at IS
@@ -522,6 +556,48 @@ model Application {
   // appliedAt])` de technical-design.md §4.5 (não garante unicidade ativa sob corrida).
   @@index([jobId, cancelledAt]) // contagem on-read do contador (E-003)
   @@map("applications")
+}
+
+// ── Encaminhamentos (USP-037/038 — SOC-03..05) ───────────────────────────────
+/// Resultado de acompanhamento de um encaminhamento institucional (USP-038 / MP9).
+enum ReferralResult {
+  HIRED
+  NOT_SELECTED
+  UNDER_REVIEW
+  NO_RESPONSE
+
+  @@map("referral_result")
+}
+
+/// Encaminhamento institucional de uma Pessoa para uma vaga (USP-037 / SOC-03,
+/// SOC-04 — agregado raiz próprio, módulo `referrals`). Gera uma `Application`
+/// vinculada (`Application.viaReferralId`) na mesma transação. As colunas de
+/// RESULTADO (`result*`) nascem nullable nesta migração — USP-038 só as escreve,
+/// sem re-migrar (agregado planejado coeso, ver design.md do épico).
+model Referral {
+  id                  String          @id @default(uuid()) @db.Uuid
+  personId            String          @map("person_id") @db.Uuid // Pessoa encaminhada
+  jobId               String          @map("job_id") @db.Uuid
+  referrerPersonId    String          @map("referrer_person_id") @db.Uuid // AS/coord/voluntário que encaminhou
+  justification       String? // AC-037-4 (motivo opcional)
+  professionalSummary String?         @map("professional_summary") @db.Text // AC-037-3 (obrigatório se sem CV — validado na action)
+  // ── Colunas de RESULTADO (USP-038) — nullable já nesta migração ─────────────
+  result              ReferralResult?
+  resultObservation   String?         @map("result_observation")
+  /// Id da Pessoa que registrou o resultado (sem relação Prisma — resolvido via lookup, segue TD).
+  resultRegisteredBy  String?         @map("result_registered_by") @db.Uuid
+  resultRegisteredAt  DateTime?       @map("result_registered_at") @db.Timestamptz(6)
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person      Person       @relation("ReferredPerson", fields: [personId], references: [id])
+  job         Job          @relation(fields: [jobId], references: [id])
+  referrer    Person       @relation("Referrer", fields: [referrerPersonId], references: [id])
+  application Application? // back-relation de Application.viaReferralId (1:1)
+
+  @@index([personId])
+  @@index([jobId])
+  @@index([referrerPersonId])
+  @@map("referrals")
 }
 
 // ── Serviços (USP-029 — AD-009: status-on-entity) ────────────────────────────
@@ -694,6 +770,32 @@ model ClientProfile {
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@map("client_profiles")
+}
+
+/// Ficha socioeconômica mínima da Pessoa (USP-036 / SOC-01, SOC-02).
+/// 1:1 com Person (PK = FK) garante 1 ficha por Pessoa sem índice adicional.
+/// Dados pessoais sensíveis (LGPD): criptografia em repouso = plataforma
+/// Supabase (gerenciada, ADR-0012 — mesmo tratamento de `candidate_profiles`),
+/// NÃO coluna/aplicacional. Acesso restrito a SOCIAL_ASSISTANT/BOARD (guarda de
+/// domínio inline) e auditoria de toda alteração/acesso são os controles desta
+/// USP (SOC-036-MN-01/02) — ver design.md §Risks.
+model SocioeconomicRecord {
+  personId String @id @map("person_id") @db.Uuid
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  incomeBracket     IncomeBracket?    @map("income_bracket")
+  /// Nome/descrição do benefício declarado; null = não recebe/não declarado.
+  socialBenefit     String?           @map("social_benefit")
+  housingSituation  HousingSituation? @map("housing_situation")
+  /// Texto/número declarado — sem entidade Família estruturada (fora do MVP).
+  familyComposition String?           @map("family_composition")
+
+  /// Conveniência de "última alteração" — histórico autoritativo = audit_log (AD-008).
+  updatedByPersonId String?  @map("updated_by_person_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("socioeconomic_records")
 }
 
 /// Store transitório de conteúdo moderável para a máquina de estados (GAP-8).

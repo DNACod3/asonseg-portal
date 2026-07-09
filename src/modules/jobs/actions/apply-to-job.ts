@@ -9,14 +9,12 @@ import { prisma } from '@/shared/lib/prisma';
 import { hojeSaoPaulo } from '@/shared/lib/time';
 import type { EmailMessage } from '@/shared/lib/email/email-sender.port';
 import { isJobOpenForApplication, isProfileApplicable } from '../domain/application-rules';
+import { ApplyConflictError } from '../domain/apply-errors';
 import { applyToJobSchema, type ApplyToJobInput } from '../schemas/application.schema';
 
 export interface ApplyToJobResult {
   applicationId: string;
 }
-
-/** Corrida de duplicidade — a linha ativa da candidatura foi criada por outra requisição concorrente. */
-class ApplyConflictError extends Error {}
 
 /**
  * Candidata a Pessoa autenticada (papel candidato ativo) a uma vaga ativa (USP-025 /

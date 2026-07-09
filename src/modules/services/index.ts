@@ -100,6 +100,11 @@ export {
   PROVIDER_INTERESTS_PAGE_SIZE,
   type ProviderInterestsResult,
 } from './queries/list-provider-interests';
+export {
+  listPersonServiceInterests,
+  PERSON_SERVICE_INTERESTS_PAGE_SIZE,
+  type PersonServiceInterestRow,
+} from './queries/list-person-service-interests';
 
 // ── Views ──────────────────────────────────────────────────────────────────
 export {

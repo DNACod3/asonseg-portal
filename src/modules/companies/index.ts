@@ -62,6 +62,11 @@ export type { PendingResponsibleLink } from './queries/list-pending-responsible-
 export { listActiveResponsibles } from './queries/list-active-responsibles';
 export type { ActiveResponsible } from './queries/list-active-responsibles';
 export {
+  listPersonCompanyGrants,
+  PERSON_COMPANY_GRANTS_PAGE_SIZE,
+  type PersonCompanyGrantRow,
+} from './queries/list-person-company-grants';
+export {
   listCompanyRejections,
   listCompanyRejectionsByCompany,
 } from './queries/list-company-rejections';

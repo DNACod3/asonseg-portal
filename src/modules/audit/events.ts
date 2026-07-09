@@ -97,6 +97,12 @@ export const AuditEvent = {
   INTEREST_CANCELLED: 'INTEREST_CANCELLED',
   PROVIDER_CONTACT_REVEALED: 'PROVIDER_CONTACT_REVEALED',
 
+  // ── Ficha socioeconômica (USP-036) ───────────────────────────────────────
+  /** 1ª gravação da ficha socioeconômica de uma Pessoa. */
+  SOCIAL_SHEET_CREATED: 'SOCIAL_SHEET_CREATED',
+  /** Edição de ficha socioeconômica já existente. */
+  SOCIAL_SHEET_UPDATED: 'SOCIAL_SHEET_UPDATED',
+
   // ── Encaminhamentos ───────────────────────────────────────────────────────
   REFERRAL_CREATED: 'REFERRAL_CREATED',
   REFERRAL_RESULT_REGISTERED: 'REFERRAL_RESULT_REGISTERED',

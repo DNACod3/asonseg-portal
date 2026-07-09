@@ -71,7 +71,13 @@ export {
   type JobExpiryReminderPayload,
 } from './actions/enqueue-expiry-reminder';
 export { applyToJob, type ApplyToJobResult } from './actions/apply-to-job';
+export { ApplyConflictError } from './domain/apply-errors';
 export { cancelApplication, type CancelApplicationResult } from './actions/cancel-application';
+export {
+  createReferralApplication,
+  type CreateReferralApplicationArgs,
+  type CreateReferralApplicationResult,
+} from './actions/create-referral-application';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
@@ -108,6 +114,11 @@ export {
   APPLICANTS_PAGE_SIZE,
   type EmployerCandidatesResult,
 } from './queries/list-job-applicants';
+export {
+  listPersonApplications,
+  PERSON_APPLICATIONS_PAGE_SIZE,
+  type PersonApplicationRow,
+} from './queries/list-person-applications';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';

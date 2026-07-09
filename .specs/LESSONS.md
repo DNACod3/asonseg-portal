@@ -72,6 +72,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: SVC033-MN-03 / manifest-interest.int.test.ts:343-357 (src/modules/services,integration-tests,concurrency)
 - last seen: 2026-07-08T22:23:32Z
 
+### L-011 — Before proposing a new route prefix in design.md, check whether an existing route family for the same entity/audience already exists and reuse it instead of opening a new namespace.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `routes` · harmful: 0
+- features: ficha-social-encaminhamento/usp-036-ficha-socioeconomica
+- evidence: src/app/(app)/pessoas/[id]/ficha-social/page.tsx SPEC_DEVIATION comment (routes)
+- last seen: 2026-07-09T15:45:55Z
+
+### L-012 — When a design specifies a domain guard's role parameter as the Prisma Role enum, check the actual caller's session type first — getCurrentPerson()/CurrentPerson.roles is string[], so the guard signature should be readonly string[] to match, not Role[].
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `authorization` · harmful: 0
+- features: ficha-social-encaminhamento/usp-036-ficha-socioeconomica
+- evidence: src/modules/persons/domain/socioeconomic-record.ts SPEC_DEVIATION comment (authorization)
+- last seen: 2026-07-09T15:46:03Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

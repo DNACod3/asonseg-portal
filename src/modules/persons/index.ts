@@ -132,3 +132,61 @@ export type {
 // Componentes de UI da inativação (USP-007) e reativação (USP-045).
 export { InactivatePersonDialog } from './components/inactivate-person-dialog';
 export { ReactivatePersonDialog } from './components/reactivate-person-dialog';
+
+// Ficha socioeconômica (USP-036 / SOC-01, SOC-02, SOC-036-MN-01/02).
+export {
+  canManageSocioeconomicRecord,
+  isEmptyRecord,
+  SOCIOECONOMIC_RECORD_ROLES,
+  INCOME_BRACKETS,
+  INCOME_BRACKET_LABELS,
+  HOUSING_SITUATIONS,
+  HOUSING_SITUATION_LABELS,
+} from './domain/socioeconomic-record';
+export type {
+  SocioeconomicRecordRole,
+  IncomeBracket,
+  HousingSituation,
+  EmptyRecordCheck,
+} from './domain/socioeconomic-record';
+export {
+  socioeconomicRecordSchema,
+  SOCIAL_BENEFIT_MAX,
+  FAMILY_COMPOSITION_MAX,
+} from './schemas/socioeconomic-record.schema';
+export type {
+  SocioeconomicRecordInput,
+  SocioeconomicRecordData,
+} from './schemas/socioeconomic-record.schema';
+export { saveSocioeconomicRecord } from './actions/save-socioeconomic-record';
+export type { SaveSocioeconomicRecordResult } from './actions/save-socioeconomic-record';
+export { getSocioeconomicRecord } from './queries/get-socioeconomic-record';
+export { viewSocioeconomicRecord } from './views/view-socioeconomic-record';
+export type {
+  SocioeconomicRow,
+  SocioeconomicRecordView,
+} from './views/view-socioeconomic-record';
+export { SocioeconomicRecordForm } from './components/socioeconomic-record-form';
+export type {
+  SocioeconomicRecordFormProps,
+  SocioeconomicRecordFormInitial,
+} from './components/socioeconomic-record-form';
+
+// Encaminhamento institucional (USP-037 / SOC-03, AC-037-2) — ativação tácita do
+// papel candidato, chamada dentro da tx de `createReferral` (módulo `referrals`).
+export { ensureCandidateRole } from './actions/ensure-candidate-role';
+export type { EnsureCandidateRoleArgs, EnsureCandidateRoleResult } from './actions/ensure-candidate-role';
+
+// Visão consolidada da Pessoa (USP-039 / SOC-06, SOC-039-MN-01/02).
+export {
+  canViewConsolidatedPerson,
+  CONSOLIDATED_PERSON_ROLES,
+} from './domain/consolidated-person';
+export type { ConsolidatedPersonRole } from './domain/consolidated-person';
+export { viewPersonForSocialAssistant } from './views/view-person-for-social-assistant';
+export type {
+  ConsolidatedExternalDimensions,
+  ConsolidatedPersonView,
+} from './views/view-person-for-social-assistant';
+export { ConsolidatedPersonPanel } from './components/consolidated-person-panel';
+export type { ConsolidatedPersonPanelProps } from './components/consolidated-person-panel';
