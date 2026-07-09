@@ -32,8 +32,9 @@ const CONTENT_TYPE_BY_MIME: Record<ServicePhotoMimeType, string> = {
  * `ServicePhoto` é `createServiceDraft`/`submitServiceForModeration` (o
  * `ServiceForm` sobe cada foto por esta action e passa os `storagePath`
  * acumulados ao submit, design USP-029 §4). Espelha `uploadCv`
- * (`@/modules/cv-extraction`), mas sem precondição de perfil nem consentimento
- * dedicado — a foto ainda não pertence a um serviço até o create/submit.
+ * (`@/modules/cv-extraction`), mas exige apenas papel PROVIDER ativo (F2) —
+ * sem consentimento dedicado, já que a foto ainda não pertence a um serviço
+ * até o create/submit.
  *
  * Nunca lança.
  */
@@ -53,6 +54,15 @@ export async function uploadServicePhoto(
   const person = await getCurrentPerson();
   if (!person) {
     return fail('UNAUTHENTICATED', 'Sessão expirada. Faça login novamente.');
+  }
+
+  // 2b. Permissão (F2) — gate de papel PROVIDER, antes de tocar o Storage.
+  //     Espelha o 1º check de `requireServiceAuthorization`
+  //     (`server/require-service-authorization.ts:23-25`), sem exigir o consent
+  //     `SERVICE_OFFERING` — a foto ainda não pertence a um serviço até o
+  //     create/submit (spec assumption 2).
+  if (!person.roles.includes('PROVIDER')) {
+    return fail('FORBIDDEN', 'Você precisa ativar o papel de prestador para enviar fotos de serviço.');
   }
 
   // 3. MIME real + tamanho (AC-029-4 / SVC029-MN-04) — nunca a extensão do nome
