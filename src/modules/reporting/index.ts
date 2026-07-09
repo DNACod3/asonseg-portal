@@ -60,3 +60,6 @@ export type { ModerationPair } from './domain/moderation-time';
 
 export { toCsv, composeWatermark, WATERMARK_PII } from './domain/csv';
 export type { CsvColumn, ToCsvOptions } from './domain/csv';
+
+export { reportJobs } from './queries/report-jobs';
+export type { JobReportFilters, JobReportRow } from './queries/report-jobs';
