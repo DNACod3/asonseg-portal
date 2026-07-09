@@ -28,7 +28,8 @@ export {
 } from './actions/register-referral-result';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
-export { canReferPersonToJob } from './server/route-access';
+export { canReferPersonToJob, canRegisterReferralResult } from './server/route-access';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { ReferralForm, type ReferralFormProps } from './components/referral-form';
+export { ResultForm, type ResultFormProps } from './components/result-form';
