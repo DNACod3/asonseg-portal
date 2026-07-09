@@ -27,3 +27,6 @@ export type { MetricDescriptor, MetricId, MetricUnit } from './domain/metrics';
 
 export { getHomeIndicators } from './queries/home-indicators';
 export type { HomeIndicators } from './queries/home-indicators';
+
+export { HomeIndicators as HomeIndicatorsView } from './components/home-indicators';
+export type { HomeIndicatorsProps } from './components/home-indicators';
