@@ -30,6 +30,13 @@ export {
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { canReferPersonToJob, canRegisterReferralResult } from './server/route-access';
 
+// ── Queries ───────────────────────────────────────────────────────────────────
+export {
+  listPersonReferrals,
+  PERSON_REFERRALS_PAGE_SIZE,
+  type PersonReferralRow,
+} from './queries/list-person-referrals';
+
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { ReferralForm, type ReferralFormProps } from './components/referral-form';
 export { ResultForm, type ResultFormProps } from './components/result-form';
