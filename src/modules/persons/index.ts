@@ -188,3 +188,5 @@ export type {
   ConsolidatedExternalDimensions,
   ConsolidatedPersonView,
 } from './views/view-person-for-social-assistant';
+export { ConsolidatedPersonPanel } from './components/consolidated-person-panel';
+export type { ConsolidatedPersonPanelProps } from './components/consolidated-person-panel';
