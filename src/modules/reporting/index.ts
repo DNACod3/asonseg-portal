@@ -16,3 +16,11 @@ export type {
 
 export { accessReportSchema } from './schemas/access-report';
 export type { AccessReportInput } from './schemas/access-report';
+
+// ── Indicadores da home pública (USP-041) ─────────────────────────────────
+// Fundação da camada `domain`/`queries` compartilhada com USP-042.
+export { applyMinimumDisplay, MINIMUM_DISPLAY_THRESHOLD } from './domain/indicators';
+export type { IndicatorDisplay } from './domain/indicators';
+
+export { MP } from './domain/metrics';
+export type { MetricDescriptor, MetricId, MetricUnit } from './domain/metrics';
