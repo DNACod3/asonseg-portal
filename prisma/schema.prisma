@@ -239,6 +239,8 @@ model Person {
   cvExtractionAttempts CvExtractionAttempt[]
   authoredServices     Service[] // USP-029
   serviceInterests     ServiceInterest[] // USP-033/U3
+  referralsReceived    Referral[]            @relation("ReferredPerson") // USP-037
+  referralsCreated     Referral[]            @relation("Referrer") // USP-037
 
   @@map("persons")
 }
@@ -510,6 +512,7 @@ model Job {
   region  Region?  @relation(fields: [regionId], references: [id])
 
   applications Application[]
+  referrals    Referral[] // USP-037
 
   // Dedup EXATA (P-003 / ADR-0021): impede 2 vagas idênticas vivas da mesma Empresa.
   // UNIQUE parcial — só estados "vivos" contam — criada via SQL bruto na migration
@@ -537,9 +540,14 @@ model Application {
   // o boolean agora (sempre false na Fase 3). USP-037 adiciona a FK `viaReferralId` e
   // passa a setar este campo, sem re-migrar a coluna.
   viaEncaminhamento Boolean   @default(false) @map("via_encaminhamento")
+  // USP-037: vínculo 1:1 autoritativo com o `Referral` que originou esta candidatura.
+  // Invariante: viaReferralId != null ⟺ viaEncaminhamento = true. `viaEncaminhamento`
+  // é MANTIDO (USP-027 já lê o boolean para o badge) — nenhuma re-migração dele.
+  viaReferralId     String?   @unique @map("via_referral_id") @db.Uuid
 
-  candidate Person @relation(fields: [candidatePersonId], references: [id])
-  job       Job    @relation(fields: [jobId], references: [id])
+  candidate Person    @relation(fields: [candidatePersonId], references: [id])
+  job       Job       @relation(fields: [jobId], references: [id])
+  referral  Referral? @relation(fields: [viaReferralId], references: [id])
 
   // uq_application_active (SQL bruto nesta migração, Prisma não expressa índice
   // parcial no schema): UNIQUE (candidate_person_id, job_id) WHERE cancelled_at IS
@@ -548,6 +556,48 @@ model Application {
   // appliedAt])` de technical-design.md §4.5 (não garante unicidade ativa sob corrida).
   @@index([jobId, cancelledAt]) // contagem on-read do contador (E-003)
   @@map("applications")
+}
+
+// ── Encaminhamentos (USP-037/038 — SOC-03..05) ───────────────────────────────
+/// Resultado de acompanhamento de um encaminhamento institucional (USP-038 / MP9).
+enum ReferralResult {
+  HIRED
+  NOT_SELECTED
+  UNDER_REVIEW
+  NO_RESPONSE
+
+  @@map("referral_result")
+}
+
+/// Encaminhamento institucional de uma Pessoa para uma vaga (USP-037 / SOC-03,
+/// SOC-04 — agregado raiz próprio, módulo `referrals`). Gera uma `Application`
+/// vinculada (`Application.viaReferralId`) na mesma transação. As colunas de
+/// RESULTADO (`result*`) nascem nullable nesta migração — USP-038 só as escreve,
+/// sem re-migrar (agregado planejado coeso, ver design.md do épico).
+model Referral {
+  id                  String          @id @default(uuid()) @db.Uuid
+  personId            String          @map("person_id") @db.Uuid // Pessoa encaminhada
+  jobId               String          @map("job_id") @db.Uuid
+  referrerPersonId    String          @map("referrer_person_id") @db.Uuid // AS/coord/voluntário que encaminhou
+  justification       String? // AC-037-4 (motivo opcional)
+  professionalSummary String?         @map("professional_summary") @db.Text // AC-037-3 (obrigatório se sem CV — validado na action)
+  // ── Colunas de RESULTADO (USP-038) — nullable já nesta migração ─────────────
+  result              ReferralResult?
+  resultObservation   String?         @map("result_observation")
+  /// Id da Pessoa que registrou o resultado (sem relação Prisma — resolvido via lookup, segue TD).
+  resultRegisteredBy  String?         @map("result_registered_by") @db.Uuid
+  resultRegisteredAt  DateTime?       @map("result_registered_at") @db.Timestamptz(6)
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person      Person       @relation("ReferredPerson", fields: [personId], references: [id])
+  job         Job          @relation(fields: [jobId], references: [id])
+  referrer    Person       @relation("Referrer", fields: [referrerPersonId], references: [id])
+  application Application? // back-relation de Application.viaReferralId (1:1)
+
+  @@index([personId])
+  @@index([jobId])
+  @@index([referrerPersonId])
+  @@map("referrals")
 }
 
 // ── Serviços (USP-029 — AD-009: status-on-entity) ────────────────────────────
