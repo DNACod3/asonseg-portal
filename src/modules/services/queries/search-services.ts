@@ -56,7 +56,10 @@ const serviceListSelect = {
  *    (`author.inactivated_at IS NULL`).
  * 2. Filtros em AND (AC-030-2): categoria, região, faixa de preço por overlap.
  * 3. Busca textual sem acento (AC-030-3): `immutable_unaccent` sobre título+descrição
- *    (índice `service_search_trgm`) OU nome da categoria (join na tabela pequena).
+ *    (índice `service_search_trgm`) OU `category_id` casando um subselect sobre o
+ *    nome da categoria — ambos os ramos são predicados de `services`, o que permite
+ *    ao planner combinar índices via BitmapOr em vez do `OR` bloquear o GIN trgm
+ *    quando comparava a relação juntada `service_categories.name` (F4, review PR #284).
  */
 function buildWhere(filters: SearchServicesFilters): Prisma.Sql {
   const conds: Prisma.Sql[] = [
@@ -81,7 +84,10 @@ function buildWhere(filters: SearchServicesFilters): Prisma.Sql {
     conds.push(Prisma.sql`(
       immutable_unaccent(lower(coalesce(s.title, '') || ' ' || coalesce(s.description, '')))
         LIKE immutable_unaccent(lower(${pattern}))
-      OR immutable_unaccent(lower(sc.name)) LIKE immutable_unaccent(lower(${pattern}))
+      OR s.category_id IN (
+        SELECT id FROM service_categories
+        WHERE immutable_unaccent(lower(name)) LIKE immutable_unaccent(lower(${pattern}))
+      )
     )`);
   }
 
@@ -111,7 +117,6 @@ export async function searchServices(
       SELECT s.id
       FROM services s
       JOIN persons author ON author.id = s.author_person_id
-      LEFT JOIN service_categories sc ON sc.id = s.category_id
       WHERE ${whereSql}
       ORDER BY s.published_at DESC NULLS LAST, s.last_status_change_at DESC, s.created_at DESC
       LIMIT ${SERVICE_SEARCH_PAGE_SIZE} OFFSET ${offset}`),
@@ -119,7 +124,6 @@ export async function searchServices(
       SELECT count(*)::bigint AS count
       FROM services s
       JOIN persons author ON author.id = s.author_person_id
-      LEFT JOIN service_categories sc ON sc.id = s.category_id
       WHERE ${whereSql}`),
   ]);
 
