@@ -145,6 +145,12 @@ skipIfNoDb('registerReferralResult — integração (USP-038 / T2)', () => {
     expect(referral?.result).toBeNull();
   });
 
+  it('Zod: referralId com uuid inválido → VALIDATION, sem tocar o banco', async () => {
+    mockActor = socialAssistant(asId);
+    const res = await registerReferralResult({ referralId: 'not-a-uuid', result: 'HIRED' });
+    expect(res).toMatchObject({ ok: false, error: { code: 'VALIDATION' } });
+  });
+
   it('@ref38-mn-02 ator sem REGISTER_REFERRAL_RESULT → FORBIDDEN, nenhuma coluna de resultado escrita', async () => {
     mockActor = volunteerNoPermission(volunteerId);
     const referralId = await makeReferral();
