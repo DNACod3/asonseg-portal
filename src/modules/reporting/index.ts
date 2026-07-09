@@ -36,3 +36,12 @@ export { HomeIndicators as HomeIndicatorsView } from './components/home-indicato
 export type { HomeIndicatorsProps } from './components/home-indicators';
 
 export { revalidateHomeIndicators } from './server/revalidate-home';
+
+// ── Relatórios operacionais (USP-042) ─────────────────────────────────────
+export {
+  canViewOperationalReports,
+  canViewSocialReports,
+  canViewModerationQueueReport,
+  OPERATIONAL_REPORT_ROLES,
+  SOCIAL_REPORT_ROLES,
+} from './domain/report-access';
