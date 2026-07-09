@@ -92,8 +92,18 @@ export type {
 export { REPORT_TYPES, EXPORT_FORMATS, exportReportSchema } from './schemas/export-report';
 export type { ReportType, ExportFormat, ExportReportInput } from './schemas/export-report';
 
+export { REPORT_TITLES } from './domain/report-titles';
+
+export { isReportTypeAuthorized } from './domain/report-authorization';
+
+export { buildReportRows } from './queries/build-report-rows';
+export type { BuiltReport } from './queries/build-report-rows';
+
 export { ReportPdfDocument } from './components/report-pdf';
 export type { ReportPdfColumn, ReportPdfProps } from './components/report-pdf';
 
 export { exportReport } from './actions/export-report';
 export type { ExportPayload } from './actions/export-report';
+
+export { ReportView } from './components/report-view';
+export type { ReportViewProps, ReportViewColumn, ReportViewFilters } from './components/report-view';
