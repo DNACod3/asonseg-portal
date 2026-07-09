@@ -51,3 +51,9 @@ export type { ReportWindow, ReportWindowInput } from './domain/report-window';
 
 export { reportFiltersSchema } from './schemas/report-filters';
 export type { ReportFiltersInput } from './schemas/report-filters';
+
+export { referralOutcomeRates } from './domain/referral-outcomes';
+export type { ReferralResultCounts, ReferralOutcomeRates } from './domain/referral-outcomes';
+
+export { moderationAvgHours } from './domain/moderation-time';
+export type { ModerationPair } from './domain/moderation-time';
