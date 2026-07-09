@@ -63,3 +63,6 @@ export type { CsvColumn, ToCsvOptions } from './domain/csv';
 
 export { reportJobs } from './queries/report-jobs';
 export type { JobReportFilters, JobReportRow } from './queries/report-jobs';
+
+export { reportApplications } from './queries/report-applications';
+export type { ApplicationReportFilters, ApplicationReportRow } from './queries/report-applications';
