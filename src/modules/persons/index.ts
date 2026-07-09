@@ -160,3 +160,9 @@ export type {
 } from './schemas/socioeconomic-record.schema';
 export { saveSocioeconomicRecord } from './actions/save-socioeconomic-record';
 export type { SaveSocioeconomicRecordResult } from './actions/save-socioeconomic-record';
+export { getSocioeconomicRecord } from './queries/get-socioeconomic-record';
+export { viewSocioeconomicRecord } from './views/view-socioeconomic-record';
+export type {
+  SocioeconomicRow,
+  SocioeconomicRecordView,
+} from './views/view-socioeconomic-record';
