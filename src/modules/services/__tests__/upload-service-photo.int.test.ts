@@ -202,6 +202,19 @@ skipIfNoDb('USP-029/T029-7 — uploadServicePhoto (integração)', () => {
     expect(res.error.code).toBe('UNAUTHENTICATED');
   });
 
+  it('MN-F2: sessão sem papel PROVIDER → FORBIDDEN, sem escrita no Storage', async () => {
+    mockPerson = { ...baseMockPerson(personId), roles: [] };
+    const formData = new FormData();
+    formData.set('file', fileOf(jpgBytes(), 'foto.jpg', 'image/jpeg'));
+
+    const before = await listStorageFiles(personId);
+    const res = await uploadServicePhoto(formData);
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe('FORBIDDEN');
+    expect(await listStorageFiles(personId)).toHaveLength(before.length);
+  });
+
   it('sem arquivo: bloqueia com VALIDATION', async () => {
     mockPerson = baseMockPerson(personId);
     const formData = new FormData();
