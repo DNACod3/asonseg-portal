@@ -47,7 +47,7 @@ export async function listPersonServiceInterests(
 ): Promise<PersonServiceInterestRow[]> {
   const rows = await prisma.serviceInterest.findMany({
     where: { clientPersonId: personId },
-    orderBy: [{ cancelledAt: 'asc' }, { interestedAt: 'desc' }],
+    orderBy: [{ cancelledAt: { sort: 'asc', nulls: 'first' } }, { interestedAt: 'desc' }],
     take: PERSON_SERVICE_INTERESTS_PAGE_SIZE,
     select: personServiceInterestSelect,
   });

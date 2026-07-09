@@ -109,6 +109,18 @@ skipIfNoDb('listPersonServiceInterests — integração', () => {
     expect(active?.serviceId).toBe(serviceId);
   });
 
+  it('ordena a manifestação ativa antes da cancelada (NULLS FIRST)', async () => {
+    const rows = await listPersonServiceInterests(targetPersonId);
+    expect(rows).toHaveLength(2);
+
+    // Ordenação documentada: ativas primeiro (cancelledAt asc, null primeiro),
+    // depois interestedAt desc. Asserção posicional — pega regressão para NULLS LAST.
+    expect(rows[0]?.active).toBe(true);
+    expect(rows[0]?.cancelledAt).toBeNull();
+    expect(rows[1]?.active).toBe(false);
+    expect(rows[1]?.cancelledAt).not.toBeNull();
+  });
+
   it('escopo clientPersonId: manifestação de outra Pessoa não aparece', async () => {
     const rows = await listPersonServiceInterests(targetPersonId);
     expect(rows).toHaveLength(2);
