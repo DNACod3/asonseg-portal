@@ -173,6 +173,31 @@ enum CredentialClaimStatus {
   @@map("credential_claim_status")
 }
 
+/// Faixa de renda aproximada declarada na ficha socioeconômica (USP-036).
+/// "Aproximada" ⇒ faixa (não decimal livre) — evita renda exata, habilita relatórios.
+enum IncomeBracket {
+  NO_INCOME
+  UP_TO_1_MW
+  FROM_1_TO_2_MW
+  FROM_2_TO_3_MW
+  ABOVE_3_MW
+  UNDECLARED
+
+  @@map("income_bracket")
+}
+
+/// Situação de moradia declarada na ficha socioeconômica (USP-036).
+enum HousingSituation {
+  OWNED
+  RENTED
+  GRANTED
+  FAMILY
+  HOMELESS
+  OTHER
+
+  @@map("housing_situation")
+}
+
 /// Pessoa = entidade fundamental do domínio (ADR-0011).
 /// CPF e e-mail únicos por Pessoa; CPF nullable apenas quando a AS cria
 /// exceção documental via USP-002 (P-007 das expectations).
@@ -207,6 +232,7 @@ model Person {
   candidateProfile     CandidateProfile?
   providerProfile      ProviderProfile?
   clientProfile        ClientProfile?
+  socioeconomicRecord  SocioeconomicRecord?
   authoredJobs         Job[]
   applications         Application[]
   cvUploadAttempts     CvUploadAttempt[]
@@ -694,6 +720,32 @@ model ClientProfile {
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@map("client_profiles")
+}
+
+/// Ficha socioeconômica mínima da Pessoa (USP-036 / SOC-01, SOC-02).
+/// 1:1 com Person (PK = FK) garante 1 ficha por Pessoa sem índice adicional.
+/// Dados pessoais sensíveis (LGPD): criptografia em repouso = plataforma
+/// Supabase (gerenciada, ADR-0012 — mesmo tratamento de `candidate_profiles`),
+/// NÃO coluna/aplicacional. Acesso restrito a SOCIAL_ASSISTANT/BOARD (guarda de
+/// domínio inline) e auditoria de toda alteração/acesso são os controles desta
+/// USP (SOC-036-MN-01/02) — ver design.md §Risks.
+model SocioeconomicRecord {
+  personId String @id @map("person_id") @db.Uuid
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  incomeBracket     IncomeBracket?    @map("income_bracket")
+  /// Nome/descrição do benefício declarado; null = não recebe/não declarado.
+  socialBenefit     String?           @map("social_benefit")
+  housingSituation  HousingSituation? @map("housing_situation")
+  /// Texto/número declarado — sem entidade Família estruturada (fora do MVP).
+  familyComposition String?           @map("family_composition")
+
+  /// Conveniência de "última alteração" — histórico autoritativo = audit_log (AD-008).
+  updatedByPersonId String?  @map("updated_by_person_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("socioeconomic_records")
 }
 
 /// Store transitório de conteúdo moderável para a máquina de estados (GAP-8).
