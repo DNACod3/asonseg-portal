@@ -114,6 +114,11 @@ export {
   APPLICANTS_PAGE_SIZE,
   type EmployerCandidatesResult,
 } from './queries/list-job-applicants';
+export {
+  listPersonApplications,
+  PERSON_APPLICATIONS_PAGE_SIZE,
+  type PersonApplicationRow,
+} from './queries/list-person-applications';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
