@@ -14,3 +14,9 @@ export type { CreateReferralInput, CreateReferralData } from './schemas/referral
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createReferral, type CreateReferralResult } from './actions/create-referral';
+
+// ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
+export { canReferPersonToJob } from './server/route-access';
+
+// ── Componentes ───────────────────────────────────────────────────────────────
+export { ReferralForm, type ReferralFormProps } from './components/referral-form';
