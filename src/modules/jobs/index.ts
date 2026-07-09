@@ -70,8 +70,13 @@ export {
   enqueueExpiryReminder,
   type JobExpiryReminderPayload,
 } from './actions/enqueue-expiry-reminder';
-export { applyToJob, type ApplyToJobResult } from './actions/apply-to-job';
+export { applyToJob, ApplyConflictError, type ApplyToJobResult } from './actions/apply-to-job';
 export { cancelApplication, type CancelApplicationResult } from './actions/cancel-application';
+export {
+  createReferralApplication,
+  type CreateReferralApplicationArgs,
+  type CreateReferralApplicationResult,
+} from './actions/create-referral-application';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
