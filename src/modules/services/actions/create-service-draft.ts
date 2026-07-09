@@ -7,6 +7,7 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { isServiceDedupViolation } from '../domain/dedup';
+import { isOwnedServicePhotoPath } from '../domain/photo-path';
 import { draftServiceSchema, type DraftServiceInput } from '../schemas/publish-service.schema';
 import { requireServiceAuthorization } from '../server/require-service-authorization';
 
@@ -59,6 +60,12 @@ export async function createServiceDraft(
   const ip = rawIp === 'unknown' ? null : rawIp;
   const userAgent = hdrs.get('user-agent') ?? null;
   const photoStoragePaths = data.photoStoragePaths ?? [];
+
+  // 3b. Posse+formato de cada photoStoragePath (F3/MN-F3) — antes de qualquer
+  //     escrita. Bloqueia foto de terceiro e path malformado (ex.: `../`).
+  if (!photoStoragePaths.every((p) => isOwnedServicePhotoPath(p, person.id))) {
+    return fail('VALIDATION', 'Foto inválida. Reenvie as fotos do serviço.');
+  }
 
   // 4. Persistência atômica do rascunho (+ fotos) + auditoria.
   try {

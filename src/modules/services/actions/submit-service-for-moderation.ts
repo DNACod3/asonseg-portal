@@ -8,6 +8,7 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { isServiceDedupViolation } from '../domain/dedup';
+import { isOwnedServicePhotoPath } from '../domain/photo-path';
 import { submitServiceSchema, type SubmitServiceInput } from '../schemas/publish-service.schema';
 import { requireServiceAuthorization } from '../server/require-service-authorization';
 import { requireServiceOwner } from '../server/require-service-owner';
@@ -80,6 +81,13 @@ export async function submitServiceForModeration(
     const ip = rawIp === 'unknown' ? null : rawIp;
     const userAgent = hdrs.get('user-agent') ?? null;
     const photoStoragePaths = data.photoStoragePaths ?? [];
+
+    // 3c. Posse+formato de cada photoStoragePath (F3/MN-F3) — antes de
+    //     qualquer escrita. Só o ramo form-direto recebe paths; o ramo
+    //     `{ serviceId }` (submeter rascunho existente) já validou na criação.
+    if (!photoStoragePaths.every((p) => isOwnedServicePhotoPath(p, person.id))) {
+      return fail('VALIDATION', 'Foto inválida. Reenvie as fotos do serviço.');
+    }
     try {
       const created = await withAudit(
         AuditEvent.SERVICE_DRAFT_SAVED,
