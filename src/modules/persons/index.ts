@@ -158,3 +158,5 @@ export type {
   SocioeconomicRecordInput,
   SocioeconomicRecordData,
 } from './schemas/socioeconomic-record.schema';
+export { saveSocioeconomicRecord } from './actions/save-socioeconomic-record';
+export type { SaveSocioeconomicRecordResult } from './actions/save-socioeconomic-record';
