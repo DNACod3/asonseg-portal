@@ -39,8 +39,10 @@ function escapeCsvField(raw: string): string {
  * `null`/`undefined` viram célula vazia; `Date` vira ISO; primitivos via
  * `String(...)`; objeto residual (não deveria ocorrer — as queries projetam
  * primitivos) vira `JSON.stringify` em vez do `[object Object]` padrão.
+ * Exportada para reuso pelo documento PDF (T11 — `report-pdf.tsx`), que
+ * precisa do mesmo formato de célula sem duplicar a regra.
  */
-function cellToString(value: unknown): string {
+export function cellToString(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'object') return JSON.stringify(value);

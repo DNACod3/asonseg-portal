@@ -88,3 +88,12 @@ export type {
   SocialReportRegionRow,
   SocialReportSensitiveBreakdown,
 } from './views/social-report.view';
+
+export { REPORT_TYPES, EXPORT_FORMATS, exportReportSchema } from './schemas/export-report';
+export type { ReportType, ExportFormat, ExportReportInput } from './schemas/export-report';
+
+export { ReportPdfDocument } from './components/report-pdf';
+export type { ReportPdfColumn, ReportPdfProps } from './components/report-pdf';
+
+export { exportReport } from './actions/export-report';
+export type { ExportPayload } from './actions/export-report';
