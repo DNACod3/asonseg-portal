@@ -265,7 +265,7 @@ export function ProviderForm({
             serviço.
           </p>
           <Button asChild variant="primary">
-            <Link href="/servicos/novo">Publicar primeiro serviço</Link>
+            <Link href="/prestador/servicos/nova">Publicar primeiro serviço</Link>
           </Button>
         </div>
       )}
