@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const { prisma } = await import('@/shared/lib/prisma');
 const { createReferralApplication } = await import('../actions/create-referral-application');
-const { ApplyConflictError } = await import('../actions/apply-to-job');
+const { ApplyConflictError } = await import('../domain/apply-errors');
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 

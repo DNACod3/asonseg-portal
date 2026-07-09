@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { ApplyConflictError } from './apply-to-job';
+import { ApplyConflictError } from '../domain/apply-errors';
 
 export interface CreateReferralApplicationArgs {
   jobId: string;

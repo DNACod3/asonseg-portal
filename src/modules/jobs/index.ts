@@ -70,7 +70,8 @@ export {
   enqueueExpiryReminder,
   type JobExpiryReminderPayload,
 } from './actions/enqueue-expiry-reminder';
-export { applyToJob, ApplyConflictError, type ApplyToJobResult } from './actions/apply-to-job';
+export { applyToJob, type ApplyToJobResult } from './actions/apply-to-job';
+export { ApplyConflictError } from './domain/apply-errors';
 export { cancelApplication, type CancelApplicationResult } from './actions/cancel-application';
 export {
   createReferralApplication,
