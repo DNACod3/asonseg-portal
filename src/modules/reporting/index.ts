@@ -69,3 +69,6 @@ export type { ApplicationReportFilters, ApplicationReportRow } from './queries/r
 
 export { reportServices } from './queries/report-services';
 export type { ServiceReportFilters, ServiceReportRow, ServiceReport } from './queries/report-services';
+
+export { reportReferrals } from './queries/report-referrals';
+export type { ReferralReportFilters, ReferralReport } from './queries/report-referrals';
