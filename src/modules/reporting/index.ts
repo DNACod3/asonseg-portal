@@ -72,3 +72,10 @@ export type { ServiceReportFilters, ServiceReportRow, ServiceReport } from './qu
 
 export { reportReferrals } from './queries/report-referrals';
 export type { ReferralReportFilters, ReferralReport } from './queries/report-referrals';
+
+export { reportModerationQueue } from './queries/report-moderation-queue';
+export type {
+  ModerationQueueReportFilters,
+  ModerationQueueReport,
+  ModerationQueueCounts,
+} from './queries/report-moderation-queue';
