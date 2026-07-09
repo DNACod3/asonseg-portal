@@ -80,6 +80,17 @@ export interface ServiceInterestNotificationEmailData {
   clienteNome: string;
 }
 
+/** Dados do template de aviso de encaminhamento institucional (USP-037 / AC-037-5).
+ *  Enfileirado só quando a Pessoa tem `emailLogin` (EC-2: sem e-mail = no-op). */
+export interface ReferralNotificationEmailData {
+  /** Nome da Pessoa encaminhada (saudação). */
+  pessoaNome: string;
+  /** Título da vaga para a qual a Pessoa foi encaminhada. */
+  vagaTitulo: string;
+  /** Nome fantasia (ou rótulo anonimizado) da Empresa da vaga. */
+  empresaNome: string;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -91,7 +102,8 @@ export type EmailMessage =
   | { to: string; template: 'responsible-link-pending'; data: ResponsibleLinkPendingEmailData }
   | { to: string; template: 'responsible-removed'; data: ResponsibleRemovedEmailData }
   | { to: string; template: 'application-confirmation'; data: ApplicationConfirmationEmailData }
-  | { to: string; template: 'service-interest-notification'; data: ServiceInterestNotificationEmailData };
+  | { to: string; template: 'service-interest-notification'; data: ServiceInterestNotificationEmailData }
+  | { to: string; template: 'referral-notification'; data: ReferralNotificationEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {

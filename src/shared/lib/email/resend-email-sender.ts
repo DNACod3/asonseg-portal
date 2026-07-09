@@ -14,6 +14,7 @@ import { renderResponsibleLinkPendingEmail } from './templates/responsible-link-
 import { renderResponsibleRemovedEmail } from './templates/responsible-removed';
 import { renderApplicationConfirmationEmail } from './templates/application-confirmation';
 import { renderServiceInterestNotificationEmail } from './templates/service-interest-notification';
+import { renderReferralNotificationEmail } from './templates/referral-notification';
 
 /**
  * Subconjunto estrutural do client Resend que o adapter consome. Mantê-lo
@@ -48,6 +49,8 @@ function render(message: EmailMessage): RenderedEmail {
       return renderApplicationConfirmationEmail(message.data);
     case 'service-interest-notification':
       return renderServiceInterestNotificationEmail(message.data);
+    case 'referral-notification':
+      return renderReferralNotificationEmail(message.data);
   }
 }
 
