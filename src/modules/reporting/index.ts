@@ -45,3 +45,9 @@ export {
   OPERATIONAL_REPORT_ROLES,
   SOCIAL_REPORT_ROLES,
 } from './domain/report-access';
+
+export { resolveReportWindow } from './domain/report-window';
+export type { ReportWindow, ReportWindowInput } from './domain/report-window';
+
+export { reportFiltersSchema } from './schemas/report-filters';
+export type { ReportFiltersInput } from './schemas/report-filters';

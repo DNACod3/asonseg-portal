@@ -130,6 +130,12 @@ export const AuditEvent = {
 
   // ── Retenção ──────────────────────────────────────────────────────────────
   AUDIT_LOG_PURGED: 'AUDIT_LOG_PURGED',
+
+  // ── Relatórios (USP-042 / TD §4.6) ────────────────────────────────────────
+  /** Exportação de um relatório operacional (CSV/PDF) — quem/relatório/filtros/
+   *  escopo de PII (nunca valores PII — minimização do `withAudit`). Não exige
+   *  `justification` (E-003 / REL42-MN-07; ancorado no card USP-042/design.md). */
+  REPORT_EXPORTED: 'REPORT_EXPORTED',
 } as const;
 
 export type AuditEventName = (typeof AuditEvent)[keyof typeof AuditEvent];
