@@ -66,3 +66,6 @@ export type { JobReportFilters, JobReportRow } from './queries/report-jobs';
 
 export { reportApplications } from './queries/report-applications';
 export type { ApplicationReportFilters, ApplicationReportRow } from './queries/report-applications';
+
+export { reportServices } from './queries/report-services';
+export type { ServiceReportFilters, ServiceReportRow, ServiceReport } from './queries/report-services';
