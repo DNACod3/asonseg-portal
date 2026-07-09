@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ReferralResult } from '@prisma/client';
 
 /**
  * Schemas de fronteira do agregado `Referral` (USP-037/038 — SOC-03..05).
@@ -31,3 +32,24 @@ export const createReferralSchema = z.object({
 
 export type CreateReferralInput = z.input<typeof createReferralSchema>;
 export type CreateReferralData = z.output<typeof createReferralSchema>;
+
+export const RESULT_OBSERVATION_MAX = 2000;
+
+/**
+ * Registrar o resultado de um encaminhamento existente (USP-038 / AC-038-1..3).
+ * `z.nativeEnum(ReferralResult)` restringe `result` aos 4 valores do enum
+ * (REF38-MN-01) — defesa em profundidade com a coluna enum do Postgres
+ * (migrada na USP-037), que a action também exercita.
+ */
+export const registerReferralResultSchema = z.object({
+  referralId: z.string().uuid('Encaminhamento inválido.'),
+  result: z.nativeEnum(ReferralResult, { message: 'Selecione um resultado válido.' }),
+  observation: z
+    .string()
+    .trim()
+    .max(RESULT_OBSERVATION_MAX, `Máximo de ${RESULT_OBSERVATION_MAX} caracteres.`)
+    .optional(),
+});
+
+export type RegisterReferralResultInput = z.input<typeof registerReferralResultSchema>;
+export type RegisterReferralResultData = z.output<typeof registerReferralResultSchema>;
