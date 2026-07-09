@@ -34,3 +34,5 @@ export type { HomeIndicators } from './queries/home-indicators';
 
 export { HomeIndicators as HomeIndicatorsView } from './components/home-indicators';
 export type { HomeIndicatorsProps } from './components/home-indicators';
+
+export { revalidateHomeIndicators } from './server/revalidate-home';

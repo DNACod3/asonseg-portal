@@ -7,6 +7,15 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// USP-041/T6: revalidateHomeIndicators() chama next/cache.revalidatePath, que
+// lança fora de um request Next real ("static generation store missing").
+// Vira spy aqui (mesmo motivo dos outros side effects — este é um teste
+// unitário puro, sem servidor Next de verdade por trás).
+const homeRevalidateSpy = vi.hoisted(() => vi.fn());
+vi.mock('@/modules/reporting', () => ({
+  revalidateHomeIndicators: homeRevalidateSpy,
+}));
+
 // `withAudit(event, cb, ctx)` roda o callback com tx/audit fake e devolve seu
 // retorno — sem transação real. Mantém o catálogo `AuditEvent` (mapeamento real).
 const auditState = vi.hoisted(() => ({
@@ -63,6 +72,7 @@ const rejectHook = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
+  homeRevalidateSpy.mockClear();
   auditState.event = undefined;
   auditState.ctx = undefined;
   auditState.audit = undefined;
@@ -123,6 +133,7 @@ describe('transitionContent — caminho feliz e auditoria', () => {
     expect(notify).toHaveBeenCalledTimes(1);
     expect(cache).toHaveBeenCalledTimes(1);
     expect(hook).toHaveBeenCalledTimes(1); // só ACTIVE aciona o hook de Empresa
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: to=ACTIVE revalida a home
   });
 
   it('rejeitar com motivo: evento CONTENT_REJECTED, justificativa no audit e SEM hook de Empresa', async () => {
@@ -140,6 +151,7 @@ describe('transitionContent — caminho feliz e auditoria', () => {
     expect(auditState.audit?.justification).toBe(MOTIVO);
     expect(hook).not.toHaveBeenCalled(); // verificação só em ACTIVE
     expect(rejectHook).toHaveBeenCalledTimes(1); // contador de rejeição em REJECTED (USP-017)
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: sucesso, mas to != ACTIVE
   });
 
   it('devolver para ajustes com motivo: evento CONTENT_RETURNED_FOR_ADJUSTMENTS', async () => {
@@ -189,6 +201,7 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     const res = await approve();
     expect(res).toMatchObject({ ok: false, error: { code: 'NOT_FOUND' } });
     expect(repo.updateStatus).not.toHaveBeenCalled();
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: caminho de erro, nunca commitou
   });
 
   it('INVALID_TRANSITION para transição não declarada (REJECTED→ACTIVE)', async () => {
@@ -196,6 +209,7 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     const res = await approve();
     expect(res).toMatchObject({ ok: false, error: { code: 'INVALID_TRANSITION' } });
     expect(repo.updateStatus).not.toHaveBeenCalled();
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: caminho de erro, nunca commitou
   });
 
   it('JUSTIFICATION_REQUIRED ao devolver/rejeitar com motivo insignificante', async () => {
@@ -236,6 +250,7 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     });
     expect(res.ok).toBe(true);
     expect(auditState.event).toBe(AuditEvent.JOB_UNPAUSED);
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: to=ACTIVE revalida mesmo fora de MODERATOR_ACTION
   });
 
   it('preservação: CV ACTIVE→PAUSED continua INTERNAL — o ramo JOB_*/SERVICE_* não vaza para outros ContentKind', async () => {
@@ -276,6 +291,7 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     });
     expect(res.ok).toBe(true);
     expect(auditState.event).toBe(AuditEvent.SERVICE_UNPAUSED);
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: to=ACTIVE revalida a home
   });
 
   it('USP-029/T029-2: SERVICE ACTIVE→ARCHIVED (AUTHOR_ACTION) mapeia SERVICE_ARCHIVED', async () => {
@@ -311,12 +327,14 @@ describe('transitionContent — transação e concorrência', () => {
     const res = await approve();
     expect(res).toMatchObject({ ok: false, error: { code: 'INVALID_TRANSITION' } });
     expect(notify).not.toHaveBeenCalled(); // conflito aborta antes dos side effects
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: rollback, nunca commitou
   });
 
   it('INTERNAL quando a transação lança um erro inesperado', async () => {
     repo.updateStatus.mockRejectedValue(new Error('boom'));
     const res = await approve();
     expect(res).toMatchObject({ ok: false, error: { code: 'INTERNAL' } });
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: caminho de erro, nunca commitou
   });
 
   it('R2: falha de notificação é soft-fail — a decisão conclui ok mesmo assim', async () => {
@@ -325,6 +343,7 @@ describe('transitionContent — transação e concorrência', () => {
     expect(res.ok).toBe(true);
     expect(cache).toHaveBeenCalledTimes(1); // segue para os próximos efeitos
     expect(hook).toHaveBeenCalledTimes(1);
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: commit ocorreu, to=ACTIVE
   });
 
   it('R2: falha de invalidação de cache também é soft-fail', async () => {
@@ -332,5 +351,15 @@ describe('transitionContent — transação e concorrência', () => {
     const res = await approve();
     expect(res.ok).toBe(true);
     expect(hook).toHaveBeenCalledTimes(1);
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: commit ocorreu, to=ACTIVE
+  });
+
+  it('USP-041/T6: falha da própria revalidação da home é soft-fail — a decisão conclui ok mesmo assim (backstop ISR 600s)', async () => {
+    homeRevalidateSpy.mockImplementationOnce(() => {
+      throw new Error('revalidatePath indisponível');
+    });
+    const res = await approve();
+    expect(res.ok).toBe(true);
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,5 @@
 import { AuditEvent, type AuditEventName, withAudit } from '@/modules/audit';
+import { revalidateHomeIndicators } from '@/modules/reporting';
 import { container } from '@/shared/container';
 import { fail, ok, type ActionResult } from '@/shared/errors';
 import { childLogger } from '@/shared/lib/logger';
@@ -37,7 +38,13 @@ class TransitionConflictError extends Error {}
  * Sequência: carrega status → valida transição (regras puras #121) → exige motivo
  * significativo quando aplicável (P-003) → aplica em `withAudit` (status + audit
  * log na **mesma transação**, AC5 / L-003) com concorrência otimista (R3) →
- * dispara side effects soft-fail (e-mail, cache) e o hook de Empresa (R2 / GAP-4).
+ * dispara side effects soft-fail (e-mail, cache) e o hook de Empresa (R2 / GAP-4)
+ * → **fora** da tx, após o commit, revalida os indicadores da home pública
+ * quando `to === ACTIVE` (USP-041 / T6 / D-005): é o único chokepoint real
+ * dos 3 eventos de origem — vaga aprovada, perfil de candidato ativado e
+ * verificação de Empresa (efeito colateral do `CompanyVerifyHook` acima,
+ * também disparado só em `ACTIVE`) passam todos por aqui (ADR-0011 —
+ * única via de mudança de status).
  *
  * Nunca lança — retorna `ActionResult`.
  */
@@ -124,6 +131,19 @@ export async function transitionContent(
       },
       { actorPersonId: input.actorPersonId, context: { contentKind, contentId } },
     );
+
+    // USP-041/T6 (E-002/D-005): revalidação da home fora da tx —
+    // `revalidatePath` não é transacional. Só quando a transição pode mover
+    // um dos 3 contadores da home (vaga aprovada, perfil de candidato
+    // ativado, verificação de Empresa). Soft-fail: o piso ISR de 600s
+    // (REL41-MN-03) é o backstop de correção se isto falhar.
+    if (data.to === ContentStatus.ACTIVE) {
+      try {
+        revalidateHomeIndicators();
+      } catch (err) {
+        log.warn({ err }, 'moderation:transition:home-indicators-revalidate-failed');
+      }
+    }
 
     return ok(data);
   } catch (err) {

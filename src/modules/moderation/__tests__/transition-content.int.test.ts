@@ -12,6 +12,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentStatus as PrismaContentStatus } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
 import { container } from '@/shared/container';
+
+// USP-041/T6: revalidateHomeIndicators() chama next/cache.revalidatePath por
+// baixo — vira spy aqui pelo mesmo motivo dos outros side effects acima
+// (evita next/cache fora de request e permite asserção de chamada/não-chamada).
+const homeRevalidateSpy = vi.hoisted(() => vi.fn());
+vi.mock('@/modules/reporting', () => ({
+  revalidateHomeIndicators: homeRevalidateSpy,
+}));
 import {
   transitionContent,
   ContentKind,
@@ -59,6 +67,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
   beforeEach(() => {
     // Side effects viram spies (evita next/cache fora de request e permite asserções).
     // O ContentStatusRepository permanece o adapter Prisma real contra o DB.
+    homeRevalidateSpy.mockClear();
     notifySpy = vi.fn().mockResolvedValue(undefined);
     cacheSpy = vi.fn().mockResolvedValue(undefined);
     hookSpy = vi.fn().mockResolvedValue(undefined);
@@ -104,6 +113,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(notifySpy).toHaveBeenCalledTimes(1);
     expect(cacheSpy).toHaveBeenCalledTimes(1);
     expect(hookSpy).toHaveBeenCalledTimes(1); // ACTIVE → hook de Empresa
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: to=ACTIVE revalida a home
   });
 
   it('E-004/L-003: rejeitar com motivo grava CONTENT_REJECTED + justificativa no audit', async () => {
@@ -125,6 +135,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(rows[0]).toMatchObject({ action: 'CONTENT_REJECTED', justification: motivo });
     expect(hookSpy).not.toHaveBeenCalled(); // verificação só em ACTIVE
     expect(rejectHookSpy).toHaveBeenCalledTimes(1); // contador de rejeição em REJECTED
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: sucesso, mas to != ACTIVE
   });
 
   it('AC6: transição não declarada retorna INVALID_TRANSITION sem alterar status nem audit', async () => {
@@ -142,6 +153,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(await statusOf(id)).toBe('REJECTED');
     expect(await auditRows(id)).toHaveLength(0);
     expect(notifySpy).not.toHaveBeenCalled();
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: caminho de erro, nunca commitou
   });
 
   it('P-003: devolver com motivo insignificante retorna JUSTIFICATION_REQUIRED sem efeitos', async () => {
@@ -191,6 +203,7 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(res.ok).toBe(true);
     const rows = await auditRows(id);
     expect(rows[0]).toMatchObject({ action: 'JOB_UNPAUSED' });
+    expect(homeRevalidateSpy).toHaveBeenCalledTimes(1); // USP-041/T6: to=ACTIVE revalida mesmo fora de MODERATOR_ACTION
   });
 
   it('USP-023/T1: JOB ACTIVE→ARCHIVED (AUTHOR_ACTION) grava JOB_ARCHIVED', async () => {
@@ -295,5 +308,6 @@ describe.skipIf(!hasDb)('USP-016 #122 — transitionContent (integração)', () 
     expect(res).toMatchObject({ ok: false, error: { code: 'INVALID_TRANSITION' } });
     expect(await statusOf(id)).toBe('ACTIVE'); // inalterado
     expect(await auditRows(id)).toHaveLength(0); // audit revertido junto
+    expect(homeRevalidateSpy).not.toHaveBeenCalled(); // USP-041/T6: rollback, nunca commitou
   });
 });
