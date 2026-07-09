@@ -2,8 +2,12 @@
 // Todos os imports externos devem passar por este arquivo (nunca deep paths).
 
 // ── Relatório de acesso (LGPD art. 19 — direito de acesso) ───────────────────
-export { issueAccessReport, ACCESS_REPORT_ROLES } from './actions/access-report';
+export { issueAccessReport } from './actions/access-report';
 export type { AccessReportResult } from './actions/access-report';
+// `ACCESS_REPORT_ROLES` vive fora do arquivo `'use server'` (ver domain/
+// access-report-roles.ts) — obrigatório para o build do Next quando QUALQUER
+// rota importa este barrel (USP-041/T5).
+export { ACCESS_REPORT_ROLES } from './domain/access-report-roles';
 
 // View Model (ADR-0010): leitura/projeção cross-Pessoa encapsulada.
 export { viewPersonForAccessReport } from './views/access-report.view';
