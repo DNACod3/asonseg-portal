@@ -91,6 +91,18 @@ export interface ReferralNotificationEmailData {
   empresaNome: string;
 }
 
+/** Dados do template de aviso de expiração próxima de vaga D-3 (USP-024 / USP-044 —
+ *  hidratado por `resolveJobExpiryEmail` a partir do payload leve `{kind:'JOB_EXPIRY_D3'}`
+ *  gravado no Outbox). Mínimo necessário, sem PII de terceiro (E-003/P-002). */
+export interface JobExpiryEmailData {
+  /** Nome fantasia (ou razão social) da Empresa dona da vaga. */
+  empresaNome: string;
+  /** Título da vaga que está prestes a expirar. */
+  vagaTitulo: string;
+  /** Dias restantes até a expiração (D-3 = 3). */
+  diasRestantes: number;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -103,7 +115,8 @@ export type EmailMessage =
   | { to: string; template: 'responsible-removed'; data: ResponsibleRemovedEmailData }
   | { to: string; template: 'application-confirmation'; data: ApplicationConfirmationEmailData }
   | { to: string; template: 'service-interest-notification'; data: ServiceInterestNotificationEmailData }
-  | { to: string; template: 'referral-notification'; data: ReferralNotificationEmailData };
+  | { to: string; template: 'referral-notification'; data: ReferralNotificationEmailData }
+  | { to: string; template: 'job-expiry'; data: JobExpiryEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {
