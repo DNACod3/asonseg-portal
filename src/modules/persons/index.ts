@@ -166,3 +166,8 @@ export type {
   SocioeconomicRow,
   SocioeconomicRecordView,
 } from './views/view-socioeconomic-record';
+export { SocioeconomicRecordForm } from './components/socioeconomic-record-form';
+export type {
+  SocioeconomicRecordFormProps,
+  SocioeconomicRecordFormInitial,
+} from './components/socioeconomic-record-form';
