@@ -183,3 +183,8 @@ export {
   CONSOLIDATED_PERSON_ROLES,
 } from './domain/consolidated-person';
 export type { ConsolidatedPersonRole } from './domain/consolidated-person';
+export { viewPersonForSocialAssistant } from './views/view-person-for-social-assistant';
+export type {
+  ConsolidatedExternalDimensions,
+  ConsolidatedPersonView,
+} from './views/view-person-for-social-assistant';
