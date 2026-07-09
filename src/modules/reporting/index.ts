@@ -24,3 +24,6 @@ export type { IndicatorDisplay } from './domain/indicators';
 
 export { MP } from './domain/metrics';
 export type { MetricDescriptor, MetricId, MetricUnit } from './domain/metrics';
+
+export { getHomeIndicators } from './queries/home-indicators';
+export type { HomeIndicators } from './queries/home-indicators';
