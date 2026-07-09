@@ -132,3 +132,20 @@ export type {
 // Componentes de UI da inativação (USP-007) e reativação (USP-045).
 export { InactivatePersonDialog } from './components/inactivate-person-dialog';
 export { ReactivatePersonDialog } from './components/reactivate-person-dialog';
+
+// Ficha socioeconômica (USP-036 / SOC-01, SOC-02, SOC-036-MN-01/02).
+export {
+  canManageSocioeconomicRecord,
+  isEmptyRecord,
+  SOCIOECONOMIC_RECORD_ROLES,
+  INCOME_BRACKETS,
+  INCOME_BRACKET_LABELS,
+  HOUSING_SITUATIONS,
+  HOUSING_SITUATION_LABELS,
+} from './domain/socioeconomic-record';
+export type {
+  SocioeconomicRecordRole,
+  IncomeBracket,
+  HousingSituation,
+  EmptyRecordCheck,
+} from './domain/socioeconomic-record';
