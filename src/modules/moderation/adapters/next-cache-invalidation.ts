@@ -23,10 +23,13 @@ export class NextCacheInvalidation implements CacheInvalidationPort {
     for (const path of this.publicPathsFor(target.contentKind)) {
       revalidatePath(path);
     }
-    // Página de detalhe da vaga (USP-018 / INACT-05, INACT-MN-04): revalida
-    // também `/vagas/[id]` para que o ISR não sirva uma vaga inativada stale.
+    // Página de detalhe (USP-018 / INACT-05, INACT-MN-04 — espelhado em USP-029/030/031
+    // para serviços): revalida também a rota `[id]` para que o ISR não sirva um
+    // conteúdo inativado/pausado stale.
     if (target.contentKind === ContentKind.JOB) {
       revalidatePath(`/vagas/${target.contentId}`);
+    } else if (target.contentKind === ContentKind.SERVICE) {
+      revalidatePath(`/servicos/${target.contentId}`);
     }
     this.log.debug({ contentKind: target.contentKind, to: target.to }, 'moderation:cache:revalidated');
   }

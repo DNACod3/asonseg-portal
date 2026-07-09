@@ -24,7 +24,7 @@ export const STORAGE_BUCKETS = {
   CVS: 'cvs',
   /** Privado. PDF/JPG/PNG até 10MB. URL assinada, TTL 5min. `consent-terms/{person_id}/{purpose}/{uuid}.{ext}` */
   CONSENT_TERMS: 'consent-terms',
-  /** Público. JPG/PNG até 2MB. URL direta do CDN. `provider-photos/{person_id}/{uuid}.{ext}` */
+  /** Público. JPG/PNG/WEBP até 5MB (USP-029: até 3 fotos por serviço). URL direta do CDN. `provider-photos/{person_id}/{uuid}.{ext}` */
   PROVIDER_PHOTOS: 'provider-photos',
 } as const;
 

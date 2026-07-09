@@ -84,7 +84,7 @@ describe('USP-010 #116 — ProviderForm', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: /publicar primeiro serviço/i })).toHaveAttribute(
         'href',
-        '/servicos/novo',
+        '/prestador/servicos/nova',
       );
     });
   });

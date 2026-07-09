@@ -138,11 +138,13 @@ export async function transitionContent(
 
 /**
  * Mapeia (tipo de conteúdo + origem + destino + gatilho) para o evento de auditoria
- * do catálogo (`@/modules/audit/events`). Kind-aware (USP-023/T1): o ramo comum
- * (moderação) vale para qualquer `ContentKind`; o ramo `JOB` cobre o ciclo de vida
- * pós-publicação (pausar/despausar/arquivar/expirar), que só a vaga usa hoje. Kinds
- * sem ramo próprio (CV/SERVICE/CANDIDATE_PROFILE) preservam o comportamento anterior
- * — `null` para os destinos fora do ramo comum (sem regressão).
+ * do catálogo (`@/modules/audit/events`). Kind-aware (USP-023/T1, estendido em
+ * USP-029/T029-2): o ramo comum (moderação) vale para qualquer `ContentKind`; os
+ * ramos `JOB`/`SERVICE` cobrem o ciclo de vida pós-publicação (pausar/despausar/
+ * arquivar/expirar). `JOB` também expira (`SYSTEM_JOB`); `SERVICE` não tem EXPIRED
+ * (sem validade automática — épico servicos, out-of-scope USP-024). Kinds sem ramo
+ * próprio (CV/CANDIDATE_PROFILE) preservam o comportamento anterior — `null` para
+ * os destinos fora do ramo comum (sem regressão).
  */
 function eventTypeFor(
   contentKind: ContentKind,
@@ -153,8 +155,9 @@ function eventTypeFor(
   switch (to) {
     case ContentStatus.ACTIVE:
       if (trigger === 'MODERATOR_ACTION') return AuditEvent.CONTENT_APPROVED;
-      if (contentKind === ContentKind.JOB && from === ContentStatus.PAUSED && trigger === 'AUTHOR_ACTION') {
-        return AuditEvent.JOB_UNPAUSED;
+      if (from === ContentStatus.PAUSED && trigger === 'AUTHOR_ACTION') {
+        if (contentKind === ContentKind.JOB) return AuditEvent.JOB_UNPAUSED;
+        if (contentKind === ContentKind.SERVICE) return AuditEvent.SERVICE_UNPAUSED;
       }
       return null;
     case ContentStatus.AWAITING_ADJUSTMENTS:
@@ -166,9 +169,15 @@ function eventTypeFor(
     case ContentStatus.INACTIVATED:
       return AuditEvent.CONTENT_INACTIVATED_BY_COORDINATOR;
     case ContentStatus.PAUSED:
-      return contentKind === ContentKind.JOB && trigger === 'AUTHOR_ACTION' ? AuditEvent.JOB_PAUSED : null;
+      if (trigger !== 'AUTHOR_ACTION') return null;
+      if (contentKind === ContentKind.JOB) return AuditEvent.JOB_PAUSED;
+      if (contentKind === ContentKind.SERVICE) return AuditEvent.SERVICE_PAUSED;
+      return null;
     case ContentStatus.ARCHIVED:
-      return contentKind === ContentKind.JOB && trigger === 'AUTHOR_ACTION' ? AuditEvent.JOB_ARCHIVED : null;
+      if (trigger !== 'AUTHOR_ACTION') return null;
+      if (contentKind === ContentKind.JOB) return AuditEvent.JOB_ARCHIVED;
+      if (contentKind === ContentKind.SERVICE) return AuditEvent.SERVICE_ARCHIVED;
+      return null;
     case ContentStatus.EXPIRED:
       return contentKind === ContentKind.JOB && trigger === 'SYSTEM_JOB' ? AuditEvent.JOB_EXPIRED : null;
     default:

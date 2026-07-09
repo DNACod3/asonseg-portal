@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
 // Import direto do módulo `'use server'` (não do barrel `@/modules/identity`):
 // este é um Client Component e o barrel reexporta código server-only. O arquivo
 // da action é `'use server'`, então o import vira um stub RPC client-safe.
@@ -16,10 +17,11 @@ import { PROFILE_FIELD_META, type ProfileField } from '@/modules/identity/domain
 import { providerProfileSchema, type ProviderProfileInput } from '../schemas/provider';
 import { activateProviderRole } from '../actions/activate-provider-role';
 
-const inputClass =
-  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 w-full';
-const errorClass = 'mt-1 text-xs text-red-600';
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+// `<select>` nativo não tem primitivo no DS (só Input/Textarea) — estilo por
+// token, mesma superfície visual do `Input` (AD-014, padrão `candidate-form.tsx`).
+const selectClass =
+  'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60';
+const errorClass = 'mt-1 text-xs text-danger';
 
 export interface ProviderFormProps {
   /** Regiões de atuação do catálogo (taxonomia Region). */
@@ -129,9 +131,9 @@ export function ProviderForm({
   const isActivated = status === 'DRAFT';
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg">
+    <div className="flex max-w-lg flex-col gap-6">
       {/* P-004 — distingue OFERECER (prestador) de CONTRATAR (cliente). */}
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+      <div className="rounded-md border border-success bg-[color-mix(in_srgb,var(--color-success)_10%,transparent)] px-4 py-3 text-sm text-success">
         Ao ativar este papel, <strong>agora você OFERECE serviços</strong> no portal — diferente do
         papel de cliente, que <strong>contrata</strong> serviços de outras pessoas.
       </div>
@@ -144,10 +146,8 @@ export function ProviderForm({
             const errorId = `${field}-error`;
             return (
               <div key={field}>
-                <label className={labelClass} htmlFor={field}>
-                  {meta.label}
-                </label>
-                <input
+                <Label htmlFor={field}>{meta.label}</Label>
+                <Input
                   id={field}
                   type={meta.type}
                   autoComplete={meta.autoComplete}
@@ -156,7 +156,6 @@ export function ProviderForm({
                   onChange={(e) => setProfileField(field, e.target.value)}
                   aria-describedby={profileErrors[field] ? errorId : undefined}
                   aria-invalid={!!profileErrors[field]}
-                  className={inputClass}
                 />
                 {profileErrors[field] && (
                   <p id={errorId} role="alert" className={errorClass}>
@@ -169,34 +168,28 @@ export function ProviderForm({
 
         {/* Título do prestador (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="headline">
-            Título profissional <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <input
-            id="headline"
-            type="text"
-            placeholder="Ex.: Eletricista predial"
-            className={inputClass}
-            {...register('headline')}
-          />
+          <Label htmlFor="headline">
+            Título profissional <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <Input id="headline" type="text" placeholder="Ex.: Eletricista predial" {...register('headline')} />
           {errors.headline && <p className={errorClass}>{errors.headline.message}</p>}
         </div>
 
         {/* Descrição (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="description">
-            Descrição dos serviços <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <textarea id="description" rows={4} className={inputClass} {...register('description')} />
+          <Label htmlFor="description">
+            Descrição dos serviços <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <Textarea id="description" rows={4} {...register('description')} />
           {errors.description && <p className={errorClass}>{errors.description.message}</p>}
         </div>
 
         {/* Região de atuação (opcional) */}
         <div>
-          <label className={labelClass} htmlFor="regionId">
-            Região de atuação <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          <select id="regionId" className={inputClass} defaultValue="" {...register('regionId')}>
+          <Label htmlFor="regionId">
+            Região de atuação <span className="font-normal text-fg-muted">(opcional)</span>
+          </Label>
+          <select id="regionId" className={selectClass} defaultValue="" {...register('regionId')}>
             <option value="">Selecione…</option>
             {regions.map((region) => (
               <option key={region.id} value={region.id}>
@@ -209,36 +202,33 @@ export function ProviderForm({
 
         {/* GAP-B — upload de foto difere p/ Fase 4 (bucket provider-photos). */}
         <div>
-          <label className={labelClass} htmlFor="photo">
-            Foto do perfil <span className="text-gray-400 font-normal">(em breve)</span>
-          </label>
+          <Label htmlFor="photo">
+            Foto do perfil <span className="font-normal text-fg-muted">(em breve)</span>
+          </Label>
           <input
             id="photo"
             type="file"
             accept="image/*"
             disabled
             aria-disabled
-            className={`${inputClass} cursor-not-allowed bg-gray-100 text-gray-400`}
+            className={`${selectClass} cursor-not-allowed opacity-60`}
           />
-          <p className="mt-1 text-xs text-gray-400">
-            O envio de foto será habilitado em breve.
-          </p>
+          <p className="mt-1 text-xs text-fg-muted">O envio de foto será habilitado em breve.</p>
         </div>
 
         {/* Termo de consentimento SERVICE_OFFERING (P-003) — exigido na 1ª ativação. */}
         {!alreadyProvider && (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <p className="font-medium mb-2">Termo de oferta de serviços</p>
+          <LgpdBox title="Termo de oferta de serviços">
             <div
-              className="max-h-40 overflow-y-auto text-xs text-gray-600 whitespace-pre-wrap mb-3 border border-gray-200 rounded p-2 bg-white"
+              className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
               aria-label="Conteúdo do termo de oferta de serviços"
             >
               {term.body}
             </div>
-            <label className="flex items-start gap-2 cursor-pointer">
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
               <input
                 type="checkbox"
-                className="mt-0.5 accent-blue-600"
+                className="mt-0.5 accent-primary"
                 checked={consentChecked}
                 onChange={(e) => setConsentChecked(e.target.checked)}
               />
@@ -247,58 +237,48 @@ export function ProviderForm({
                 autorizo o tratamento dos meus dados para essa finalidade.
               </span>
             </label>
-          </div>
+          </LgpdBox>
         )}
 
         {serverError && (
           <div
             role="alert"
-            className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            className="rounded-lg bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
           >
             {serverError}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isPending || !consentChecked}
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
+        <Button type="submit" variant="primary" disabled={isPending || !consentChecked}>
           {isPending ? 'Salvando…' : 'Ativar papel de prestador'}
-        </button>
+        </Button>
       </form>
 
       {/* E-003 — próximo passo após ativação. */}
       {isActivated && (
         <div
           role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+          className="rounded-md border border-success bg-[color-mix(in_srgb,var(--color-success)_10%,transparent)] p-4 text-sm text-success"
         >
           <p className="mb-3">
             Papel de prestador <strong>ativado</strong>. O próximo passo é publicar seu primeiro
             serviço.
           </p>
-          <Link
-            href="/servicos/novo"
-            className="inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
-          >
-            Publicar primeiro serviço
-          </Link>
+          <Button asChild variant="primary">
+            <Link href="/prestador/servicos/nova">Publicar primeiro serviço</Link>
+          </Button>
         </div>
       )}
 
       {/* E-002 (ADR-0031) — declarar MEI redireciona ao fluxo de Empresa (USP-012). */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+      <div className="rounded-md border border-border bg-surface p-4 text-sm text-fg-muted">
         <p className="mb-2">
           Tem um <strong>CNPJ MEI</strong> e quer atuar como empresa? O cadastro do MEI é feito como
           uma empresa sua.
         </p>
-        <Link
-          href="/empresa"
-          className="inline-block rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors"
-        >
-          Registrar meu MEI / atuar como empresa
-        </Link>
+        <Button asChild variant="secondary">
+          <Link href="/empresa">Registrar meu MEI / atuar como empresa</Link>
+        </Button>
       </div>
     </div>
   );

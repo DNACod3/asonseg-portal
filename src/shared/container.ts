@@ -109,10 +109,11 @@ import { NextCacheInvalidation } from '@/modules/moderation/adapters/next-cache-
 import { PrismaCompanyVerifyHook } from '@/modules/moderation/adapters/prisma-company-verify-hook';
 import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
 import { PrismaJobStatusRepository } from '@/modules/jobs/adapters/prisma-job-status';
+import { PrismaServiceStatusRepository } from '@/modules/services/adapters/prisma-service-status';
 /* eslint-enable no-restricted-imports */
-// Despacho por ContentKind (GAP-8): CANDIDATE_PROFILE (USP-009) usa a tabela real
-// `candidate_profiles`; JOB/CV/SERVICE caem no fallback `_moderation_fixture` até
-// suas USPs. Cada tipo que aterrissa acrescenta seu adapter ao mapa.
+// Despacho por ContentKind (GAP-8): CANDIDATE_PROFILE (USP-009), JOB (USP-020) e
+// SERVICE (USP-029) usam suas tabelas reais; CV cai no fallback `_moderation_fixture`
+// até sua USP. Cada tipo que aterrissa acrescenta seu adapter ao mapa.
 container.register(
   CONTENT_STATUS_REPOSITORY_TOKEN,
   () =>
@@ -120,6 +121,7 @@ container.register(
       {
         [ContentKind.CANDIDATE_PROFILE]: new PrismaCandidateProfileStatusRepository(),
         [ContentKind.JOB]: new PrismaJobStatusRepository(),
+        [ContentKind.SERVICE]: new PrismaServiceStatusRepository(),
       },
       new PrismaModerationContentRepository(),
     ),

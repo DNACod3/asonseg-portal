@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Fase 4 — Serviços + Manifestações
-**Status:** Fase 3 **100% concluída** (6 USPs, 1 PR único, AD-019) · próxima unidade elegível: **USP-011** (Cadastro de cliente de serviço)
+**Current Milestone:** Fase 5 — Ficha Social + Encaminhamento + Visão Consolidada
+**Status:** Fase 4 **100% concluída** (9 USPs, 1 PR único, AD-020) · próxima unidade elegível: **USP-036** (Cadastrar ficha socioeconômica da Pessoa)
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
 
@@ -95,14 +95,14 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 ### Unidades
 
 - [x] USP-010 — Cadastro de prestador de serviço (papel) · epic: cadastros-publicos · dir: .specs/features/cadastros-publicos/usp-010-cadastro-prestador/ · deps: USP-001 · gate: —
-- [ ] USP-011 — Cadastro de cliente de serviço (papel) · epic: cadastros-publicos · dir: .specs/features/cadastros-publicos/usp-011-cadastro-cliente/ · deps: USP-001 · gate: —
-- [ ] USP-029 — Publicar serviço · epic: servicos · dir: .specs/features/servicos/usp-029-publicar-servico/ · deps: USP-010, USP-016 · gate: —
-- [ ] USP-030 — Buscar serviços (pública) · epic: servicos · dir: .specs/features/servicos/usp-030-buscar-servicos/ · deps: USP-029 · gate: —
-- [ ] USP-031 — Ver detalhe do serviço · epic: servicos · dir: .specs/features/servicos/usp-031-detalhe-servico/ · deps: USP-029 · gate: —
-- [ ] USP-032 — Editar serviço (pausar, arquivar) · epic: servicos · dir: .specs/features/servicos/usp-032-editar-servico/ · deps: USP-029 · gate: —
-- [ ] USP-033 — Manifestar interesse em serviço · epic: manifestacao-interesse-servico · dir: .specs/features/manifestacao-interesse-servico/usp-033-manifestar-interesse/ · deps: USP-011, USP-029 · gate: —
-- [ ] USP-034 — Cancelar manifestação de interesse · epic: manifestacao-interesse-servico · dir: .specs/features/manifestacao-interesse-servico/usp-034-cancelar-manifestacao/ · deps: USP-033 · gate: —
-- [ ] USP-035 — Prestador ver manifestações de interesse · epic: manifestacao-interesse-servico · dir: .specs/features/manifestacao-interesse-servico/usp-035-prestador-ver-manifestacoes/ · deps: USP-033, USP-010 · gate: —
+- [x] USP-011 — Cadastro de cliente de serviço (papel) · epic: cadastros-publicos · dir: .specs/features/cadastros-publicos/usp-011-cadastro-cliente/ · deps: USP-001 · gate: —
+- [x] USP-029 — Publicar serviço · epic: servicos · dir: .specs/features/servicos/usp-029-publicar-servico/ · deps: USP-010, USP-016 · gate: —
+- [x] USP-030 — Buscar serviços (pública) · epic: servicos · dir: .specs/features/servicos/usp-030-buscar-servicos/ · deps: USP-029 · gate: —
+- [x] USP-031 — Ver detalhe do serviço · epic: servicos · dir: .specs/features/servicos/usp-031-detalhe-servico/ · deps: USP-029 · gate: —
+- [x] USP-032 — Editar serviço (pausar, arquivar) · epic: servicos · dir: .specs/features/servicos/usp-032-editar-servico/ · deps: USP-029 · gate: —
+- [x] USP-033 — Manifestar interesse em serviço · epic: manifestacao-interesse-servico · dir: .specs/features/manifestacao-interesse-servico/usp-033-manifestar-interesse/ · deps: USP-011, USP-029 · gate: —
+- [x] USP-034 — Cancelar manifestação de interesse · epic: manifestacao-interesse-servico · dir: .specs/features/manifestacao-interesse-servico/usp-034-cancelar-manifestacao/ · deps: USP-033 · gate: —
+- [x] USP-035 — Prestador ver manifestações de interesse · epic: manifestacao-interesse-servico · dir: .specs/features/manifestacao-interesse-servico/usp-035-prestador-ver-manifestacoes/ · deps: USP-033, USP-010 · gate: —
 
 ---
 

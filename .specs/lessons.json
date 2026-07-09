@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 10,
+  "next_id": 11,
   "lessons": [
     {
       "id": "L-001",
@@ -168,6 +168,24 @@
       ],
       "created": "2026-07-08T17:08:52Z",
       "last_seen": "2026-07-08T17:08:52Z"
+    },
+    {
+      "id": "L-010",
+      "key": "surviving_mutant::concurrency race tests that fire two calls via promise all inside one node process can be masked by an app level ux pre check when run in a warmed up test suite assert on final db row count or bypass the pre check layer to prove the db constraint itself not just the end to end actionresult shape",
+      "text": "Concurrency race tests that fire two calls via Promise.all inside one Node process can be masked by an app-level UX pre-check when run in a warmed-up test suite; assert on final DB row count or bypass the pre-check layer to prove the DB constraint itself, not just the end-to-end ActionResult shape.",
+      "signal": "surviving_mutant",
+      "scope": "src/modules/services,integration-tests,concurrency",
+      "status": "candidate",
+      "features": [
+        "manifestacao-interesse-servico/usp-033"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "SVC033-MN-03 / manifest-interest.int.test.ts:343-357 (src/modules/services,integration-tests,concurrency)"
+      ],
+      "created": "2026-07-08T22:23:32Z",
+      "last_seen": "2026-07-08T22:23:32Z"
     }
   ]
 }

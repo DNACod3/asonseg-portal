@@ -35,11 +35,12 @@ export async function ensureClientRole(
 ): Promise<{ activated: boolean; grantId: string }>;
 ```
 
-> **Q-aberta de design (resolver na implementação de #120):** a issue grafou `ensureClientRole(tx, personId)`.
-> Para satisfazer P-001 (consentimento persistido com versão/hash/IP **na mesma transação**) sem reabrir `loadTerm`
-> dentro do helper, recomenda-se passar `term`+`ip`+`userAgent` vindos do chamador (USP-033 já carrega o termo para
-> exibir — E-001). Manter a assinatura mínima `(tx, personId)` exigiria `loadTerm`/`headers()` dentro do helper, o que
-> acopla o helper ao request. **Decisão sugerida:** assinatura rica acima. Confirmar com Tech Lead.
+> **Q-aberta de design — RESOLVIDA (2026-07-08, reconciliação Fase 4).** A implementação de #120 **adotou a
+> assinatura rica recomendada**: `ensureClientRole(tx, { personId, term: { version, hash }, ip, userAgent })`
+> → `{ activated, grantId }`. O helper **não** reabre `loadTerm`/`headers()` (o chamador USP-033 já carrega o termo
+> para exibir — E-001), satisfazendo P-001 (consentimento com versão/hash/IP **na mesma transação**) sem acoplar o
+> helper ao request. Exportado no barrel `@/modules/persons` (`ensureClientRole` + tipos `EnsureClientRoleArgs`/`EnsureClientRoleResult`).
+> A assinatura mínima `(tx, personId)` grafada na issue foi **descartada**. Nenhuma pendência com Tech Lead.
 
 **Lógica (idempotente, dentro da `tx` do chamador):**
 

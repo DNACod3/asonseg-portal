@@ -52,6 +52,8 @@ model ServiceCategory {
   suggestedBy  String?   @map("suggested_by") @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  services Service[] // USP-029
+
   @@map("service_categories")
 }
 
@@ -67,6 +69,7 @@ model Region {
   providerProfiles  ProviderProfile[]
   jobs              Job[] // USP-021: vagas filtráveis por região
   candidateProfiles CandidateProfile[] // USP-028: localização do candidato na busca ativa
+  services          Service[] // USP-030: serviços filtráveis por região
 
   @@map("regions")
 }
@@ -208,6 +211,8 @@ model Person {
   applications         Application[]
   cvUploadAttempts     CvUploadAttempt[]
   cvExtractionAttempts CvExtractionAttempt[]
+  authoredServices     Service[] // USP-029
+  serviceInterests     ServiceInterest[] // USP-033/U3
 
   @@map("persons")
 }
@@ -377,29 +382,30 @@ enum CompanyGrantStatus {
 /// Empresa cadastrada no portal (ADR-0015).
 /// CNPJ armazenado apenas com dígitos (normalizado antes de persistir).
 model Company {
-  id           String      @id @default(uuid()) @db.Uuid
-  cnpj         String      @unique
-  type         CompanyType @default(SIMPLES_NACIONAL)
-  razaoSocial  String      @map("razao_social")
-  nomeFantasia String      @map("nome_fantasia")
-  setor        String
-  descricao    String?
-  endereco     String?
-  isVerified   Boolean     @default(false) @map("is_verified")
+  id                 String      @id @default(uuid()) @db.Uuid
+  cnpj               String      @unique
+  type               CompanyType @default(SIMPLES_NACIONAL)
+  razaoSocial        String      @map("razao_social")
+  nomeFantasia       String      @map("nome_fantasia")
+  setor              String
+  descricao          String?
+  endereco           String?
+  isVerified         Boolean     @default(false) @map("is_verified")
   // USP-017 — verificação na 1ª vaga aprovada (efeito colateral atômico de
   // transitionContent, ADR-0024). `isVerified` É o estado de "1ª vaga" (AD-2):
   // a detecção não conta jobs. Marcação só pelo CompanyVerifyHook (P-005/AD-3).
-  verifiedAt         DateTime? @map("verified_at") @db.Timestamptz(6) // E-002 / E-004
-  verifiedByPersonId String?   @map("verified_by_person_id") @db.Uuid // E-002 (responsável que aprovou)
-  verificationJobId  String?   @map("verification_job_id") @db.Uuid   // E-002 (vaga que disparou)
-  verifiedSnapshot   Json?     @map("verified_snapshot")              // L-002 (dados vigentes no instante, P-004)
-  rejectionCount     Int       @default(0) @map("rejection_count")    // E-003 / F3 (vagas rejeitadas enquanto não verificada)
-  createdBy    String      @map("created_by") @db.Uuid
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  verifiedAt         DateTime?   @map("verified_at") @db.Timestamptz(6) // E-002 / E-004
+  verifiedByPersonId String?     @map("verified_by_person_id") @db.Uuid // E-002 (responsável que aprovou)
+  verificationJobId  String?     @map("verification_job_id") @db.Uuid // E-002 (vaga que disparou)
+  verifiedSnapshot   Json?       @map("verified_snapshot") // L-002 (dados vigentes no instante, P-004)
+  rejectionCount     Int         @default(0) @map("rejection_count") // E-003 / F3 (vagas rejeitadas enquanto não verificada)
+  createdBy          String      @map("created_by") @db.Uuid
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  grants PersonCompanyGrant[]
-  jobs   Job[]
+  grants   PersonCompanyGrant[]
+  jobs     Job[]
+  services Service[] // USP-029
 
   @@index([cnpj])
   @@map("companies")
@@ -440,37 +446,37 @@ model PersonCompanyGrant {
 /// e transiciona via `transitionContent()` (ContentKind.JOB). Visibilidade pública
 /// (status ACTIVE + validade >= hoje + Empresa verificada) é filtrada on-read na USP-021.
 model Job {
-  id                 String        @id @default(uuid()) @db.Uuid
-  companyId          String        @map("company_id") @db.Uuid
-  authorPersonId     String        @map("author_person_id") @db.Uuid
-  title              String
+  id                     String        @id @default(uuid()) @db.Uuid
+  companyId              String        @map("company_id") @db.Uuid
+  authorPersonId         String        @map("author_person_id") @db.Uuid
+  title                  String
   // Campos de conteúdo nullable: um RASCUNHO (E-003) pode ser salvo só com título;
   // a completude (L-003) é exigida no SUBMIT pelo Zod (publishJobSchema), não no DB.
   // Mesmo padrão de CandidateProfile (USP-009 — conteúdo opcional, status = moderação).
-  areaId             String?       @map("area_id") @db.Uuid
-  description        String?       @db.Text
-  requirements       String?       @db.Text
-  benefits           String?       @db.Text
-  salary             String? // freetext legado (USP-020); substituído por salaryMin/Max no filtro de faixa (USP-021)
-  workRegime         String?       @map("work_regime") // regime (presencial/remoto/híbrido — string livre no MVP)
-  location           String?
+  areaId                 String?       @map("area_id") @db.Uuid
+  description            String?       @db.Text
+  requirements           String?       @db.Text
+  benefits               String?       @db.Text
+  salary                 String? // freetext legado (USP-020); substituído por salaryMin/Max no filtro de faixa (USP-021)
+  workRegime             String?       @map("work_regime") // regime (presencial/remoto/híbrido — string livre no MVP)
+  location               String?
   // USP-021 (AD-011): campos canônicos do TD §4.5 que faltavam, p/ os 6 filtros (E-002).
   // Opcionais/com default p/ não quebrar vagas existentes; o JobForm exige no submit via Zod.
-  educationLevelRequired String?    @map("education_level_required") // freetext (espelha CandidateProfile.educationLevel)
-  contractType           String?    @map("contract_type") // CLT, PJ, MEI… (string livre; enum quando D-007 fechar)
-  salaryMin              Decimal?   @map("salary_min") @db.Decimal(10, 2)
-  salaryMax              Decimal?   @map("salary_max") @db.Decimal(10, 2)
-  salaryVisible          Boolean    @default(true) @map("salary_visible") // edge: false → salário oculto na busca
-  regionId               String?    @map("region_id") @db.Uuid // FK Region (opcional no DB; UI exige no submit)
-  validUntil         DateTime?     @map("valid_until") @db.Date // validade (date); on-read >= hoje (USP-024)
-  status             ContentStatus @default(DRAFT)
-  publishedAt        DateTime?     @map("published_at") @db.Timestamptz(6) // preenchido na 1ª ativação (USP-016)
+  educationLevelRequired String?       @map("education_level_required") // freetext (espelha CandidateProfile.educationLevel)
+  contractType           String?       @map("contract_type") // CLT, PJ, MEI… (string livre; enum quando D-007 fechar)
+  salaryMin              Decimal?      @map("salary_min") @db.Decimal(10, 2)
+  salaryMax              Decimal?      @map("salary_max") @db.Decimal(10, 2)
+  salaryVisible          Boolean       @default(true) @map("salary_visible") // edge: false → salário oculto na busca
+  regionId               String?       @map("region_id") @db.Uuid // FK Region (opcional no DB; UI exige no submit)
+  validUntil             DateTime?     @map("valid_until") @db.Date // validade (date); on-read >= hoje (USP-024)
+  status                 ContentStatus @default(DRAFT)
+  publishedAt            DateTime?     @map("published_at") @db.Timestamptz(6) // preenchido na 1ª ativação (USP-016)
   // Idempotência do lembrete D-3 (USP-024 / E-003 / U24-MN-07): marcado na 1ª vez que o cron
   // enfileira o aviso de expiração próxima na Outbox; nulo até lá. Sem backfill.
-  expiryReminderSentAt DateTime?   @map("expiry_reminder_sent_at") @db.Timestamptz(6)
-  lastStatusChangeAt DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
-  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  expiryReminderSentAt   DateTime?     @map("expiry_reminder_sent_at") @db.Timestamptz(6)
+  lastStatusChangeAt     DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company Company  @relation(fields: [companyId], references: [id])
   area    JobArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
@@ -516,6 +522,86 @@ model Application {
   // appliedAt])` de technical-design.md §4.5 (não garante unicidade ativa sob corrida).
   @@index([jobId, cancelledAt]) // contagem on-read do contador (E-003)
   @@map("applications")
+}
+
+// ── Serviços (USP-029 — AD-009: status-on-entity) ────────────────────────────
+/// Serviço anunciado por um prestador (Pessoa com papel PROVIDER ativo), como PF
+/// (companyId nulo) ou em nome de uma Empresa que representa (companyId setado).
+/// Conteúdo moderável: nasce em DRAFT, exige `transitionContent` p/ IN_MODERATION
+/// e ACTIVE (nunca escrita direta — SVC029-MN-01). Espelha `Job`, mas SEM
+/// `validUntil`/EXPIRED (serviço não expira — fica ativo até pausar/arquivar) e
+/// SEM gate de `company.isVerified` (verificação de Empresa é exclusiva de vagas).
+/// NOTA: a relação `interests` (manifestação de interesse, USP-033/U3) foi
+/// adicionada por migração incremental — U2 a omitiu deliberadamente.
+model Service {
+  id                      String        @id @default(uuid()) @db.Uuid
+  authorPersonId          String        @map("author_person_id") @db.Uuid // quem publica/executa (provider)
+  companyId               String?       @map("company_id") @db.Uuid // null = PF; setado = em nome da Empresa X
+  categoryId              String?       @map("category_id") @db.Uuid // FK ServiceCategory (nullable p/ rascunho; exigido no submit via Zod)
+  title                   String
+  description             String?       @db.Text
+  priceMin                Decimal?      @map("price_min") @db.Decimal(10, 2)
+  priceMax                Decimal?      @map("price_max") @db.Decimal(10, 2)
+  priceUnit               String?       @map("price_unit") // "por hora/diária/serviço" (freetext MVP; enum quando D-007 fechar)
+  regionId                String?       @map("region_id") @db.Uuid // FK Region (single-region MVP, como Job)
+  availabilityDescription String?       @map("availability_description") // dias/horários (freetext)
+  status                  ContentStatus @default(DRAFT)
+  publishedAt             DateTime?     @map("published_at") @db.Timestamptz(6) // 1ª ativação (ordena a busca AC-030-1)
+  lastStatusChangeAt      DateTime      @default(now()) @map("last_status_change_at") @db.Timestamptz(6)
+  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author    Person            @relation(fields: [authorPersonId], references: [id], onDelete: Restrict)
+  company   Company?          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  category  ServiceCategory?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  region    Region?           @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  photos    ServicePhoto[]
+  interests ServiceInterest[] // USP-033/U3
+
+  // Dedup EXATA por autor (não por company_id como Job, que é NOT NULL lá):
+  // impede 2 serviços idênticos vivos do mesmo publicador (PF ou Empresa) —
+  // UNIQUE parcial criada via SQL bruto na migration (`service_dedup_alive`).
+  @@index([status])
+  @@index([authorPersonId])
+  @@index([categoryId, regionId, status]) // filtros combinados (USP-030)
+  @@map("services")
+}
+
+/// Foto (até 3) anexada a um Service. Espelha o padrão de armazenamento de
+/// storagePath (bucket `provider-photos`) usado por ProviderProfile/CV.
+model ServicePhoto {
+  id          String   @id @default(uuid()) @db.Uuid
+  serviceId   String   @map("service_id") @db.Uuid
+  storagePath String   @map("storage_path")
+  position    Int      @default(0) // ordem 0..2
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@map("service_photos")
+}
+
+// ── Manifestações de interesse (USP-033/034/035 — U3) ────────────────────────
+/// Manifestação de interesse de um cliente num serviço (agregado filho de
+/// `Service`, espelha `Application` de `jobs` — AD-017/AD-020). Soft-cancel
+/// (`cancelledAt`): unicidade da linha ATIVA por (cliente, serviço) é garantida
+/// por índice único parcial em SQL bruto (`uq_service_interest_active`, criado
+/// nesta migração — Prisma não expressa índice parcial no schema), não pelo
+/// `@@unique` do technical-design.md §2.6 (não garante unicidade sob corrida).
+model ServiceInterest {
+  id             String    @id @default(uuid()) @db.Uuid
+  clientPersonId String    @map("client_person_id") @db.Uuid
+  serviceId      String    @map("service_id") @db.Uuid
+  cancelledAt    DateTime? @map("cancelled_at") @db.Timestamptz(6) // null = ATIVA (soft-cancel)
+  interestedAt   DateTime  @default(now()) @map("interested_at") @db.Timestamptz(6)
+  message        String?   @db.Text // opcional; NÃO coletado no CTA MVP (col. barata p/ evitar re-migração)
+
+  client  Person  @relation(fields: [clientPersonId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId, cancelledAt]) // lista ativa do prestador (USP-035)
+  @@map("service_interests")
 }
 
 // ── Moderação de conteúdo (USP-016 / ADR-0011) ───────────────────────────────

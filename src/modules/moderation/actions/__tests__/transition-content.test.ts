@@ -238,12 +238,65 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     expect(auditState.event).toBe(AuditEvent.JOB_UNPAUSED);
   });
 
-  it('preservação: CV ACTIVE→PAUSED continua INTERNAL — o ramo JOB_* não vaza para outros ContentKind', async () => {
+  it('preservação: CV ACTIVE→PAUSED continua INTERNAL — o ramo JOB_*/SERVICE_* não vaza para outros ContentKind', async () => {
     repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
     const res = await transitionContent({
       contentKind: ContentKind.CV,
       contentId: CONTENT_ID,
       to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+    expect(res).toMatchObject({ ok: false, error: { code: 'INTERNAL' } });
+    expect(repo.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('USP-029/T029-2: SERVICE ACTIVE→PAUSED (AUTHOR_ACTION) mapeia SERVICE_PAUSED', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    const res = await transitionContent({
+      contentKind: ContentKind.SERVICE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+    expect(res.ok).toBe(true);
+    expect(auditState.event).toBe(AuditEvent.SERVICE_PAUSED);
+    expect(repo.updateStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('USP-029/T029-2: SERVICE PAUSED→ACTIVE (AUTHOR_ACTION) mapeia SERVICE_UNPAUSED (distingue de CONTENT_APPROVED)', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.PAUSED);
+    const res = await transitionContent({
+      contentKind: ContentKind.SERVICE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.ACTIVE,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+    expect(res.ok).toBe(true);
+    expect(auditState.event).toBe(AuditEvent.SERVICE_UNPAUSED);
+  });
+
+  it('USP-029/T029-2: SERVICE ACTIVE→ARCHIVED (AUTHOR_ACTION) mapeia SERVICE_ARCHIVED', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    const res = await transitionContent({
+      contentKind: ContentKind.SERVICE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.ARCHIVED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+    expect(res.ok).toBe(true);
+    expect(auditState.event).toBe(AuditEvent.SERVICE_ARCHIVED);
+  });
+
+  it('neg: CANDIDATE_PROFILE ACTIVE→ARCHIVED (AUTHOR_ACTION) continua INTERNAL — ramo SERVICE_* não vaza p/ outros kinds', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    const res = await transitionContent({
+      contentKind: ContentKind.CANDIDATE_PROFILE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.ARCHIVED,
       trigger: 'AUTHOR_ACTION',
       actorPersonId: ACTOR,
     });

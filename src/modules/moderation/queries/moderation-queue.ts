@@ -23,18 +23,21 @@ interface QueueRow {
  * para o mais recente, **excluindo** os itens cujo autor é o próprio moderador
  * (conflito de interesse — ADR-0024).
  *
- * GAP-8 / USP-017: as **vagas** (`JOB`) já têm model real e são lidas de `jobs`
- * com join à Empresa (`companyUnverified` dispara o painel de verificação). Os
- * demais tipos (`CV`/`SERVICE`/`CANDIDATE_PROFILE`) ainda usam o store transitório
- * `_moderation_fixture` até suas USPs. As fontes são unidas, ordenadas por
- * `submittedAt` e cortadas no limite da página — o contrato do view model permanece.
+ * GAP-8 / USP-017 / USP-029: as **vagas** (`JOB`) e os **serviços** (`SERVICE`) já
+ * têm model real. Vagas são lidas de `jobs` com join à Empresa (`companyUnverified`
+ * dispara o painel de verificação — exclusivo de vagas). Serviços são lidos de
+ * `services` **sem** `companyUnverified`/`companyId` (verificação de Empresa não se
+ * aplica a serviços — USP-029 design §2). Os demais tipos (`CV`/`CANDIDATE_PROFILE`)
+ * ainda usam o store transitório `_moderation_fixture` até suas USPs. As 3 fontes
+ * são unidas, ordenadas por `submittedAt` e cortadas no limite da página — o
+ * contrato do view model permanece.
  */
 export async function viewModerationQueue({
   viewerPersonId,
 }: {
   viewerPersonId: string;
 }): Promise<ModerationQueueItem[]> {
-  const [jobRows, fixtureRows] = await Promise.all([
+  const [jobRows, serviceRows, fixtureRows] = await Promise.all([
     prisma.job.findMany({
       where: {
         status: PrismaContentStatus.IN_MODERATION,
@@ -48,6 +51,20 @@ export async function viewModerationQueue({
         company: { select: { id: true, isVerified: true } },
       },
       orderBy: { lastStatusChangeAt: 'asc' }, // E-001 — mais antigo primeiro
+      take: QUEUE_PAGE_SIZE,
+    }),
+    prisma.service.findMany({
+      where: {
+        status: PrismaContentStatus.IN_MODERATION,
+        authorPersonId: { not: viewerPersonId }, // P-005 — autor ≠ moderador
+      },
+      select: {
+        id: true,
+        title: true,
+        authorPersonId: true,
+        lastStatusChangeAt: true,
+      },
+      orderBy: { lastStatusChangeAt: 'asc' },
       take: QUEUE_PAGE_SIZE,
     }),
     prisma.moderationFixtureContent.findMany({
@@ -72,6 +89,16 @@ export async function viewModerationQueue({
     companyId: j.company.id,
   }));
 
+  const serviceItems: QueueRow[] = serviceRows.map((s) => ({
+    contentKind: ContentKind.SERVICE,
+    contentId: s.id,
+    title: s.title,
+    authorPersonId: s.authorPersonId,
+    // Entrada em IN_MODERATION (lastStatusChangeAt é setado na transição — USP-029).
+    submittedAt: s.lastStatusChangeAt,
+    // Sem companyUnverified/companyId: verificação de Empresa é exclusiva de vagas.
+  }));
+
   const fixtureItems: QueueRow[] = fixtureRows.map((r) => ({
     contentKind: r.kind as ContentKind,
     contentId: r.id,
@@ -81,7 +108,7 @@ export async function viewModerationQueue({
   }));
 
   // Une as fontes, ordena (mais antigo primeiro) e respeita o limite da página.
-  const rows = [...jobItems, ...fixtureItems]
+  const rows = [...jobItems, ...serviceItems, ...fixtureItems]
     .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
     .slice(0, QUEUE_PAGE_SIZE);
 

@@ -13,6 +13,7 @@ import { renderCredentialClaimWelcomeEmail } from './templates/credential-claim-
 import { renderResponsibleLinkPendingEmail } from './templates/responsible-link-pending';
 import { renderResponsibleRemovedEmail } from './templates/responsible-removed';
 import { renderApplicationConfirmationEmail } from './templates/application-confirmation';
+import { renderServiceInterestNotificationEmail } from './templates/service-interest-notification';
 
 /**
  * Subconjunto estrutural do client Resend que o adapter consome. Mantê-lo
@@ -45,6 +46,8 @@ function render(message: EmailMessage): RenderedEmail {
       return renderResponsibleRemovedEmail(message.data);
     case 'application-confirmation':
       return renderApplicationConfirmationEmail(message.data);
+    case 'service-interest-notification':
+      return renderServiceInterestNotificationEmail(message.data);
   }
 }
 

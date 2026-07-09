@@ -37,6 +37,7 @@ async function main(): Promise<void> {
     console.log(`  demo_jobs (ACTIVE): ${demo.demoJobs}`);
     console.log(`  demo_applications:  ${demo.demoApplications}`);
     console.log(`  demo_candidate_profiles (ACTIVE): ${demo.demoCandidateProfiles}`);
+    console.log(`  demo_services (ACTIVE): ${demo.demoServices}`);
   } else if (isProduction) {
     console.log('NODE_ENV=production — seed de demo pulado (dev-only).');
   } else {
