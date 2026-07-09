@@ -11,3 +11,6 @@ export {
   JUSTIFICATION_MAX,
 } from './schemas/referral.schema';
 export type { CreateReferralInput, CreateReferralData } from './schemas/referral.schema';
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+export { createReferral, type CreateReferralResult } from './actions/create-referral';
