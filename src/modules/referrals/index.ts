@@ -22,6 +22,10 @@ export type {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 export { createReferral, type CreateReferralResult } from './actions/create-referral';
+export {
+  registerReferralResult,
+  type RegisterReferralResultResult,
+} from './actions/register-referral-result';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { canReferPersonToJob } from './server/route-access';
