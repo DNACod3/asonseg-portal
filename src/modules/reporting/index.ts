@@ -57,3 +57,6 @@ export type { ReferralResultCounts, ReferralOutcomeRates } from './domain/referr
 
 export { moderationAvgHours } from './domain/moderation-time';
 export type { ModerationPair } from './domain/moderation-time';
+
+export { toCsv, composeWatermark, WATERMARK_PII } from './domain/csv';
+export type { CsvColumn, ToCsvOptions } from './domain/csv';
