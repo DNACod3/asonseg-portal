@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
 import { canRegisterReferralResult, ResultForm } from '@/modules/referrals';
+import { viewPersonForStaff } from '@/modules/persons';
 import { prisma } from '@/shared/lib/prisma';
 import { FormCard, FormHeader } from '@/shared/ui';
 
@@ -30,7 +31,7 @@ export default async function RegistrarResultadoPage({
     select: {
       result: true,
       resultObservation: true,
-      person: { select: { fullName: true } },
+      personId: true,
       job: { select: { title: true } },
     },
   });
@@ -38,11 +39,16 @@ export default async function RegistrarResultadoPage({
     notFound();
   }
 
+  const personView = await viewPersonForStaff(referral.personId);
+  if (!personView) {
+    notFound();
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
       <FormHeader
         title="Registrar resultado do encaminhamento"
-        description={`${referral.person.fullName} — ${referral.job.title}`}
+        description={`${personView.fullName} — ${referral.job.title}`}
       />
 
       <FormCard>

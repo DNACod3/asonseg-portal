@@ -6,13 +6,14 @@ import { render, screen } from '@testing-library/react';
  * na rota). Mesmo padrão de `encaminhamentos/novo/page.test.tsx`: só quem tem
  * `canRegisterReferralResult` acessa; `Referral` inexistente também é 404
  * (não vaza existência). `requireActivePerson`, `canRegisterReferralResult`,
- * `prisma.referral.findUnique` e `ResultForm` são mockados.
+ * `prisma.referral.findUnique`, `viewPersonForStaff` e `ResultForm` são mockados.
  */
 
 const guardState = vi.hoisted(() => ({
   requireActivePerson: vi.fn(),
   canRegisterReferralResult: vi.fn(),
   findUnique: vi.fn(),
+  viewPersonForStaff: vi.fn(),
   notFoundCalled: false,
 }));
 
@@ -38,6 +39,10 @@ vi.mock('@/modules/referrals', () => ({
 
 vi.mock('@/shared/lib/prisma', () => ({
   prisma: { referral: { findUnique: (...a: unknown[]) => guardState.findUnique(...a) } },
+}));
+
+vi.mock('@/modules/persons', () => ({
+  viewPersonForStaff: (...a: unknown[]) => guardState.viewPersonForStaff(...a),
 }));
 
 const { default: RegistrarResultadoPage } = await import('./page');
@@ -69,14 +74,23 @@ describe('RegistrarResultadoPage — gate de rota (REF38-MN-02)', () => {
     guardState.findUnique.mockResolvedValue({
       result: null,
       resultObservation: null,
-      person: { fullName: 'Pessoa Encaminhada' },
+      personId: 'p-encaminhada',
       job: { title: 'Vaga X' },
+    });
+    guardState.viewPersonForStaff.mockResolvedValue({
+      id: 'p-encaminhada',
+      fullName: 'Pessoa Encaminhada',
+      status: 'ATIVO',
+      roles: ['CANDIDATE'],
+      inactivatedAt: null,
+      inactivationReason: null,
     });
 
     const ui = await RegistrarResultadoPage(makeParams());
     render(ui);
 
     expect(guardState.notFoundCalled).toBe(false);
+    expect(guardState.viewPersonForStaff).toHaveBeenCalledWith('p-encaminhada');
     expect(screen.getByTestId('result-form')).toHaveTextContent(`form:${REFERRAL_ID}`);
     expect(screen.getByText(/Pessoa Encaminhada/)).toBeInTheDocument();
   });
@@ -85,6 +99,22 @@ describe('RegistrarResultadoPage — gate de rota (REF38-MN-02)', () => {
     guardState.requireActivePerson.mockResolvedValue({ id: 'p-coordenador', roles: ['COORDINATOR'] });
     guardState.canRegisterReferralResult.mockResolvedValue(true);
     guardState.findUnique.mockResolvedValue(null);
+
+    await expect(RegistrarResultadoPage(makeParams())).rejects.toBeInstanceOf(NotFoundError);
+    expect(guardState.notFoundCalled).toBe(true);
+    expect(guardState.viewPersonForStaff).not.toHaveBeenCalled();
+  });
+
+  it('Pessoa encaminhada inexistente (viewPersonForStaff null) → 404', async () => {
+    guardState.requireActivePerson.mockResolvedValue({ id: 'p-coordenador', roles: ['COORDINATOR'] });
+    guardState.canRegisterReferralResult.mockResolvedValue(true);
+    guardState.findUnique.mockResolvedValue({
+      result: null,
+      resultObservation: null,
+      personId: 'p-inexistente',
+      job: { title: 'Vaga X' },
+    });
+    guardState.viewPersonForStaff.mockResolvedValue(null);
 
     await expect(RegistrarResultadoPage(makeParams())).rejects.toBeInstanceOf(NotFoundError);
     expect(guardState.notFoundCalled).toBe(true);
