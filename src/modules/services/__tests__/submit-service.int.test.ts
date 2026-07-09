@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { CurrentPerson } from '@/modules/identity';
 
@@ -268,6 +269,23 @@ skipIfNoDb('submitServiceForModeration / createServiceDraft — integração', (
     expect(result.error.code).toBe('FORBIDDEN');
 
     const count = await prisma.service.count({ where: { companyId, authorPersonId: notResponsibleId } });
+    expect(count).toBe(0);
+  });
+
+  it('AC-F3-2 / MN-F3: ramo form-direto com photoStoragePath de terceiro → VALIDATION, sem persistir', async () => {
+    mockPerson = personFixture(providerId);
+    const foreignPath = `${randomUUID()}/${randomUUID()}.jpg`;
+
+    const result = await submitServiceForModeration(
+      fullInput({ title: 'Submit com foto de terceiro', photoStoragePaths: [foreignPath] }),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION');
+
+    const count = await prisma.service.count({
+      where: { authorPersonId: providerId, title: 'Submit com foto de terceiro' },
+    });
     expect(count).toBe(0);
   });
 
