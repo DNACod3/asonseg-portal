@@ -176,3 +176,10 @@ export type {
 // papel candidato, chamada dentro da tx de `createReferral` (módulo `referrals`).
 export { ensureCandidateRole } from './actions/ensure-candidate-role';
 export type { EnsureCandidateRoleArgs, EnsureCandidateRoleResult } from './actions/ensure-candidate-role';
+
+// Visão consolidada da Pessoa (USP-039 / SOC-06, SOC-039-MN-01/02).
+export {
+  canViewConsolidatedPerson,
+  CONSOLIDATED_PERSON_ROLES,
+} from './domain/consolidated-person';
+export type { ConsolidatedPersonRole } from './domain/consolidated-person';
