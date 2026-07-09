@@ -149,3 +149,12 @@ export type {
   HousingSituation,
   EmptyRecordCheck,
 } from './domain/socioeconomic-record';
+export {
+  socioeconomicRecordSchema,
+  SOCIAL_BENEFIT_MAX,
+  FAMILY_COMPOSITION_MAX,
+} from './schemas/socioeconomic-record.schema';
+export type {
+  SocioeconomicRecordInput,
+  SocioeconomicRecordData,
+} from './schemas/socioeconomic-record.schema';
