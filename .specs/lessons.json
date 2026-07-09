@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 11,
+  "next_id": 13,
   "lessons": [
     {
       "id": "L-001",
@@ -186,6 +186,42 @@
       ],
       "created": "2026-07-08T22:23:32Z",
       "last_seen": "2026-07-08T22:23:32Z"
+    },
+    {
+      "id": "L-011",
+      "key": "spec_deviation::before proposing a new route prefix in design md check whether an existing route family for the same entity audience already exists and reuse it instead of opening a new namespace",
+      "text": "Before proposing a new route prefix in design.md, check whether an existing route family for the same entity/audience already exists and reuse it instead of opening a new namespace.",
+      "signal": "spec_deviation",
+      "scope": "routes",
+      "status": "candidate",
+      "features": [
+        "ficha-social-encaminhamento/usp-036-ficha-socioeconomica"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/app/(app)/pessoas/[id]/ficha-social/page.tsx SPEC_DEVIATION comment (routes)"
+      ],
+      "created": "2026-07-09T15:45:55Z",
+      "last_seen": "2026-07-09T15:45:55Z"
+    },
+    {
+      "id": "L-012",
+      "key": "spec_deviation::when a design specifies a domain guard s role parameter as the prisma role enum check the actual caller s session type first getcurrentperson currentperson roles is string so the guard signature should be readonly string to match not role",
+      "text": "When a design specifies a domain guard's role parameter as the Prisma Role enum, check the actual caller's session type first — getCurrentPerson()/CurrentPerson.roles is string[], so the guard signature should be readonly string[] to match, not Role[].",
+      "signal": "spec_deviation",
+      "scope": "authorization",
+      "status": "candidate",
+      "features": [
+        "ficha-social-encaminhamento/usp-036-ficha-socioeconomica"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/modules/persons/domain/socioeconomic-record.ts SPEC_DEVIATION comment (authorization)"
+      ],
+      "created": "2026-07-09T15:46:03Z",
+      "last_seen": "2026-07-09T15:46:03Z"
     }
   ]
 }

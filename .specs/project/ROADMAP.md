@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Fase 5 — Ficha Social + Encaminhamento + Visão Consolidada
-**Status:** Fase 4 **100% concluída** (9 USPs, 1 PR único, AD-020) · próxima unidade elegível: **USP-036** (Cadastrar ficha socioeconômica da Pessoa)
+**Current Milestone:** Fase 6 — Relatórios + Home + Hardening + LGPD
+**Status:** Fase 5 **100% concluída** (4 USPs, 1 PR único, AD-022) · próxima unidade elegível: **USP-041** (Home pública com indicadores em tempo real)
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
 
@@ -112,10 +112,10 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ### Unidades
 
-- [ ] USP-036 — Cadastrar ficha socioeconômica da Pessoa · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-036-ficha-socioeconomica/ · deps: USP-002 · gate: —
-- [ ] USP-037 — Encaminhar Pessoa para vaga · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-037-encaminhar-vaga/ · deps: USP-036, USP-020 · gate: —
-- [ ] USP-038 — Registrar resultado do encaminhamento manualmente · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-038-registrar-resultado/ · deps: USP-037 · gate: —
-- [ ] USP-039 — Visão consolidada da Pessoa · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-039-visao-consolidada/ · deps: USP-036 · gate: —
+- [x] USP-036 — Cadastrar ficha socioeconômica da Pessoa · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-036-ficha-socioeconomica/ · deps: USP-002 · gate: —
+- [x] USP-037 — Encaminhar Pessoa para vaga · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-037-encaminhar-vaga/ · deps: USP-036, USP-020 · gate: —
+- [x] USP-038 — Registrar resultado do encaminhamento manualmente · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-038-registrar-resultado/ · deps: USP-037 · gate: —
+- [x] USP-039 — Visão consolidada da Pessoa · epic: ficha-social-encaminhamento · dir: .specs/features/ficha-social-encaminhamento/usp-039-visao-consolidada/ · deps: USP-036 · gate: —
 
 ---
 
