@@ -79,3 +79,12 @@ export type {
   ModerationQueueReport,
   ModerationQueueCounts,
 } from './queries/report-moderation-queue';
+
+export { viewSocialReport } from './views/social-report.view';
+export type {
+  SocialReportFilters,
+  SocialReportViewer,
+  SocialReport,
+  SocialReportRegionRow,
+  SocialReportSensitiveBreakdown,
+} from './views/social-report.view';
