@@ -4,13 +4,14 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, Label, Textarea } from '@/shared/ui';
-// Import direto do módulo `'use server'` (não do barrel `@/modules/persons`):
-// este é um Client Component e o barrel reexporta código server-only (Prisma,
-// `next/headers` via as demais actions/queries), que o Next se recusa a
-// empacotar no bundle do cliente. O arquivo da action é `'use server'`, então o
-// import vira um stub RPC client-safe. Precedente: `candidate-form.tsx` (ADR-0017).
-// eslint-disable-next-line no-restricted-imports
-import { saveSocioeconomicRecord } from '@/modules/persons/actions/save-socioeconomic-record';
+// Import relativo direto do arquivo `'use server'` (não do barrel `@/modules/persons`
+// nem de `@/modules/persons/...`): este é um Client Component, e o barrel do
+// PRÓPRIO módulo reexporta código server-only (Prisma, `next/headers` via outras
+// actions/queries) que o Next se recusa a empacotar no bundle do cliente. Como é
+// import relativo intra-módulo (não `@/modules/*/*`), não aciona a regra de barrel
+// entre módulos — mesmo padrão de `candidate-form.tsx` (`../actions/activate-candidate-role`,
+// ADR-0017).
+import { saveSocioeconomicRecord } from '../actions/save-socioeconomic-record';
 import {
   socioeconomicRecordSchema,
   type SocioeconomicRecordInput,

@@ -15,9 +15,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const actions = vi.hoisted(() => ({ saveSocioeconomicRecord: vi.fn() }));
 
-// O form importa a action direto do módulo `'use server'` (não do barrel) —
-// o mock segue o path (mesmo padrão de CandidateForm.test.tsx).
-vi.mock('@/modules/persons/actions/save-socioeconomic-record', () => ({
+// O form importa a action direto do arquivo `'use server'` via caminho relativo
+// (não do barrel) — o mock segue o path (mesmo padrão de CandidateForm.test.tsx).
+vi.mock('../actions/save-socioeconomic-record', () => ({
   saveSocioeconomicRecord: (...a: unknown[]) => actions.saveSocioeconomicRecord(...a),
 }));
 
