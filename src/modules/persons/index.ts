@@ -171,3 +171,8 @@ export type {
   SocioeconomicRecordFormProps,
   SocioeconomicRecordFormInitial,
 } from './components/socioeconomic-record-form';
+
+// Encaminhamento institucional (USP-037 / SOC-03, AC-037-2) — ativação tácita do
+// papel candidato, chamada dentro da tx de `createReferral` (módulo `referrals`).
+export { ensureCandidateRole } from './actions/ensure-candidate-role';
+export type { EnsureCandidateRoleArgs, EnsureCandidateRoleResult } from './actions/ensure-candidate-role';
