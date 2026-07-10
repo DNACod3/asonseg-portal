@@ -35,7 +35,9 @@ export default async function HomePage() {
   const indicators = await loadIndicators();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 p-8">
+    // USP-046 (CASCA-12): <main> agora vem do (public)/layout.tsx — um único
+    // landmark `main` por página; esta página só provê o conteúdo.
+    <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 p-8">
       <div className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold">ASONSEG — Portal de Empregabilidade e Serviços</h1>
         <p className="text-base opacity-80">
@@ -44,6 +46,6 @@ export default async function HomePage() {
       </div>
 
       <HomeIndicatorsView indicators={indicators} />
-    </main>
+    </div>
   );
 }

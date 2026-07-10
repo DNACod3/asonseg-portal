@@ -132,7 +132,8 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
     job?.canApply && viewer != null ? ((await getMyActiveApplication(id, viewer.id))?.id ?? null) : null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
+    // USP-046 (CASCA-12): <main> agora vem do (public)/layout.tsx.
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
       {/* JSON-LD JobPosting sempre anônimo (P-002): projeção `viewer=null` ⇒ a Organization
           usa o rótulo por setor, nunca o nome real — independe de quem está logado. */}
       {row != null && (
@@ -153,6 +154,6 @@ export default async function VagaDetalhePage({ params }: { params: Promise<{ id
       ) : (
         <VagaIndisponivel />
       )}
-    </main>
+    </div>
   );
 }

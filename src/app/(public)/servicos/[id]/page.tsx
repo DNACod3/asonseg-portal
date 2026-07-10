@@ -108,7 +108,8 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
+    // USP-046 (CASCA-12): <main> agora vem do (public)/layout.tsx.
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
       {/* JSON-LD Service sempre derivado da fonte única com viewer=null (SVC031-MN-03) —
           o nome do prestador é público a todos, então o resultado independe do viewer. */}
       {row != null && (
@@ -134,6 +135,6 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
       )}
 
       <AsonsegDisclaimer />
-    </main>
+    </div>
   );
 }
