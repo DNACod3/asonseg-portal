@@ -151,3 +151,54 @@ describe('middleware — gate de sessão (USP-004, T-08)', () => {
     expect(res.status).not.toBe(307);
   });
 });
+
+describe('middleware — /api (H2, Fase 6 hardening, MN-H2)', () => {
+  it('AC-H2-1/MN-H2: resposta /api carrega os headers de segurança', () => {
+    const res = middleware(req('/api/cron/auth-attempts-retention', { 'x-real-ip': '6.6.6.6' }));
+    expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(res.headers.get('Permissions-Policy')).toBeTruthy();
+    expect(res.headers.get('Strict-Transport-Security')).toContain('max-age=');
+  });
+
+  it('MN-H2: /api NÃO entra no bucket de rate-limit — 11 requisições do mesmo IP não geram 429', () => {
+    const ip = { 'x-real-ip': '6.6.6.7' };
+    let last;
+    for (let i = 0; i < 11; i++) {
+      last = middleware(req('/api/cron/expire-jobs', ip));
+      expect(last.status).not.toBe(429);
+    }
+    expect(last!.headers.get('X-RateLimit-Limit')).toBeNull();
+    expect(last!.headers.get('Retry-After')).toBeNull();
+  });
+
+  it('MN-H2: /api NÃO é redirecionado pelo gate de sessão, mesmo sob prefixo protegido e sem cookie', () => {
+    // Simula um path /api que colidiria com um prefixo protegido caso o
+    // branch dedicado não interceptasse antes — nunca deve virar 307/login.
+    const res = middleware(req('/api/admin/relatorio', { 'x-real-ip': '6.6.6.8' }));
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('mata a mutação de remover o branch /api: sem ele, a rota cairia no rate-limit anônimo (10/min)', () => {
+    // Prova indireta: 10 requisições ainda não bloqueiam rotas não-/api no
+    // mesmo IP (comportamento normal preservado), enquanto /api nunca conta
+    // para nenhum bucket — dois buckets seguem independentes.
+    const ip = { 'x-real-ip': '6.6.6.9' };
+    for (let i = 0; i < 15; i++) {
+      const res = middleware(req('/api/cron/expire-jobs', ip));
+      expect(res.status).not.toBe(429);
+    }
+    // O mesmo IP, em rota não-/api, ainda tem seu próprio limite de 10/min
+    // intacto — prova que /api não compartilha (nem esgota) o bucket normal.
+    let last;
+    for (let i = 0; i < 10; i++) {
+      last = middleware(req('/vagas', ip));
+      expect(last.status).not.toBe(429);
+    }
+    const blocked = middleware(req('/vagas', ip));
+    expect(blocked.status).toBe(429);
+  });
+});
