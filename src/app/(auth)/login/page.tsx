@@ -1,3 +1,4 @@
+import { env } from '@/shared/env';
 import { LoginForm } from '@/modules/identity';
 import { FormCard, FormHeader } from '@/shared/ui';
 
@@ -16,7 +17,7 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <FormHeader title="Entrar no ASONSEG" description="Use seu e-mail e senha para acessar." />
       <FormCard>
-        <LoginForm />
+        <LoginForm siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
       </FormCard>
     </main>
   );

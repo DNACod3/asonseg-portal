@@ -33,8 +33,18 @@ export const signInSchema = z.object({
    * Token Turnstile — opcional (caminho feliz não envia). Só é exigido pela
    * `loginAction` quando a chave `(email, ip)` cruza `CAPTCHA_CHALLENGE_THRESHOLD`
    * falhas recentes (H1, Fase 6 — hardening; ADR-0014).
+   *
+   * SPEC_DEVIATION (design.md §H1 tinha `z.string().min(1).optional()`):
+   * o campo hidden `<input {...register('captchaToken')} />` do LoginForm
+   * nasce como `""` (default nativo de input), nunca `undefined` — com
+   * `min(1)` isso reprovava o Zod e travava o caminho feliz (<3 falhas) para
+   * TODO login, já que o hidden field sempre existe no DOM. Sem `min(1)`,
+   * `""`/ausente chegam ao servidor como "sem token", tratados de forma
+   * idêntica por `requiresLoginCaptcha`/`captcha.verify` (fail-closed em
+   * ambos): a garantia MN-H1 não muda, só a validação client-side do campo
+   * vazio deixa de ser um erro de schema.
    */
-  captchaToken: z.string().min(1).optional(),
+  captchaToken: z.string().optional(),
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
