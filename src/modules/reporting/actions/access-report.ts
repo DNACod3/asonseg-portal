@@ -8,19 +8,13 @@ import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { accessReportSchema, type AccessReportInput } from '../schemas/access-report';
 import { viewPersonForAccessReport, type AccessReportData } from '../views/access-report.view';
+import { ACCESS_REPORT_ROLES } from '../domain/access-report-roles';
 
 export type {
   AccessReportConsent,
   AccessReportProfile,
   AccessReportRoleGrant,
 } from '../views/access-report.view';
-
-/**
- * Papéis internos autorizados a emitir o relatório de acesso de um titular
- * (LGPD art. 19). Não há `requirePermission()` RBAC neste repo ainda (USP-007+),
- * então a checagem é inline: o solicitante precisa de ao menos um destes papéis.
- */
-export const ACCESS_REPORT_ROLES = ['SOCIAL_ASSISTANT', 'BOARD', 'COORDINATOR'] as const;
 
 /** Relatório de acesso consolidado (perfil + papéis + consentimentos). */
 export interface AccessReportResult extends AccessReportData {

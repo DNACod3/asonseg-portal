@@ -24,6 +24,8 @@ export type ActionErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'PRECONDITION_FAILED'
+  // CAPTCHA adaptativo no login (H1, Fase 6 — hardening / ADR-0014):
+  | 'CAPTCHA_REQUIRED'
   // Máquina de estados de moderação (ADR-0011 / USP-016):
   | 'INVALID_TRANSITION'
   | 'JUSTIFICATION_REQUIRED'

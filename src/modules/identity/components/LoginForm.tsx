@@ -4,9 +4,15 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { Button, Input, Label } from '@/shared/ui';
 import { signInSchema, type SignInInput } from '../schemas/signIn';
 import { loginAction } from '../actions/login';
+
+interface Props {
+  /** Site key pública do Turnstile — só usada quando o servidor exige CAPTCHA (H1). */
+  siteKey: string;
+}
 
 /**
  * Formulário de login (USP-004 — T-07). RHF + Zod (validação client-side de
@@ -17,17 +23,28 @@ import { loginAction } from '../actions/login';
  * Fundação de Design System da Fase 1 (T13, DS-18/DS-19/DS-20): restilizado
  * com os primitivos (`Input`/`Label`/`Button`) e tokens — fluxos (RHF/Zod/
  * loginAction/mensagem única/navegação) preservados sem alteração.
+ *
+ * CAPTCHA adaptativo (H1, Fase 6 — hardening): o widget Turnstile só é
+ * renderizado quando o servidor sinaliza `error.code === 'CAPTCHA_REQUIRED'`
+ * (≥3 falhas recentes na chave `email, ip`) — o caminho feliz (<3 falhas)
+ * nunca carrega o widget, sem fricção adicional.
  */
-export function LoginForm() {
+export function LoginForm({ siteKey }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SignInInput>({ resolver: zodResolver(signInSchema) });
+
+  function handleCaptchaSuccess(token: string) {
+    setValue('captchaToken', token);
+  }
 
   function onSubmit(data: SignInInput) {
     setServerError(null);
@@ -37,6 +54,9 @@ export function LoginForm() {
         router.replace(result.data.redirectTo);
         router.refresh();
       } else {
+        if (result.error.code === 'CAPTCHA_REQUIRED') {
+          setCaptchaRequired(true);
+        }
         setServerError(result.error.message);
       }
     });
@@ -84,6 +104,15 @@ export function LoginForm() {
           Esqueci minha senha
         </a>
       </div>
+
+      {/* CAPTCHA Turnstile — só aparece quando o servidor exige (H1, ≥3 falhas) */}
+      {/* DS-MN-03: usa o primitivo Input (não o elemento nativo cru) mesmo no campo hidden. */}
+      <Input type="hidden" {...register('captchaToken')} />
+      {captchaRequired && (
+        <div className="flex justify-center">
+          <Turnstile siteKey={siteKey} onSuccess={handleCaptchaSuccess} options={{ language: 'pt-BR' }} />
+        </div>
+      )}
 
       {/* Erro do servidor (mensagem única, anti-enumeração) */}
       {serverError && (

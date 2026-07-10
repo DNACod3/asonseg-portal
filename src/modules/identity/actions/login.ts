@@ -10,7 +10,8 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { AUTH_PROVIDER_TOKEN } from '../ports/authProvider';
 import { AUTH_ATTEMPTS_REPO_TOKEN, type AuthAttemptsRepo } from '../ports/authAttemptsRepo';
-import { isLocked, LOCKOUT_WINDOW_MS } from '../domain/lockout';
+import { CAPTCHA_VERIFIER_TOKEN } from '../ports/captchaVerifier';
+import { isLocked, requiresLoginCaptcha, LOCKOUT_WINDOW_MS } from '../domain/lockout';
 import { consumeTimingBudget } from '../domain/anti-timing';
 import { signInSchema, GENERIC_AUTH_ERROR, type SignInInput } from '../schemas/signIn';
 
@@ -67,6 +68,19 @@ export async function loginAction(rawInput: SignInInput): Promise<ActionResult<L
     await recordFailure({ attempts, email, ip, userAgent, reason: 'locked', personId: null });
     log.warn({ ip: maskIp(ip) }, 'login:locked');
     return fail('INVALID_CREDENTIALS', GENERIC_AUTH_ERROR);
+  }
+
+  // 3b. CAPTCHA adaptativo (H1, Fase 6 — hardening): a partir de
+  // CAPTCHA_CHALLENGE_THRESHOLD falhas recentes (abaixo do lockout de 5), exige
+  // um captchaToken Turnstile verificado antes de testar a senha. Curto-circuita
+  // ANTES do provedor e ANTES de recordFailure — não é uma tentativa de
+  // credencial, não acelera o lockout (spec assumption 2).
+  if (requiresLoginCaptcha(recent, new Date())) {
+    const captcha = container.resolve(CAPTCHA_VERIFIER_TOKEN);
+    const captchaResult = await captcha.verify(parsed.data.captchaToken, ip !== '0.0.0.0' ? ip : undefined);
+    if (!captchaResult.ok) {
+      return fail('CAPTCHA_REQUIRED', 'Confirme que você não é um robô e tente novamente.');
+    }
   }
 
   // 4. Autenticação no provedor (Supabase). Erro genérico — não distingue motivo.

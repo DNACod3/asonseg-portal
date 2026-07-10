@@ -96,7 +96,8 @@ skipIfNoDb('applyToJob — integração', () => {
     const future = new Date();
     future.setDate(future.getDate() + 30);
     const past = new Date();
-    past.setDate(past.getDate() - 1);
+    // -2 dias: robustez de fuso (validUntil @db.Date truncado em UTC vs hoje-SP; flake L-006)
+    past.setDate(past.getDate() - 2);
 
     const job = await prisma.job.create({
       data: { companyId, authorPersonId: authorId, title: 'Vaga Apply Int', status: 'ACTIVE', validUntil: future },

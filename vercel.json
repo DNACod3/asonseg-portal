@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/expire-jobs",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/dispatch-outbox",
+      "schedule": "* * * * *"
     }
   ]
 }

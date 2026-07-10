@@ -71,4 +71,15 @@ describe('audit/events', () => {
     expect(AuditEvent.CV_UPLOADED).toBe('CV_UPLOADED');
     expect(requiresJustification(AuditEvent.CV_UPLOADED)).toBe(false);
   });
+
+  it('inclui REPORT_EXPORTED (USP-042 / TD §4.6) e NÃO exige justificativa (E-003/REL42-MN-07)', () => {
+    expect(AuditEvent.REPORT_EXPORTED).toBe('REPORT_EXPORTED');
+    expect(requiresJustification(AuditEvent.REPORT_EXPORTED)).toBe(false);
+    // REL42-MN-07: o catálogo tem o evento — o export nunca pode concluir sem
+    // ter onde registrar (mutação que removesse REPORT_EXPORTED do catálogo
+    // quebraria esta asserção e qualquer withAudit('REPORT_EXPORTED', ...) no
+    // módulo `reporting`).
+    const known = new Set<string>(Object.values(AuditEvent));
+    expect(known.has('REPORT_EXPORTED')).toBe(true);
+  });
 });

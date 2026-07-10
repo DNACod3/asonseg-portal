@@ -15,6 +15,7 @@ import { renderResponsibleRemovedEmail } from './templates/responsible-removed';
 import { renderApplicationConfirmationEmail } from './templates/application-confirmation';
 import { renderServiceInterestNotificationEmail } from './templates/service-interest-notification';
 import { renderReferralNotificationEmail } from './templates/referral-notification';
+import { renderJobExpiryEmail } from './templates/job-expiry';
 
 /**
  * Subconjunto estrutural do client Resend que o adapter consome. Mantê-lo
@@ -51,6 +52,8 @@ function render(message: EmailMessage): RenderedEmail {
       return renderServiceInterestNotificationEmail(message.data);
     case 'referral-notification':
       return renderReferralNotificationEmail(message.data);
+    case 'job-expiry':
+      return renderJobExpiryEmail(message.data);
   }
 }
 

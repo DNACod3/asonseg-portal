@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   isLocked,
   withinWindow,
+  requiresLoginCaptcha,
+  CAPTCHA_CHALLENGE_THRESHOLD,
   LOCKOUT_THRESHOLD,
   LOCKOUT_WINDOW_MS,
   type LockoutAttempt,
@@ -84,5 +86,36 @@ describe('identity/domain/lockout', () => {
     const attempts = [attempt('FAILURE', 1), attempt('FAILURE', 14), attempt('FAILURE', 16)];
     const kept = withinWindow(attempts, NOW, LOCKOUT_WINDOW_MS);
     expect(kept).toHaveLength(2);
+  });
+});
+
+describe('identity/domain/lockout — requiresLoginCaptcha (H1, Fase 6 hardening)', () => {
+  it('o limiar de CAPTCHA fica abaixo do limiar de lockout', () => {
+    expect(CAPTCHA_CHALLENGE_THRESHOLD).toBeLessThan(LOCKOUT_THRESHOLD);
+  });
+
+  it.each([0, 1, 2])('%i falha(s) → não exige CAPTCHA', (n) => {
+    const attempts = Array.from({ length: n }, (_, i) => attempt('FAILURE', i));
+    expect(requiresLoginCaptcha(attempts, NOW)).toBe(false);
+  });
+
+  it.each([3, 4])('%i falhas → exige CAPTCHA (abaixo do lockout de 5)', (n) => {
+    const attempts = Array.from({ length: n }, (_, i) => attempt('FAILURE', i));
+    expect(requiresLoginCaptcha(attempts, NOW)).toBe(true);
+  });
+
+  it('falhas fora da janela de 15min não contam para o CAPTCHA', () => {
+    const attempts = [
+      attempt('FAILURE', 16),
+      attempt('FAILURE', 20),
+      attempt('FAILURE', 30),
+    ];
+    expect(requiresLoginCaptcha(attempts, NOW)).toBe(false);
+  });
+
+  it('threshold é parametrizável independente do default', () => {
+    const attempts = Array.from({ length: 2 }, (_, i) => attempt('FAILURE', i));
+    expect(requiresLoginCaptcha(attempts, NOW, { threshold: 2 })).toBe(true);
+    expect(requiresLoginCaptcha(attempts, NOW, { threshold: 5 })).toBe(false);
   });
 });

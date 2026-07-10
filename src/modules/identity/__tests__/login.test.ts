@@ -56,6 +56,7 @@ vi.mock('../domain/anti-timing', () => ({
 const { container } = await import('@/shared/container');
 const { AUTH_PROVIDER_TOKEN } = await import('../ports/authProvider');
 const { AUTH_ATTEMPTS_REPO_TOKEN } = await import('../ports/authAttemptsRepo');
+const { CAPTCHA_VERIFIER_TOKEN } = await import('../ports/captchaVerifier');
 const { loginAction } = await import('../actions/login');
 const { GENERIC_AUTH_ERROR } = await import('../schemas/signIn');
 
@@ -67,6 +68,8 @@ const resetAttempts = vi.fn(async () => {});
 const recentAttempts = vi.fn(
   async () => [] as { outcome: 'SUCCESS' | 'FAILURE'; attemptedAt: Date }[],
 );
+// CAPTCHA adaptativo (H1, Fase 6 — hardening): stub controlável por teste.
+const captchaVerify = vi.fn(async () => ({ ok: true }));
 
 function registerFakes() {
   container.register(AUTH_PROVIDER_TOKEN, () => ({ signInWithPassword, signOut }));
@@ -75,6 +78,12 @@ function registerFakes() {
     reset: resetAttempts,
     recent: recentAttempts,
   }));
+  container.register(CAPTCHA_VERIFIER_TOKEN, () => ({ verify: captchaVerify }));
+}
+
+/** N tentativas FALHAS "agora" — suficiente para cruzar qualquer limiar (H1/lockout). */
+function failures(n: number): { outcome: 'FAILURE'; attemptedAt: Date }[] {
+  return Array.from({ length: n }, () => ({ outcome: 'FAILURE' as const, attemptedAt: new Date() }));
 }
 
 const VALID = { email: 'maria@example.com', senha: 'senha1234' };
@@ -208,6 +217,80 @@ describe('loginAction', () => {
     const result = await loginAction(VALID);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('MAINTENANCE');
+    expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+});
+
+describe('loginAction — CAPTCHA adaptativo (H1, Fase 6 hardening, MN-H1)', () => {
+  it('AC-H1-1: 0–2 falhas recentes → login normal, sem CAPTCHA (fricção zero)', async () => {
+    recentAttempts.mockResolvedValue(failures(2));
+    signInWithPassword.mockResolvedValue({ ok: true, userId: 'user-1' });
+    prismaState.findUnique.mockResolvedValue({
+      id: 'person-1',
+      status: 'ATIVO',
+      credential: { primeiroAcesso: false },
+    });
+
+    const result = await loginAction(VALID);
+
+    expect(result.ok).toBe(true);
+    expect(captchaVerify).not.toHaveBeenCalled();
+    expect(signInWithPassword).toHaveBeenCalled();
+  });
+
+  it('MN-H1: ≥3 falhas + sem captchaToken → CAPTCHA_REQUIRED, provedor NÃO chamado, nenhum AuthAttempt novo gravado', async () => {
+    recentAttempts.mockResolvedValue(failures(3));
+    // Sem token, o verificador real (Turnstile) sempre rejeita — o stub espelha
+    // esse fail-closed explicitamente (ausência de token nunca deveria "passar").
+    captchaVerify.mockResolvedValueOnce({ ok: false });
+
+    const result = await loginAction(VALID); // sem captchaToken
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('CAPTCHA_REQUIRED');
+    expect(captchaVerify).toHaveBeenCalledWith(undefined, expect.any(String));
+    expect(signInWithPassword).not.toHaveBeenCalled();
+    expect(recordAttempt).not.toHaveBeenCalled();
+  });
+
+  it('MN-H1: ≥3 falhas + captchaToken rejeitado pelo verificador → CAPTCHA_REQUIRED, provedor NÃO chamado', async () => {
+    recentAttempts.mockResolvedValue(failures(4));
+    captchaVerify.mockResolvedValueOnce({ ok: false });
+
+    const result = await loginAction({ ...VALID, captchaToken: 'token-invalido' });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('CAPTCHA_REQUIRED');
+    expect(captchaVerify).toHaveBeenCalledWith('token-invalido', expect.any(String));
+    expect(signInWithPassword).not.toHaveBeenCalled();
+    expect(recordAttempt).not.toHaveBeenCalled();
+  });
+
+  it('AC-H1-3: ≥3 falhas + captchaToken verificado → prossegue para a autenticação normal', async () => {
+    recentAttempts.mockResolvedValue(failures(3));
+    captchaVerify.mockResolvedValueOnce({ ok: true });
+    signInWithPassword.mockResolvedValue({ ok: true, userId: 'user-1' });
+    prismaState.findUnique.mockResolvedValue({
+      id: 'person-1',
+      status: 'ATIVO',
+      credential: { primeiroAcesso: false },
+    });
+
+    const result = await loginAction({ ...VALID, captchaToken: 'token-valido' });
+
+    expect(result.ok).toBe(true);
+    expect(captchaVerify).toHaveBeenCalledWith('token-valido', expect.any(String));
+    expect(signInWithPassword).toHaveBeenCalled();
+  });
+
+  it('ordem preservada: ≥5 falhas continua LOCKED (lockout checado antes do CAPTCHA)', async () => {
+    recentAttempts.mockResolvedValue(failures(5));
+
+    const result = await loginAction(VALID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('INVALID_CREDENTIALS');
+    expect(captchaVerify).not.toHaveBeenCalled();
     expect(signInWithPassword).not.toHaveBeenCalled();
   });
 });

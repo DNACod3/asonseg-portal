@@ -149,8 +149,11 @@ skipIfNoDb('createReferral — integração (USP-037 / T6)', () => {
     return d;
   })();
   const past = (() => {
+    // -2 dias (não -1): `validUntil` é @db.Date truncado em UTC; entre 00:00–03:00 UTC
+    // "ontem-UTC" coincide com "hoje-SP", então -1 dia empataria com hojeSaoPaulo() e a
+    // vaga pareceria válida. -2 dias é inequivocamente expirado em qualquer fuso (flake L-006).
     const d = new Date();
-    d.setDate(d.getDate() - 1);
+    d.setDate(d.getDate() - 2);
     return d;
   })();
 
