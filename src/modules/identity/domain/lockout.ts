@@ -70,3 +70,30 @@ export function isLocked(
   const failures = withinWindow(attempts, now, windowMs).filter((a) => a.outcome === 'FAILURE');
   return failures.length >= threshold;
 }
+
+/**
+ * Limiar de desafio de CAPTCHA adaptativo no login (H1, Fase 6 — hardening).
+ * Deliberadamente **abaixo** de {@link LOCKOUT_THRESHOLD} (5): entre 3 e 4
+ * falhas, o login passa a exigir prova humana antes de tentar a senha; ao
+ * atingir 5, o lockout durável assume (checado primeiro em `loginAction`).
+ */
+export const CAPTCHA_CHALLENGE_THRESHOLD = 3;
+
+/**
+ * `true` quando a chave `(email, ip)` já acumulou `>= CAPTCHA_CHALLENGE_THRESHOLD`
+ * falhas dentro da janela — o login deve exigir um `captchaToken` Turnstile
+ * verificado antes de prosseguir para `provider.signInWithPassword`.
+ *
+ * Espelha a mesma mecânica de janela/contagem de {@link isLocked} e opera
+ * sobre a mesma lista `recent` já buscada para o lockout (sem query nova).
+ */
+export function requiresLoginCaptcha(
+  attempts: readonly LockoutAttempt[],
+  now: Date,
+  policy: LockoutPolicy = {},
+): boolean {
+  const windowMs = policy.windowMs ?? LOCKOUT_WINDOW_MS;
+  const threshold = policy.threshold ?? CAPTCHA_CHALLENGE_THRESHOLD;
+  const failures = withinWindow(attempts, now, windowMs).filter((a) => a.outcome === 'FAILURE');
+  return failures.length >= threshold;
+}

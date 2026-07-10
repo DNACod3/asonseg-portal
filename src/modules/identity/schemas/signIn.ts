@@ -28,6 +28,13 @@ export const signInSchema = z.object({
     .string()
     .min(8, 'A senha deve ter ao menos 8 caracteres')
     .max(128, 'Senha muito longa'),
+
+  /**
+   * Token Turnstile — opcional (caminho feliz não envia). Só é exigido pela
+   * `loginAction` quando a chave `(email, ip)` cruza `CAPTCHA_CHALLENGE_THRESHOLD`
+   * falhas recentes (H1, Fase 6 — hardening; ADR-0014).
+   */
+  captchaToken: z.string().min(1).optional(),
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
