@@ -12,16 +12,26 @@ const isProd = process.env.NODE_ENV === 'production';
  * HttpOnly/Secure/Lax para o cookie `sb-*-auth-token` por padrão — este
  * helper é uma rede de segurança contra regressão silenciosa do default,
  * não um override.
+ *
+ * SPEC_DEVIATION (design.md §H5 tinha só `sameSite: options?.sameSite ?? 'lax'`):
+ * um `??` puro preserva um `sameSite: 'none'` explícito vindo do upstream —
+ * o que tornaria o must-not MN-H5 ("cookie não pode ser emitido ... com
+ * SameSite: 'none'") inteiramente furável e o teste que o prova (T12)
+ * incondicionalmente vermelho, já que ele injeta exatamente esse valor.
+ * `'none'` é o valor MENOS seguro de `sameSite` (cross-site) — normalizá-lo
+ * para `'lax'` é elevar o piso, não "rebaixar" (rebaixar seria o inverso:
+ * enfraquecer `'strict'`/`'lax'` já definidos, o que este helper não faz).
  */
 export function secureCookieOptions(
   options: CookieOptions | undefined,
   { isProd: prod }: { isProd: boolean },
 ): CookieOptions {
+  const sameSite = options?.sameSite === 'none' ? 'lax' : (options?.sameSite ?? 'lax');
   return {
     ...options,
     httpOnly: options?.httpOnly ?? true,
     secure: options?.secure ?? prod,
-    sameSite: options?.sameSite ?? 'lax',
+    sameSite,
   };
 }
 
