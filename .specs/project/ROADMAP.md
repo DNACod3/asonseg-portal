@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** Fase 6 — Relatórios + Home + Hardening + LGPD
-**Status:** Fase 5 **100% concluída** (4 USPs, 1 PR único, AD-022) · próxima unidade elegível: **USP-041** (Home pública com indicadores em tempo real)
+**Status:** Fase 6 **100% concluída** (3 USPs + unidade de hardening, 1 PR único, AD-023) · MVP feature-complete · próxima etapa: **Lançamento** (UAT + cutover, gated por B-001 DPO)
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
 
@@ -125,11 +125,11 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ### Unidades
 
-- [ ] USP-041 — Home pública com indicadores em tempo real · epic: indicadores-relatorios · dir: .specs/features/indicadores-relatorios/usp-041-home-indicadores/ · deps: — · gate: —
-- [ ] USP-042 — Relatórios operacionais do Portal · epic: indicadores-relatorios · dir: .specs/features/indicadores-relatorios/usp-042-relatorios-operacionais/ · deps: — · gate: —
-- [ ] USP-044 — Notificações por e-mail em eventos do portal · epic: notificacoes-email · dir: .specs/features/notificacoes-email/usp-044-notificacoes-email/ · deps: — · gate: —
+- [x] USP-041 — Home pública com indicadores em tempo real · epic: indicadores-relatorios · dir: .specs/features/indicadores-relatorios/usp-041-home-indicadores/ · deps: — · gate: —
+- [x] USP-042 — Relatórios operacionais do Portal · epic: indicadores-relatorios · dir: .specs/features/indicadores-relatorios/usp-042-relatorios-operacionais/ · deps: — · gate: —
+- [x] USP-044 — Notificações por e-mail em eventos do portal · epic: notificacoes-email · dir: .specs/features/notificacoes-email/usp-044-notificacoes-email/ · deps: — · gate: —
 
-> Hardening de segurança; revisão LGPD com DPO; painel de revogação de consentimentos (transversal, não-USP).
+> **Hardening de segurança** entregue como unidade ad-hoc U3 (AD-023): CAPTCHA adaptativo no login, headers de segurança em `/api`, guard estático de Server Actions, redação de PII no logger + guard anti-`console.*`, piso de flags de cookie de sessão. **Painel de revogação de consentimentos já existia** (USP-043). **Revisão LGPD com DPO** e as demais frentes LGPD (direito ao esquecimento/anonimização, política de retenção de PII operacional, cascade `ANONIMIZAR`) ficam **deferidas** — gated por **B-001** (DPO não designado), fora do escopo de dev. Ver AD-023 §Deferidos.
 
 ---
 
