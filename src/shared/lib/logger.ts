@@ -57,7 +57,11 @@ export const SENSITIVE_FIELDS = [
   'coursesText',
 ];
 
-const REDACT_PATHS = [
+// Exportado (não apenas interno) para que o teste de redação (H4,
+// logger.test.ts) monte um pino real com a MESMA config de produção — sem
+// isso, não haveria como testar a redação de ponta a ponta (o `logger`
+// exportado abaixo usa `pino-pretty`/transport assíncrono fora de produção).
+export const REDACT_PATHS = [
   ...SENSITIVE_FIELDS,
   ...SENSITIVE_FIELDS.map((f) => `*.${f}`),
   ...SENSITIVE_FIELDS.map((f) => `*.*.${f}`),
