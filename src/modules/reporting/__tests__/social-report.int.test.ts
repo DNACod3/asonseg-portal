@@ -103,6 +103,13 @@ describe.skipIf(!hasDb)('USP-042/T10 — viewSocialReport (integração)', () =>
     expect(regionEntry?.withSocialBenefit).toBe(1);
     expect(regionEntry?.withFamilyCompositionDeclared).toBe(1);
 
+    // `regions` (totais por região, sempre presente) — no ramo full é derivado
+    // de `sensitiveRows` (sem 2ª varredura de socioeconomicRecord); confere
+    // que o total bate com o registro criado no beforeAll.
+    const regionTotal = report?.regions.find((r) => r.regionId === region.id);
+    expect(regionTotal?.total).toBe(1);
+    expect(regionTotal?.regionName).toBe(REGION_NAME);
+
     const auditAfter = await prisma.auditLog.count({
       where: { action: 'SENSITIVE_FIELD_VIEWED', actorPersonId: asPersonId },
     });

@@ -105,6 +105,31 @@ const REGION_SELECT = {
 } as const;
 
 /**
+ * Agrega `rows` (qualquer shape que carregue `person` no formato de
+ * `REGION_SELECT.person`) em totais por região. Reusada por AMBOS os ramos
+ * (`stripped` a partir de `baseRows`, `full` a partir de `sensitiveRows` —
+ * que já inclui o mesmo `person: REGION_SELECT.person`) para não exigir uma
+ * 2ª varredura de `socioeconomicRecord` só para os totais regionais no ramo
+ * `full`.
+ */
+function deriveRegionTotals(
+  rows: readonly { person: Parameters<typeof resolvePersonRegion>[0] }[],
+): SocialReportRegionRow[] {
+  const regionTotals = new Map<string, SocialReportRegionRow>();
+  for (const row of rows) {
+    const { regionId, regionName } = resolvePersonRegion(row.person);
+    const key = regionId ?? '__no_region__';
+    const existing = regionTotals.get(key);
+    if (existing) {
+      existing.total += 1;
+    } else {
+      regionTotals.set(key, { regionId, regionName, total: 1 });
+    }
+  }
+  return [...regionTotals.values()];
+}
+
+/**
  * Relatório social por região (REL42-MN-05). `viewer` sem
  * {@link canViewSocialReports} E sem {@link canViewOperationalReports} ⇒
  * `null` — nem a versão stripped é servida a quem não tem acesso a NENHUM
@@ -120,34 +145,24 @@ export async function viewSocialReport(
 
   const where = buildWhere(filters);
 
-  // B1 (comum a stripped e full): SELECT que NUNCA carrega campo sensível.
-  const baseRows = await prisma.socioeconomicRecord.findMany({
-    where,
-    select: REGION_SELECT,
-    take: 5000,
-  });
-
-  const regionTotals = new Map<string, SocialReportRegionRow>();
-  for (const row of baseRows) {
-    const { regionId, regionName } = resolvePersonRegion(row.person);
-    const key = regionId ?? '__no_region__';
-    const existing = regionTotals.get(key);
-    if (existing) {
-      existing.total += 1;
-    } else {
-      regionTotals.set(key, { regionId, regionName, total: 1 });
-    }
-  }
-  const regions = [...regionTotals.values()];
-
   if (!canSocial) {
-    // Coordenador (canOps=true, canSocial=false): stripped — nenhuma query
-    // sensível roda (B1), e `sensitive` fica estruturalmente `null` (B2).
+    // Coordenador (canOps=true, canSocial=false): stripped — B1: SELECT que
+    // NUNCA carrega campo sensível; roda a ÚNICA query deste ramo. `sensitive`
+    // fica estruturalmente `null` (B2).
+    const baseRows = await prisma.socioeconomicRecord.findMany({
+      where,
+      select: REGION_SELECT,
+      take: 5000,
+    });
+    const regions = deriveRegionTotals(baseRows);
     return { scope: 'stripped', regions, sensitive: null };
   }
 
   // B1 (full): a ÚNICA query deste módulo que seleciona campo sensível — só
-  // roda sob `canViewSocialReports` (AS/BOARD).
+  // roda sob `canViewSocialReports` (AS/BOARD). Também carrega `person:
+  // REGION_SELECT.person`, então os totais regionais (`regions`) são
+  // derivados dela abaixo em vez de uma 2ª varredura idêntica de
+  // `socioeconomicRecord` (perf — mesma `where`/`take` do ramo antigo).
   const sensitiveRows = await prisma.socioeconomicRecord.findMany({
     where,
     select: {
@@ -159,6 +174,8 @@ export async function viewSocialReport(
     },
     take: 5000,
   });
+
+  const regions = deriveRegionTotals(sensitiveRows);
 
   const sensitiveByRegion = new Map<string, SocialReportSensitiveBreakdown>();
   for (const row of sensitiveRows) {
