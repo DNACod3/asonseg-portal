@@ -25,6 +25,20 @@ import { rateLimiter, RATE_LIMITS, type RateLimitCategory } from '@/shared/lib/r
  * vazar PII (LGPD / ADR-0009).
  */
 export function middleware(request: NextRequest): NextResponse {
+  const supabaseOrigin = env.NEXT_PUBLIC_SUPABASE_URL;
+  const hsts = request.nextUrl.protocol === 'https:';
+
+  // H2 (Fase 6 — hardening): rotas /api ganham SÓ headers de segurança — sem
+  // rate-limit, sem gate de sessão. Crons (`/api/cron/*`) autenticam por
+  // CRON_SECRET; rate-limitar/redirecionar quebraria o Vercel Cron. Branch
+  // único, antes de qualquer outra lógica, garante que /api nunca entra no
+  // bucket nem no redirect de sessão.
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    const res = NextResponse.next();
+    applySecurityHeaders(res.headers, { hsts, supabaseOrigin });
+    return res;
+  }
+
   const ip = clientIp(request.headers);
   const category = resolveCategory(request);
   // Chave por categoria+IP; cadastro é sempre por IP (anti-spam de auto-cadastro).
@@ -34,9 +48,6 @@ export function middleware(request: NextRequest): NextResponse {
   // Poda amostrada (~1% das requisições): contém o crescimento do Map em memória
   // sem custo por request e sem depender de um gatilho externo/forjável.
   if (Math.random() < 0.01) rateLimiter.prune();
-
-  const supabaseOrigin = env.NEXT_PUBLIC_SUPABASE_URL;
-  const hsts = request.nextUrl.protocol === 'https:';
 
   if (!result.allowed && !env.RATE_LIMIT_DISABLED) {
     logRateLimited(category, ip, request.nextUrl.pathname);
@@ -138,8 +149,10 @@ function logRateLimited(category: RateLimitCategory, ip: string, path: string): 
 }
 
 /**
- * Aplica o middleware a rotas autenticadas e ao fluxo de auth.
- * Exclui arquivos estáticos, API internas e Next.js assets (não penaliza ISR).
+ * Aplica o middleware a rotas autenticadas, ao fluxo de auth e a `/api` (H2,
+ * Fase 6 — hardening: só para os headers de segurança — ver branch dedicado
+ * acima, que retorna antes do rate-limit/gate de sessão).
+ * Exclui arquivos estáticos e Next.js assets (não penaliza ISR).
  */
 export const config = {
   matcher: [
@@ -148,11 +161,12 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico, manifest, robots, sitemap
-     * - api (route handlers protegem-se por si)
      * - arquivos com extensão (favicon, fontes, imagens)
+     * `api` NÃO é mais excluído (H2): o branch dedicado acima garante que
+     * essas rotas só recebem headers, nunca rate-limit/redirect.
      */
     // Literal de string (não `String.raw`): o build do Next exige um nó
     // estático e analisável no `config.matcher` (não um TaggedTemplateExpression).
-    '/((?!_next/static|_next/image|favicon.ico|manifest|robots|sitemap|api|.*\\..*).+)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest|robots|sitemap|.*\\..*).+)',
   ],
 };
