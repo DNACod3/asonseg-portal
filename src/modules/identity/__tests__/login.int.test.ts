@@ -31,7 +31,15 @@ vi.mock('next/headers', () => ({
 
 const { prisma } = await import('@/shared/lib/prisma');
 const { createSupabaseAdminClient } = await import('@/shared/lib/supabase/server');
+const { container } = await import('@/shared/container');
+const { CAPTCHA_VERIFIER_TOKEN } = await import('../ports/captchaVerifier');
 const { loginAction } = await import('../actions/login');
+
+// CAPTCHA adaptativo do login (H1, Fase 6 — hardening): stub sempre-ok, para que
+// o brute-force de senha errada (AC-004-3) continue exercitando o lockout em vez
+// de travar no desafio de CAPTCHA a partir da 3ª falha — cobertura de CAPTCHA
+// (positivo/negativo) é responsabilidade do unit test da action (login.test.ts).
+container.register(CAPTCHA_VERIFIER_TOKEN, () => ({ verify: async () => ({ ok: true }) }));
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
