@@ -36,16 +36,43 @@ function escapeCsvField(raw: string): string {
 }
 
 /**
+ * Caracteres que planilhas (Excel/Sheets/LibreOffice) interpretam como
+ * gatilho de fórmula quando líderes de célula — OWASP CSV Injection
+ * (CWE-1236): `=`, `+`, `-`, `@`, além de TAB e CR, que alguns parsers usam
+ * como separador alternativo de início de fórmula.
+ */
+const FORMULA_TRIGGER_CHARS = new Set(['=', '+', '-', '@', '\t', '\r']);
+
+/**
+ * Neutraliza injeção de fórmula (CWE-1236) prefixando `'` quando o 1º
+ * caractere é um gatilho reconhecido — só chamada para células genuinamente
+ * `string` (ver `cellToString`), nunca para números stringificados, para não
+ * corromper um valor numérico legítimo (ex.: variação negativa `-5`).
+ */
+function neutralizeFormulaInjection(raw: string): string {
+  if (raw.length > 0 && FORMULA_TRIGGER_CHARS.has(raw[0] as string)) {
+    return `'${raw}`;
+  }
+  return raw;
+}
+
+/**
  * `null`/`undefined` viram célula vazia; `Date` vira ISO; primitivos via
  * `String(...)`; objeto residual (não deveria ocorrer — as queries projetam
  * primitivos) vira `JSON.stringify` em vez do `[object Object]` padrão.
  * Exportada para reuso pelo documento PDF (T11 — `report-pdf.tsx`), que
  * precisa do mesmo formato de célula sem duplicar a regra.
+ *
+ * Células `string` passam por `neutralizeFormulaInjection` ANTES do
+ * escapamento RFC-4180 (feito por `escapeCsvField`, chamado pelo `toCsv`
+ * depois deste). `number`/`boolean` vão direto por `String(...)` — não são
+ * tocados, para não prefixar um número negativo legítimo com `'`.
  */
 export function cellToString(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'string') return neutralizeFormulaInjection(value);
   return String(value);
 }
 

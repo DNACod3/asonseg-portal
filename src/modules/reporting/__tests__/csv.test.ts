@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toCsv, composeWatermark, WATERMARK_PII, type CsvColumn } from '../domain/csv';
+import { toCsv, cellToString, composeWatermark, WATERMARK_PII, type CsvColumn } from '../domain/csv';
 
 interface Row {
   name: string;
@@ -63,5 +63,51 @@ describe('toCsv', () => {
     expect(watermark).toContain(WATERMARK_PII);
     expect(watermark).toContain('Ana Coordenadora');
     expect(watermark).toContain('exportado por');
+  });
+});
+
+describe('CWE-1236 — neutralização de injeção de fórmula CSV (OWASP CSV Injection)', () => {
+  it.each([
+    ['=SUM(A1)', "'=SUM(A1)"],
+    ['+1', "'+1"],
+    ['-cmd', "'-cmd"],
+    ['@x', "'@x"],
+    ['\tconteudo', "'\tconteudo"],
+    ['\rconteudo', "'\rconteudo"],
+  ])('cellToString neutraliza célula string começando com gatilho de fórmula: %s', (raw, expected) => {
+    expect(cellToString(raw)).toBe(expected);
+  });
+
+  it('cellToString não altera string que não começa com gatilho de fórmula', () => {
+    expect(cellToString('Vaga A')).toBe('Vaga A');
+    expect(cellToString('candidato@empresa.com')).toBe('candidato@empresa.com'); // @ não é o 1º char
+  });
+
+  it('cellToString NÃO neutraliza número (mesmo negativo) — só células genuinamente string', () => {
+    expect(cellToString(-5)).toBe('-5');
+    expect(cellToString(0)).toBe('0');
+    expect(cellToString(42)).toBe('42');
+  });
+
+  it('cellToString não altera enum/UUID típicos das linhas de relatório', () => {
+    expect(cellToString('PUBLICADA')).toBe('PUBLICADA');
+    expect(cellToString('3f2504e0-4f89-11d3-9a0c-0305e82c3301')).toBe('3f2504e0-4f89-11d3-9a0c-0305e82c3301');
+  });
+
+  it('toCsv: célula string com "=SUM(A1)" sai neutralizada e ainda parseável como RFC-4180 válido', () => {
+    const csv = toCsv<Row>([{ name: '=SUM(A1)', qty: 1, note: null }], columns);
+    const lines = csv.split('\r\n');
+    expect(lines[1]).toBe("'=SUM(A1);1;");
+  });
+
+  it('toCsv: célula string começando com TAB sai neutralizada dentro do CSV final', () => {
+    const csv = toCsv<Row>([{ name: 'Vaga', qty: 1, note: '\tformula' }], columns);
+    expect(csv).toContain("'\tformula");
+  });
+
+  it('toCsv: célula numérica (qty) nunca é prefixada com aspas simples, mesmo com valores no limite', () => {
+    const csv = toCsv<Row>([{ name: 'Vaga', qty: 0, note: null }], columns);
+    const lines = csv.split('\r\n');
+    expect(lines[1]).toBe('Vaga;0;');
   });
 });
