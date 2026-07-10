@@ -82,6 +82,15 @@ import { EMAIL_SENDER_TOKEN } from '@/shared/lib/email/email-sender.port';
 import { ResendEmailSender } from '@/shared/lib/email/resend-email-sender';
 container.register(EMAIL_SENDER_TOKEN, () => new ResendEmailSender());
 
+// Dispatcher assíncrono do Outbox (USP-044): hidratador do payload leve
+// {kind:'JOB_EXPIRY_D3'} → EmailMessage. `shared` não importa `jobs`
+// diretamente (TD §2.5); import profundo aqui é o padrão despacho-por-tipo
+// (precedente DispatchingContentStatusRepository acima).
+import { JOB_EXPIRY_EMAIL_RESOLVER_TOKEN } from '@/shared/lib/outbox/job-expiry-resolver.port';
+// eslint-disable-next-line no-restricted-imports
+import { resolveJobExpiryEmail } from '@/modules/jobs/queries/resolve-job-expiry-email';
+container.register(JOB_EXPIRY_EMAIL_RESOLVER_TOKEN, () => resolveJobExpiryEmail);
+
 // Único responsável de Empresa na inativação de Pessoa (USP-007 / AC-007-3 /
 // P-002). USP-012 implementou o módulo `companies` — substituímos o adapter nulo
 // pelo adapter real que consulta person_company_grants no banco.

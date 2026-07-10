@@ -119,6 +119,7 @@ export {
   PERSON_APPLICATIONS_PAGE_SIZE,
   type PersonApplicationRow,
 } from './queries/list-person-applications';
+export { resolveJobExpiryEmail } from './queries/resolve-job-expiry-email';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
