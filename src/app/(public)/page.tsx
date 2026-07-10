@@ -1,5 +1,10 @@
-import { getHomeIndicators, HomeIndicatorsView, type HomeIndicators } from '@/modules/reporting';
+import { getHomeIndicators, type HomeIndicators } from '@/modules/reporting';
 import { childLogger } from '@/shared/lib/logger';
+import { HomeCta } from './_components/home-cta';
+import { HomeHero } from './_components/home-hero';
+import { HomeHowItWorks } from './_components/home-how-it-works';
+import { HomePersonas } from './_components/home-personas';
+import { HomeServices } from './_components/home-services';
 
 // ADR-0013: home com ISR de 10min (indicadores agregados são "tempo real" no
 // contrato com a UI). On-demand revalidation via `revalidatePath('/')`
@@ -31,21 +36,25 @@ async function loadIndicators(): Promise<HomeIndicators> {
   }
 }
 
+/**
+ * USP-047 (T8, HOME-10/11/12/13/MN-03/MN-04): landing pública fiel à
+ * `#page-home` do protótipo. Compõe as 5 seções na ordem hero → Como
+ * Funciona → Para Quem → Serviços → CTA final; **não** re-declara `<main>`
+ * (vem do `(public)/layout.tsx`, USP-046/CASCA-12) — um único landmark
+ * `main` por página. Os indicadores da USP-041 seguem carregados aqui e
+ * passados por prop ao `HomeHero`, que os embute via `HomeIndicatorsView`
+ * inalterado (HOME-05/HOME-MN-03).
+ */
 export default async function HomePage() {
   const indicators = await loadIndicators();
 
   return (
-    // USP-046 (CASCA-12): <main> agora vem do (public)/layout.tsx — um único
-    // landmark `main` por página; esta página só provê o conteúdo.
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 p-8">
-      <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold">ASONSEG — Portal de Empregabilidade e Serviços</h1>
-        <p className="text-base opacity-80">
-          Ação Social Nossa Senhora de Guadalupe. Esqueleto do monolito modular inicializado.
-        </p>
-      </div>
-
-      <HomeIndicatorsView indicators={indicators} />
-    </div>
+    <>
+      <HomeHero indicators={indicators} />
+      <HomeHowItWorks />
+      <HomePersonas />
+      <HomeServices />
+      <HomeCta />
+    </>
   );
 }
