@@ -141,7 +141,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 ### Unidades
 
 - [x] USP-046 — Casca de navegação pública (Header + Footer globais) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-046-casca-navegacao/ · deps: — · gate: —
-- [ ] USP-047 — Home/landing pública fiel ao protótipo · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-047-home-landing/ · deps: USP-046, USP-041 · gate: —
+- [x] USP-047 — Home/landing pública fiel ao protótipo · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-047-home-landing/ · deps: USP-046, USP-041 · gate: —
 - [ ] USP-048 — Navegação integrada das telas públicas (vagas, serviços, cadastros) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-048-navegacao-integrada/ · deps: USP-046, USP-047, USP-021, USP-030 · gate: —
 
 > **Por que existe.** As Fases 1–6 entregaram os módulos e as páginas de cada fluxo, mas a home pública (`src/app/(public)/page.tsx`) segue no esqueleto de inicialização da Fase 1 ("Esqueleto do monolito modular inicializado") e o app não tem casca de site (nenhum Header/Nav/Footer global; o `layout.tsx` raiz só renderiza `{children}` + `ThemeToggle`). Do protótipo, só o **design system** foi portado (tokens/fontes/dark mode em `globals.css`/`layout.tsx`) — não a composição da landing nem a navegação unificada (`showPage()`). Estas 3 unidades são **net-new** (não constam das 44 USPs do PRD, como a USP-045).

@@ -28,8 +28,8 @@
 **In-flight:** **Fase 7 — Fachada Pública** (3 USPs, rodada única em 1 PR, pipeline Planner→Implementer→Verifier). Branch `feat/fase-7-fachada-publica` (a partir de `44181a5`, Fase 6/#286).
 
 - **USP-046 — Casca de navegação pública (Header + Footer globais):** ✅ **PASS** (Verifier independente, gate cheio verde, 4/4 must-nots com sensor killable). Commits `73ee60e..48a8110`. Casca em `src/app/(public)/_components/{site-header,public-nav,site-footer}.tsx`, montada em `(public)/layout.tsx`; `<main>` duplicado removido de 5 rotas públicas; token novo `--color-footer`. Artefatos + `validation.md` em `.specs/features/fachada-publica/usp-046-casca-navegacao/`.
-- **USP-047 — Home/landing pública fiel ao protótipo:** ⏭️ **PRÓXIMA** (deps USP-046 ✅ + USP-041 ✅). Reconstrói `(public)/page.tsx` reproduzindo o `page-home` do protótipo; **estende — não descarta** os indicadores da USP-041 (`HomeIndicatorsView`).
-- **USP-048 — Navegação integrada das telas públicas:** pendente (deps USP-046, USP-047, USP-021 ✅, USP-030 ✅).
+- **USP-047 — Home/landing pública fiel ao protótipo:** ✅ **PASS** (Verifier independente, gate cheio verde 1618 testes, 6/6 mutações mortas, 4/4 must-nots killable). Commits `3bd6cf8..bf05865`. 7 componentes de seção em `(public)/_components/home-*.tsx` compondo `(public)/page.tsx`; indicadores reais da USP-041 embutidos no hero (`HomeIndicatorsView` intacto, `revalidate=600` preservado). Seams com defaults de rota real (sem `href="#"`) para a USP-048 reapontar. Artefatos + `validation.md` em `.specs/features/fachada-publica/usp-047-home-landing/`.
+- **USP-048 — Navegação integrada das telas públicas:** ⏭️ **PRÓXIMA** (deps USP-046 ✅, USP-047 ✅, USP-021 ✅, USP-030 ✅). Liga CTAs/nav/busca às rotas reais (fluxo `showPage()`: `/vagas`, `/servicos`, cadastros) + destaques com dados reais, reapontando os seams da USP-047.
 
 **Ao fim das 3:** flip dos checkboxes no ROADMAP, registrar **AD-025** (decisão da rodada Fase 7) + fechar Handoff, abrir/mergear o PR único. Sem migração esperada (fachada é apresentacional/navegacional).
 
