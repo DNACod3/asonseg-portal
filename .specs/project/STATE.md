@@ -23,6 +23,18 @@
 
 ---
 
+## Handoff
+
+**In-flight:** **Fase 7 — Fachada Pública** (3 USPs, rodada única em 1 PR, pipeline Planner→Implementer→Verifier). Branch `feat/fase-7-fachada-publica` (a partir de `44181a5`, Fase 6/#286).
+
+- **USP-046 — Casca de navegação pública (Header + Footer globais):** ✅ **PASS** (Verifier independente, gate cheio verde, 4/4 must-nots com sensor killable). Commits `73ee60e..48a8110`. Casca em `src/app/(public)/_components/{site-header,public-nav,site-footer}.tsx`, montada em `(public)/layout.tsx`; `<main>` duplicado removido de 5 rotas públicas; token novo `--color-footer`. Artefatos + `validation.md` em `.specs/features/fachada-publica/usp-046-casca-navegacao/`.
+- **USP-047 — Home/landing pública fiel ao protótipo:** ⏭️ **PRÓXIMA** (deps USP-046 ✅ + USP-041 ✅). Reconstrói `(public)/page.tsx` reproduzindo o `page-home` do protótipo; **estende — não descarta** os indicadores da USP-041 (`HomeIndicatorsView`).
+- **USP-048 — Navegação integrada das telas públicas:** pendente (deps USP-046, USP-047, USP-021 ✅, USP-030 ✅).
+
+**Ao fim das 3:** flip dos checkboxes no ROADMAP, registrar **AD-025** (decisão da rodada Fase 7) + fechar Handoff, abrir/mergear o PR único. Sem migração esperada (fachada é apresentacional/navegacional).
+
+---
+
 ## Recent Decisions (Last 60 days)
 
 ### AD-024: Parâmetros LGPD resolvidos pelo dono (retenção 5 anos · esquecimento pós-piloto · DPO = Diretora Geral) — 2026-07-10
