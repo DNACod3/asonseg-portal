@@ -106,7 +106,8 @@ export function LoginForm({ siteKey }: Props) {
       </div>
 
       {/* CAPTCHA Turnstile — só aparece quando o servidor exige (H1, ≥3 falhas) */}
-      <input type="hidden" {...register('captchaToken')} />
+      {/* DS-MN-03: usa o primitivo Input (não o elemento nativo cru) mesmo no campo hidden. */}
+      <Input type="hidden" {...register('captchaToken')} />
       {captchaRequired && (
         <div className="flex justify-center">
           <Turnstile siteKey={siteKey} onSuccess={handleCaptchaSuccess} options={{ language: 'pt-BR' }} />
