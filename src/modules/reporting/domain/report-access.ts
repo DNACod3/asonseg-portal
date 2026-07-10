@@ -20,8 +20,15 @@ export const OPERATIONAL_REPORT_ROLES = ['COORDINATOR', 'BOARD'] as const;
 /** R6 — assistente social e diretoria (dado social sensível). */
 export const SOCIAL_REPORT_ROLES = ['SOCIAL_ASSISTANT', 'BOARD'] as const;
 
-/** Permissões de catálogo que dão acesso ao relatório de fila (R5) — P-006. */
-const MODERATION_QUEUE_PERMISSIONS: readonly PermissionId[] = [
+/**
+ * Permissões de catálogo que dão acesso ao relatório de fila (R5) — P-006.
+ * Exportada — é a fonte única também para `getModerationGrants`
+ * (`queries/moderation-grants.ts`), que resolve o `DelegatedPermission.findMany`
+ * usado pelos 3 chamadores de `isReportTypeAuthorized`/
+ * `canViewModerationQueueReport` (rotas `relatorios/page.tsx`,
+ * `relatorios/[tipo]/page.tsx` e a Server Action `exportReport`).
+ */
+export const MODERATION_QUEUE_PERMISSIONS: readonly PermissionId[] = [
   'MODERATE_JOB',
   'MODERATE_CV',
   'MODERATE_SERVICE',

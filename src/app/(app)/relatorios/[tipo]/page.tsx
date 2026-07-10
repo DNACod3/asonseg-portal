@@ -1,20 +1,18 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson, type DelegatedGrant } from '@/modules/identity';
-import { prisma } from '@/shared/lib/prisma';
 import {
   REPORT_TYPES,
   REPORT_TITLES,
   canViewSocialReports,
   isReportTypeAuthorized,
   buildReportRows,
+  getModerationGrants,
   ReportView,
   type ReportType,
 } from '@/modules/reporting';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request (ADR-0030).
 export const dynamic = 'force-dynamic';
-
-const MODERATION_PERMISSIONS = ['MODERATE_JOB', 'MODERATE_CV', 'MODERATE_SERVICE'] as const;
 
 function isReportType(value: string): value is ReportType {
   return (REPORT_TYPES as readonly string[]).includes(value);
@@ -51,11 +49,7 @@ export default async function RelatorioPage({
 
   let moderationGrants: DelegatedGrant[] = [];
   if (tipo === 'moderation_queue') {
-    moderationGrants = await prisma.delegatedPermission.findMany({
-      where: { personId: person.id, permission: { in: [...MODERATION_PERMISSIONS] }, revokedAt: null },
-      select: { permission: true, scopeArea: true, revokedAt: true },
-      take: 50,
-    });
+    moderationGrants = await getModerationGrants(person.id);
   }
 
   if (!isReportTypeAuthorized(tipo, person, moderationGrants)) {

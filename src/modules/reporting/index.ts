@@ -44,7 +44,10 @@ export {
   canViewModerationQueueReport,
   OPERATIONAL_REPORT_ROLES,
   SOCIAL_REPORT_ROLES,
+  MODERATION_QUEUE_PERMISSIONS,
 } from './domain/report-access';
+
+export { getModerationGrants } from './queries/moderation-grants';
 
 export { resolveReportWindow } from './domain/report-window';
 export type { ReportWindow, ReportWindowInput } from './domain/report-window';

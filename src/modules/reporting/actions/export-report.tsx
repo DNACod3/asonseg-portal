@@ -8,11 +8,11 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { formatSaoPaulo } from '@/shared/lib/time';
-import { prisma } from '@/shared/lib/prisma';
 import { canViewSocialReports } from '../domain/report-access';
 import { isReportTypeAuthorized } from '../domain/report-authorization';
 import { composeWatermark, toCsv } from '../domain/csv';
 import { buildReportRows } from '../queries/build-report-rows';
+import { getModerationGrants } from '../queries/moderation-grants';
 import { ReportPdfDocument } from '../components/report-pdf';
 import { exportReportSchema, type ExportReportInput } from '../schemas/export-report';
 import { REPORT_TITLES } from '../domain/report-titles';
@@ -42,8 +42,6 @@ export interface ExportPayload {
   content: string;
 }
 
-const MODERATION_PERMISSIONS = ['MODERATE_JOB', 'MODERATE_CV', 'MODERATE_SERVICE'] as const;
-
 export async function exportReport(rawInput: ExportReportInput): Promise<ActionResult<ExportPayload>> {
   const log = childLogger({ module: 'reporting', action: 'exportReport' });
 
@@ -62,15 +60,7 @@ export async function exportReport(rawInput: ExportReportInput): Promise<ActionR
 
   let moderationGrants: DelegatedGrant[] = [];
   if (reportType === 'moderation_queue') {
-    moderationGrants = await prisma.delegatedPermission.findMany({
-      where: {
-        personId: person.id,
-        permission: { in: [...MODERATION_PERMISSIONS] },
-        revokedAt: null,
-      },
-      select: { permission: true, scopeArea: true, revokedAt: true },
-      take: 50,
-    });
+    moderationGrants = await getModerationGrants(person.id);
   }
 
   if (!isReportTypeAuthorized(reportType, person, moderationGrants)) {

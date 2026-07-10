@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { requireActivePerson } from '@/modules/identity';
-import { prisma } from '@/shared/lib/prisma';
-import { REPORT_TYPES, REPORT_TITLES, isReportTypeAuthorized, type ReportType } from '@/modules/reporting';
+import {
+  REPORT_TYPES,
+  REPORT_TITLES,
+  isReportTypeAuthorized,
+  getModerationGrants,
+  type ReportType,
+} from '@/modules/reporting';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request (ADR-0030).
 export const dynamic = 'force-dynamic';
-
-const MODERATION_PERMISSIONS = ['MODERATE_JOB', 'MODERATE_CV', 'MODERATE_SERVICE'] as const;
 
 /**
  * Índice de relatórios (USP-042 / T12 — E-001). Lista só os relatórios que o
@@ -17,11 +20,7 @@ const MODERATION_PERMISSIONS = ['MODERATE_JOB', 'MODERATE_CV', 'MODERATE_SERVICE
 export default async function RelatoriosIndexPage() {
   const person = await requireActivePerson();
 
-  const moderationGrants = await prisma.delegatedPermission.findMany({
-    where: { personId: person.id, permission: { in: [...MODERATION_PERMISSIONS] }, revokedAt: null },
-    select: { permission: true, scopeArea: true, revokedAt: true },
-    take: 50,
-  });
+  const moderationGrants = await getModerationGrants(person.id);
 
   const accessible = REPORT_TYPES.filter((tipo: ReportType) =>
     isReportTypeAuthorized(tipo, person, moderationGrants),

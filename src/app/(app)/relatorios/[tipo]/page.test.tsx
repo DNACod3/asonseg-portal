@@ -31,10 +31,6 @@ vi.mock('@/modules/identity', () => ({
   requireActivePerson: (...a: unknown[]) => guardState.requireActivePerson(...a),
 }));
 
-vi.mock('@/shared/lib/prisma', () => ({
-  prisma: { delegatedPermission: { findMany: (...a: unknown[]) => guardState.findManyGrants(...a) } },
-}));
-
 vi.mock('@/modules/reporting', () => ({
   REPORT_TYPES: ['jobs', 'applications', 'services', 'referrals', 'moderation_queue', 'social'],
   REPORT_TITLES: {
@@ -48,6 +44,7 @@ vi.mock('@/modules/reporting', () => ({
   canViewSocialReports: (...a: unknown[]) => guardState.canViewSocialReports(...a),
   isReportTypeAuthorized: (...a: unknown[]) => guardState.isReportTypeAuthorized(...a),
   buildReportRows: (...a: unknown[]) => guardState.buildReportRows(...a),
+  getModerationGrants: (...a: unknown[]) => guardState.findManyGrants(...a),
   ReportView: (props: { title: string; rows: unknown[]; containsPII: boolean }) => (
     <div data-testid="report-view">
       view:{props.title}:{props.rows.length}:{props.containsPII ? 'has-pii' : 'no-pii'}

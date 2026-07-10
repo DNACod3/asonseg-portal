@@ -19,7 +19,7 @@ const auditState = vi.hoisted(() => ({
 const identityState = vi.hoisted(() => ({
   current: null as { id: string; fullName: string; roles: string[] } | null,
 }));
-const prismaState = vi.hoisted(() => ({ findManyGrants: vi.fn() }));
+const moderationGrantsState = vi.hoisted(() => ({ findManyGrants: vi.fn() }));
 const queryState = vi.hoisted(() => ({
   reportJobs: vi.fn(),
   reportApplications: vi.fn(),
@@ -53,8 +53,8 @@ vi.mock('@/modules/identity', async () => {
   return { ...actual, getCurrentPerson: async () => identityState.current };
 });
 
-vi.mock('@/shared/lib/prisma', () => ({
-  prisma: { delegatedPermission: { findMany: (...args: unknown[]) => prismaState.findManyGrants(...args) } },
+vi.mock('../queries/moderation-grants', () => ({
+  getModerationGrants: (...args: unknown[]) => moderationGrantsState.findManyGrants(...args),
 }));
 
 vi.mock('../queries/report-jobs', () => ({
@@ -93,7 +93,7 @@ beforeEach(() => {
   auditState.last = null;
   auditState.shouldFail = false;
   identityState.current = null;
-  prismaState.findManyGrants.mockReset().mockResolvedValue([]);
+  moderationGrantsState.findManyGrants.mockReset().mockResolvedValue([]);
   queryState.reportJobs.mockReset();
   queryState.reportApplications.mockReset();
   queryState.reportServices.mockReset();
@@ -228,7 +228,7 @@ describe('exportReport', () => {
 
   it('REL42-MN-02: fila de moderação — voluntário sem MODERATE_* → FORBIDDEN', async () => {
     identityState.current = { id: 'p-vol', fullName: 'Voluntário', roles: ['VOLUNTEER'] };
-    prismaState.findManyGrants.mockResolvedValue([]);
+    moderationGrantsState.findManyGrants.mockResolvedValue([]);
 
     const result = await exportReport({
       reportType: 'moderation_queue',
