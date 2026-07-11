@@ -1,6 +1,9 @@
 // Barrel do módulo `persons`.
 // Todos os imports externos devem passar por este arquivo (nunca deep paths).
 
+// Máscara de CPF do titular para exibição (USP-049 / PERFIL-01).
+export { maskCpf } from './domain/cpf-mask';
+
 // ── Inativar Pessoa (USP-007 / IDN-15, IDN-16) ────────────────────────────────
 export { inactivatePerson } from './actions/inactivate-person';
 export type { InactivatePersonResult } from './actions/inactivate-person';
