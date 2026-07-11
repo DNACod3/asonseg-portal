@@ -259,6 +259,16 @@ RTL de `home-search.tsx` (já GET `/vagas` `name="q"`, sem mudança de código).
 **TestGate**: full (`npm run typecheck && npm run lint && npm run test && npm run build`)
 **Commit**: `test(jobs): fluxo de busca + guarda de dead-ends da navegação integrada (USP-048 NAV-01/MN-02)`
 
+> **Remediação pós-merge (PR #289, revisão de IA) — dois findings sobre T5:**
+> 1. 💡 O escopo do `nav-no-dead-ends.test.ts` cobria só `page.tsx` + `home-*.tsx`, deixando a casca
+>    (`site-header.tsx`/`site-footer.tsx`/`public-nav.tsx`) fora do alcance de NAV-MN-02 — justamente onde os
+>    `href="#"` do protótipo estático viviam. Ampliado para todo `.tsx` não-teste de `_components/`.
+> 2. ⚠️ O bloco RTL de NAV-01 em `home-search.test.tsx` só reafirmava o contrato estático (já coberto por
+>    HOME-03) sem provar o round-trip real. Fechado com `e2e/home/navegacao-integrada.spec.ts` (E2E vivo,
+>    4 testes, L-007) + reframing honesto do `describe` RTL (sem "confirma o fluxo").
+>
+> Detalhe completo em `validation.md` §"Remediação — PR #289 AI review".
+
 ---
 
 ## Validação Pré-Aprovação (3 checks obrigatórios)

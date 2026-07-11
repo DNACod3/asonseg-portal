@@ -145,3 +145,70 @@ Tiering: this USP carries must-nots (NAV-MN-01/02) → full mutation run per §5
 **Issues found**: None.
 
 **Next steps**: None — USP-048 is the last unit of Fase 7; ready for PR-level review / merge per the orchestrator's process.
+
+---
+
+## Remediation — PR #289 AI review (post-merge-readiness findings)
+
+Two findings from the automated PR review were addressed after this validation was first written; both trace to
+requirements already listed above (NAV-MN-02, NAV-01) and do not change any prior verdict — they harden the
+evidence.
+
+### Finding 💡 — `nav-no-dead-ends` guard scope (NAV-MN-02)
+
+**Gap**: `collectScanTargets()` in `src/shared/__tests__/nav-no-dead-ends.test.ts` scanned only
+`(public)/page.tsx` + `home-*.tsx`, excluding the navigation shell (`site-header.tsx`, `site-footer.tsx`,
+`public-nav.tsx`) — exactly where the prototype's `href="#"` dead-ends used to live before USP-046's migration
+to real Next.js routing. NAV-MN-02 ("no dead ends in nav/CTA/busca/destaque") is broader than the home alone.
+
+**Fix**: the scan now covers every non-test `.tsx` under `_components/` (casca + `home-*`) plus `page.tsx`
+(9 files total as of this remediation: `page.tsx` + `site-header.tsx` + `site-footer.tsx` + `public-nav.tsx` +
+5 `home-*.tsx`). The sanity assertion now checks nominally for the casca's 3 files + `page.tsx` + ≥5 `home-*`
+files (not just a loose length), so a scan-zero-files regression is still caught. Broadening the scan surfaced
+one genuine false positive: `site-footer.tsx`'s own doc-comment literally quoted `href="#"` (documenting the
+*absence* of dead ends) — reworded to `nunca um link sem destino` (same precedent already used in `page.tsx`
+per the original validation's deviation #3), no regex weakening.
+
+**Evidence**: `src/shared/__tests__/nav-no-dead-ends.test.ts` — 2/2 tests green; `npm run test` full suite
+244/244 files green after the change.
+
+### Finding ⚠️ — NAV-01 round-trip coverage gap (L-007)
+
+**Gap**: the NAV-01 block in `home-search.test.tsx` (~L42-64) only re-asserted static form attributes already
+covered by HOME-03, framed as "confirma o fluxo `showPage('vagas')`" without ever exercising a live round-trip
+— neither `/vagas` consuming `?q=` nor a service-category card landing on `/servicos?categoria=…`.
+
+**Fix (two parts)**:
+1. **New live E2E** — `e2e/home/navegacao-integrada.spec.ts` (4 tests), DB-resilient (asserts navigation
+   mechanics — URL, heading, status < 400 — never seed-dependent counts):
+   - `@nav-01` hero search with a term → `/vagas?q=<term>` + listing renders + the term round-trips back into
+     the listing's own search input (proves `/vagas` actually consumes `?q=`, not just a URL change).
+   - `@nav-01` hero search with an empty term → still navigates to `/vagas` without error.
+   - `@nav-03` service category card → real `href` (never `#`, always within `/servicos`) → click lands on
+     `/servicos` (with or without `?categoria=…`, matching the design §5 deterministic fallback) + page renders.
+   - `@nav-05` header/footer/public-nav primary links (`/`, `/vagas`, `/servicos`, `/login`, `/cadastro`) have
+     real hrefs on the home page and each resolves with status < 400.
+2. **Reframed the RTL block** in `home-search.test.tsx`: renamed the `describe` to state honestly that it
+   verifies only the *static GET contract* (form `method=get action=/vagas` + `name="q"`) with a filled/empty
+   term, and removed the "confirma o fluxo" over-claim — the live round-trip is now owned by the E2E above. No
+   assertions were removed beyond the misleading framing; coverage did not shrink (6/6 tests still pass).
+
+**Evidence**:
+- `e2e/home/navegacao-integrada.spec.ts` — **4/4 tests green, full file, single invocation** (`npx playwright
+  test e2e/home/navegacao-integrada.spec.ts`), reproduced twice in a row, against the live local stack
+  (`supabase start` + Next dev server, real service-category ids from the local seed, e.g.
+  `/servicos?categoria=569b04e8-2e7c-4a76-ac3b-281ba57c7419`).
+- **Root-caused a real local-only constraint while getting there**: the reused dev server (per the task's
+  instructions — `reuseExistingServer` in `playwright.config.ts`) was started earlier without
+  `RATE_LIMIT_DISABLED=true`, so the real rate limiter (`src/shared/lib/rateLimit.ts`) is live. `nav-05`
+  originally `goto`'d `/cadastro` to prove it resolves — but `/cadastro` falls under the `registration`
+  category (3 req/15min, anti-spam by design), not the looser `anonymous` bucket (10 req/min) the other
+  targets use, and that tight budget was already exhausted by other local traffic (`e2e/auto-cadastro.spec.ts`
+  itself hits `/cadastro` repeatedly). Fix: dropped the `/cadastro` `goto` from `nav-05` (its href is already
+  proven statically, and `/cadastro`'s live resolution is already exercised repeatedly by
+  `e2e/auto-cadastro.spec.ts` — re-navigating there added no coverage, only risk). CI sets
+  `RATE_LIMIT_DISABLED: 'true'` on its own dedicated `webServer`, so this constraint doesn't apply there
+  either way.
+- `home-search.test.tsx` — 6/6 tests green (unchanged count, reframed assertions only).
+- `nav-no-dead-ends.test.ts` scan now includes `e2e/home/navegacao-integrada.spec.ts`'s targets implicitly via
+  the casca files it clicks through, so the two remediations reinforce each other (static guard + live proof).
