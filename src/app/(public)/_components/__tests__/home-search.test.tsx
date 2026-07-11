@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { HomeSearch } from '../home-search';
 
 /**
@@ -29,5 +29,36 @@ describe('HomeSearch — form de busca do hero (HOME-03)', () => {
   it('aceita a seam action com um valor customizado', () => {
     render(<HomeSearch action="/busca-integrada" />);
     expect(screen.getByRole('search')).toHaveAttribute('action', '/busca-integrada');
+  });
+});
+
+/**
+ * USP-048 (T5, NAV-01). Confirma o fluxo `showPage('vagas')` do protótipo:
+ * o form é GET declarativo (sem handler client) — o termo digitado (ou
+ * ausente) vai na querystring `?q=` do próprio navegador ao submeter para
+ * `action="/vagas"`; nenhuma mudança de código, só a confirmação do
+ * contrato estático (form GET + `name="q"`) com termo preenchido e vazio.
+ */
+describe('HomeSearch — busca preserva o termo para /vagas (USP-048 NAV-01)', () => {
+  it('com termo preenchido, o form permanece GET /vagas (name="q") — o termo vai na querystring do próprio submit', () => {
+    render(<HomeSearch />);
+    const input = screen.getByRole('searchbox', { name: /buscar vagas/i });
+    fireEvent.change(input, { target: { value: 'eletricista' } });
+
+    const form = screen.getByRole('search');
+    expect(form).toHaveAttribute('method', 'get');
+    expect(form).toHaveAttribute('action', '/vagas');
+    expect(input).toHaveAttribute('name', 'q');
+    expect(input).toHaveValue('eletricista');
+  });
+
+  it('com termo vazio, o form ainda navega para /vagas (todas ACTIVE, sem erro)', () => {
+    render(<HomeSearch />);
+    const input = screen.getByRole('searchbox', { name: /buscar vagas/i });
+
+    const form = screen.getByRole('search');
+    expect(input).toHaveValue('');
+    expect(form).toHaveAttribute('action', '/vagas');
+    expect(form).toHaveAttribute('method', 'get');
   });
 });

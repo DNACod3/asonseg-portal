@@ -12,7 +12,7 @@ import { HomeServices, SERVICE_CATEGORIES, type ServiceCategoryCard } from './_c
 /**
  * USP-048 (T4, NAV-03): rota real de fallback quando nenhuma categoria da
  * taxonomia casa com o bucket do protótipo, ou quando `listServiceCategories`
- * falha/retorna vazio — nunca um id inventado, nunca `href="#"`.
+ * falha/retorna vazio — nunca um id inventado, nunca um link sem destino.
  */
 const SERVICOS_HREF = '/servicos';
 
