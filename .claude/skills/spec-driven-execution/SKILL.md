@@ -61,7 +61,7 @@ STATE decisions → `[x]`), or the loop re-does finished work.
 
 Sub-agents cannot see this chat. Each prompt is self-contained:
 
-1. **Activate** `idsd-spec-driven` **by name** and follow it for the assigned role (Specify/Design/Tasks, Execute, or Validate). If the skill cannot be activated, STOP.
+1. **Activate** `bravi-spec-driven` **by name** and follow it for the assigned role (Specify/Design/Tasks, Execute, or Validate). If the skill cannot be activated, STOP.
 2. **Feature context** — ROADMAP phase title + goal, epic + USP slug, output dir `.specs/features/<epic>/<usp-slug>/`, repo path `/Users/cfassula/projetos/asonseg/portal`.
 3. **Autonomous mode** (loop / unattended) — resolve ambiguities as spec assumptions; no user confirmation gates.
 4. **Project glue** (below) — repo inputs the skill does not know about.

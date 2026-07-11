@@ -35,7 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${nunito.variable} ${dmSans.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${nunito.variable} ${dmSans.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <ThemeScript />
       </head>
