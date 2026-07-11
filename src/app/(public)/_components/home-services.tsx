@@ -13,14 +13,14 @@ import { Button, Card, StepIcon, cn } from '@/shared/ui';
  * do `servicosHref` genérico. Sem a prop, os 3 cards estáticos continuam
  * todos ligando a `servicosHref` (retrocompatível).
  */
-interface ServiceCategory {
+export interface ServiceCategoryBase {
   variant: 'orange' | 'blue' | 'green';
   title: string;
   description: string;
   icon: ReactElement;
 }
 
-export interface ServiceCategoryCard extends ServiceCategory {
+export interface ServiceCategoryCard extends ServiceCategoryBase {
   href: string;
 }
 
@@ -78,7 +78,12 @@ const AREA_EXTERNA_ICON = (
   </svg>
 );
 
-const SERVICE_CATEGORIES: ServiceCategory[] = [
+/**
+ * USP-048 (T4, NAV-03): exportado para que `page.tsx` componha os 3
+ * `ServiceCategoryCard` reais (bucket + `href` resolvido via
+ * `listServiceCategories()`) sem duplicar copy/ícones (fonte única).
+ */
+export const SERVICE_CATEGORIES: ServiceCategoryBase[] = [
   {
     variant: 'orange',
     title: 'Serviços Domésticos',

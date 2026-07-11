@@ -12,6 +12,7 @@ import { render, screen } from '@testing-library/react';
 const guardState = vi.hoisted(() => ({
   getHomeIndicators: vi.fn(),
   searchJobs: vi.fn(),
+  listServiceCategories: vi.fn(),
 }));
 
 vi.mock('@/modules/reporting', async (importOriginal) => {
@@ -30,6 +31,14 @@ vi.mock('@/modules/jobs', async (importOriginal) => {
   };
 });
 
+vi.mock('@/modules/services', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/modules/services')>();
+  return {
+    ...actual,
+    listServiceCategories: (...a: unknown[]) => guardState.listServiceCategories(...a),
+  };
+});
+
 const { default: HomePage } = await import('./page');
 
 beforeEach(() => {
@@ -40,6 +49,7 @@ beforeEach(() => {
     verifiedCompanies: 8,
   });
   guardState.searchJobs.mockResolvedValue({ items: [], page: 1, pageSize: 20, total: 0 });
+  guardState.listServiceCategories.mockResolvedValue([]);
 });
 
 describe('HomePage — composição da landing (HOME-10)', () => {
@@ -188,5 +198,123 @@ describe('HomePage — destaque de vagas com dados reais (USP-048 NAV-02/NAV-MN-
     render(ui);
 
     expect(screen.getByText('Auxiliar Administrativo')).toBeInTheDocument();
+  });
+});
+
+/**
+ * USP-048 (T4, NAV-03). Categorias reais de `listServiceCategories()`
+ * resolvidas contra os 3 buckets do protótipo por palavra-chave normalizada
+ * (design §5). `id`s arbitrários — o que importa é o match de `name`.
+ */
+const realCategories = [
+  { id: 'cat-domestico-1', name: 'Serviços Domésticos' },
+  { id: 'cat-reparo-1', name: 'Reparos e Manutenção' },
+  { id: 'cat-externa-1', name: 'Área Externa / Jardinagem' },
+];
+
+describe('HomePage — categorias de serviço linkam ao filtro real (USP-048 NAV-03)', () => {
+  it('cada categoria resolvida linka /servicos?categoria=<id> real', async () => {
+    guardState.listServiceCategories.mockResolvedValue(realCategories);
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByRole('link', { name: /Serviços Domésticos/i })).toHaveAttribute(
+      'href',
+      '/servicos?categoria=cat-domestico-1',
+    );
+    expect(screen.getByRole('link', { name: /Reparos e Manutenção/i })).toHaveAttribute(
+      'href',
+      '/servicos?categoria=cat-reparo-1',
+    );
+    expect(screen.getByRole('link', { name: /Área Externa/i })).toHaveAttribute(
+      'href',
+      '/servicos?categoria=cat-externa-1',
+    );
+  });
+
+  it('categoria sem match cai para /servicos (sem dead end, nunca id inventado)', async () => {
+    guardState.listServiceCategories.mockResolvedValue([{ id: 'cat-outra', name: 'Outra Categoria' }]);
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByRole('link', { name: /Serviços Domésticos/i })).toHaveAttribute(
+      'href',
+      '/servicos',
+    );
+  });
+
+  it('listServiceCategories vazio/rejeita: os 3 cards caem para /servicos (fallback, ADR-0026)', async () => {
+    guardState.listServiceCategories.mockRejectedValue(new Error('db indisponível'));
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByRole('link', { name: /Serviços Domésticos/i })).toHaveAttribute(
+      'href',
+      '/servicos',
+    );
+    expect(screen.getByRole('link', { name: /Reparos e Manutenção/i })).toHaveAttribute(
+      'href',
+      '/servicos',
+    );
+    expect(screen.getByRole('link', { name: /Área Externa/i })).toHaveAttribute(
+      'href',
+      '/servicos',
+    );
+  });
+
+  it('"Ver Todos os Serviços" continua linkando /servicos', async () => {
+    guardState.listServiceCategories.mockResolvedValue(realCategories);
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByRole('link', { name: /Ver Todos os Serviços/i })).toHaveAttribute(
+      'href',
+      '/servicos',
+    );
+  });
+});
+
+/**
+ * USP-048 (T4, NAV-04). Retarget dos CTAs de empresa/candidato (A-07): a
+ * home só tem uma rota real e pública para "cadastro de pessoa" (`/cadastro`)
+ * — os CTAs de empresa devem apontar à rota real de cadastro de empresa
+ * (`/empresa/cadastrar`, autenticada; `requireActivePerson` redireciona o
+ * anônimo a `/login`), nunca a `/cadastro` (que não cria Empresa).
+ */
+describe('HomePage — CTAs de empresa/candidato ligados às rotas reais (USP-048 NAV-04)', () => {
+  it('CTAs de empresa apontam para /empresa/cadastrar', async () => {
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByRole('link', { name: /Publicar Vaga/i })).toHaveAttribute(
+      'href',
+      '/empresa/cadastrar',
+    );
+    expect(screen.getByRole('link', { name: /Cadastrar Empresa/i })).toHaveAttribute(
+      'href',
+      '/empresa/cadastrar',
+    );
+    expect(screen.getByRole('link', { name: /Cadastrar como Empresa/i })).toHaveAttribute(
+      'href',
+      '/empresa/cadastrar',
+    );
+  });
+
+  it('CTAs de candidato continuam apontando para /cadastro', async () => {
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByRole('link', { name: /Criar Meu Perfil/i })).toHaveAttribute(
+      'href',
+      '/cadastro',
+    );
+    expect(screen.getByRole('link', { name: /Cadastrar como Candidato/i })).toHaveAttribute(
+      'href',
+      '/cadastro',
+    );
   });
 });
