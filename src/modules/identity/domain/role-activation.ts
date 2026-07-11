@@ -64,6 +64,36 @@ export const ROLE_NEXT_STEP: Record<PublicRole, string> = {
   CLIENT: '/perfil',
 };
 
+/**
+ * Destino padrão pós-login quando não há um passo mais específico a seguir
+ * (USP-049 — REDIR-01/MN-01). É o hub `/inicio`: qualquer papel sem área de
+ * auto-serviço (ex.: CLIENT, ou papel desconhecido) aterrissa aqui em vez de
+ * um 404.
+ */
+export const POST_AUTH_FALLBACK = '/inicio';
+
+/**
+ * Próximo passo **do fim do cadastro** (E-002 / AUTH-1) — distinto de
+ * `ROLE_NEXT_STEP` (que é do fluxo de ativação de **papel adicional**,
+ * USP-006, e aponta tudo a `/perfil`). Aqui, candidato e prestador completam
+ * o perfil nas áreas próprias; CLIENT não tem auto-serviço (USP-011) e cai no
+ * hub.
+ */
+export const REGISTRATION_NEXT_STEP: Record<PublicRole, string> = {
+  CANDIDATE: '/candidato',
+  PROVIDER: '/prestador',
+  CLIENT: POST_AUTH_FALLBACK,
+};
+
+/**
+ * Resolve o próximo passo pós-cadastro para um papel. Papel desconhecido (ou
+ * fora de `PUBLIC_ROLES`) cai no fallback `/inicio` — nunca em um path com
+ * prefixo `/app/` nem em rota inexistente (REDIR-MN-01).
+ */
+export function registrationNextStep(role: string): string {
+  return (REGISTRATION_NEXT_STEP as Record<string, string>)[role] ?? POST_AUTH_FALLBACK;
+}
+
 /** Subconjunto da Pessoa necessário para decidir os campos faltantes. */
 export interface ProfileSnapshot {
   phone?: string | null;
