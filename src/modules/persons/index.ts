@@ -4,6 +4,10 @@
 // Máscara de CPF do titular para exibição (USP-049 / PERFIL-01).
 export { maskCpf } from './domain/cpf-mask';
 
+// View Model do próprio titular (viewer=self) para /perfil (USP-049 / AUTH-4).
+export { viewPersonForSelf } from './views/view-person-for-self';
+export type { SelfProfileView } from './views/view-person-for-self';
+
 // ── Inativar Pessoa (USP-007 / IDN-15, IDN-16) ────────────────────────────────
 export { inactivatePerson } from './actions/inactivate-person';
 export type { InactivatePersonResult } from './actions/inactivate-person';
