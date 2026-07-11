@@ -212,3 +212,58 @@ covered by HOME-03, framed as "confirma o fluxo `showPage('vagas')`" without eve
 - `home-search.test.tsx` — 6/6 tests green (unchanged count, reframed assertions only).
 - `nav-no-dead-ends.test.ts` scan now includes `e2e/home/navegacao-integrada.spec.ts`'s targets implicitly via
   the casca files it clicks through, so the two remediations reinforce each other (static guard + live proof).
+
+---
+
+## Independent Verifier re-check — remediation (2026-07-10)
+
+Fresh Verifier sub-agent, diff range `90a0433..HEAD` (commits `bf4927a`, `57083da`). Author ≠ verifier.
+
+**Gates**: `npm run typecheck` — 0 errors. `npm run lint` — clean. `npm run test` — **1635/1635 tests, 244/244
+files green**, exactly matching the pre-remediation baseline (no silent reduction; both remediation commits
+strengthened existing tests rather than adding/removing Vitest cases — the new coverage arrived via the new
+Playwright file, which doesn't count against the Vitest baseline).
+
+**Discrimination sensor (NAV-MN-02 guard)**: injected a literal `href="#"` into `site-header.tsx` (casca file,
+`<Link href="/cadastro">` → `<Link href="#">`) — a file that was **out of scope before this remediation**.
+`npx vitest run src/shared/__tests__/nav-no-dead-ends.test.ts` → 1/2 FAILED (`offenders` = `[site-header.tsx]`).
+Reverted → 2/2 PASS. Mutant killed. (Note: an earlier attempt injecting into `PUBLIC_NAV_ITEMS`'s object-literal
+`href: '/vagas'` → `href: '#'` did NOT fail, as expected — the guard is a raw-text scan for the JSX-attribute
+form `href="#"`, not object-literal data; this is consistent with the guard's stated design and not a gap, since
+`PublicNav`'s only two rendered `<Link href={item.href}>` call sites are themselves scanned and any literal
+`href="#"` written directly in a `<Link>` tag anywhere in the casca is caught, which is what the mutation above
+demonstrates.) Working tree confirmed clean after revert (`git diff --stat` empty on both touched files).
+
+**E2E — live, not skeleton**: `e2e/home/navegacao-integrada.spec.ts` has 4 real assertions (`waitForResponse`,
+URL/searchParams checks, `getByRole('heading')` visibility, `status < 400`) — no `test.fixme`/skeleton. Ran
+`npx playwright test e2e/home/navegacao-integrada.spec.ts` three times: 2 clean single-invocation runs → **4/4
+green** each (~5–6s warm). One run immediately after the full Vitest suite (cold Next dev-server compile) showed
+a transient stall on `@nav-03` (page stayed on `/`, not a 429) — not reproduced in isolation
+(`-g nav-03 --workers=1` → green) or in the two subsequent full-file runs; consistent with ordinary Next.js
+dev-mode first-compile latency, not a defect. A `--repeat-each=2` stress run produced 429s across several
+tests — root-caused to the **reused** local dev server (PID pre-existing on :3000) never having received
+`RATE_LIMIT_DISABLED=true` (verified in `playwright.config.ts:40` — that env is only injected into servers
+Playwright spawns itself; a reused server keeps whatever env it originally booted with). This reproduces
+exactly the constraint the author already documented for `/cadastro` and does not indicate a functional
+regression; CI always spawns its own `webServer` with that flag set. `--list` also confirms the 4 tests collect
+correctly.
+
+**Scope-creep check**: `git diff 90a0433..HEAD --name-only` touches exactly 6 files — `tasks.md`,
+`validation.md`, `e2e/home/navegacao-integrada.spec.ts`, `home-search.test.tsx`, `site-footer.tsx`,
+`nav-no-dead-ends.test.ts` — all within the two findings' scope. `src/app/layout.tsx` shows modified in
+`git status` but is **absent from `git diff 90a0433..HEAD`**, confirming it is pre-existing uncommitted
+working-tree state untouched by these two remediation commits. The `site-footer.tsx` change is a single-line
+doc-comment reword (`href="#"` → `nunca um link sem destino`) with no change to rendered markup/logic —
+confirmed via diff.
+
+**`/cadastro` deviation assessment**: sound, not a coverage gap. Verified in
+`src/shared/lib/rateLimit.ts:47-49` — `anonymous: 10/min` vs `registration: 3/15min`, a materially tighter
+budget — and confirmed `/cadastro` is exercised live and repeatedly by `e2e/auto-cadastro.spec.ts` (which
+`goto('/cadastro')`s directly) while its href is still asserted statically in `nav-05`. No coverage lost.
+
+**Residual (non-blocking) observation**: `spec.md`'s own requirement-traceability table (NAV-01/NAV-03/NAV-05/
+NAV-MN-02) still reads "Pending" — but this predates the remediation (confirmed identical at `90a0433`) and is
+outside the two findings' scope; flagging for a future pass, not a gate here.
+
+**Verdict**: ✅ **PASS**. Both PR #289 findings are genuinely closed with verifiable evidence; no regressions;
+no scope creep; gates green; sensor kills the mutant it targets.
