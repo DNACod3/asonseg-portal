@@ -46,3 +46,6 @@ yarn-error.log*
 # python (caches de scripts de skills)
 __pycache__/
 *.pyc
+
+# Telemetria OTEL local (auditoria de modelo por request)
+.otel/

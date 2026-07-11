@@ -784,10 +784,24 @@
       "total_seconds": 4840,
       "total_hours": 1.3444444444444446,
       "spent_hours_rounded": 1.25
+    },
+    {
+      "issue_number": 174,
+      "task_id": "USP-023",
+      "started_at": "2026-06-20T16:31:48Z",
+      "assistant_turn_started_at": "2026-06-20T16:31:48Z",
+      "assistant_turn_ended_at": "2026-07-08T12:26:33Z",
+      "accumulated_seconds": 71683,
+      "max_gap_minutes": 15,
+      "accumulated_tokens": 735860814,
+      "stopped_at": "2026-07-08T12:26:59Z",
+      "total_seconds": 71683,
+      "total_hours": 19.911944444444444,
+      "spent_hours_rounded": 20.0
     }
   ],
   "_token_meta": {
-    "last_jsonl_path": "/Users/cfassula/.claude/projects/-Users-cfassula-projetos-asonseg-portal/7afb6fb9-c336-4681-8f33-da59f56eb21d.jsonl",
-    "last_jsonl_offset": 1216895
+    "last_jsonl_path": "/Users/cfassula/.claude/projects/-Users-cfassula-projetos-asonseg-portal/ce901ea5-c88c-420b-8ea5-dc641128ba7c.jsonl",
+    "last_jsonl_offset": 919765
   }
 }
