@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Fase 7 — Fachada Pública (Landing + Casca de Navegação)
-**Status:** Fase 6 **100% concluída** (3 USPs + unidade de hardening, 1 PR único, AD-023). MVP **feature-complete no domínio**, mas a **fachada pública está pendente**: a home (`src/app/(public)/page.tsx`) nunca saiu do esqueleto de inicialização da Fase 1 e o site não tem casca global (header/nav/footer) — só o design system foi portado do protótipo. Próxima etapa: **Fase 7 — Fachada Pública**, que precede o **Lançamento** (UAT + cutover, gated por B-001 DPO).
+**Current Milestone:** Lançamento (UAT + cutover)
+**Status:** Fase 7 — Fachada Pública **100% concluída** (3 USPs, 1 PR único, AD-025). O portal agora "abre como o protótipo": casca de navegação global (header/nav/footer no grupo `(public)`), home/landing fiel a `docs/prototipo/index.html` com indicadores reais da USP-041 embutidos, e navegação integrada (CTAs/nav/busca → rotas reais `/vagas`, `/servicos`, cadastros + destaques ACTIVE anonimizados). **MVP feature-complete E com fachada pronta.** Próxima etapa: **Lançamento** (UAT + cutover; gate humano B-001 já resolvido em AD-024, resta formalização escrita do DPO + gates de conteúdo B-003/B-004 antes do go-live).
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa) e `USP-046`…`USP-048` (fachada pública — Fase 7), todas **extras ao PRD/board** — mapeados a features versionadas em `.specs/features/`.
 
@@ -142,7 +142,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 - [x] USP-046 — Casca de navegação pública (Header + Footer globais) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-046-casca-navegacao/ · deps: — · gate: —
 - [x] USP-047 — Home/landing pública fiel ao protótipo · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-047-home-landing/ · deps: USP-046, USP-041 · gate: —
-- [ ] USP-048 — Navegação integrada das telas públicas (vagas, serviços, cadastros) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-048-navegacao-integrada/ · deps: USP-046, USP-047, USP-021, USP-030 · gate: —
+- [x] USP-048 — Navegação integrada das telas públicas (vagas, serviços, cadastros) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-048-navegacao-integrada/ · deps: USP-046, USP-047, USP-021, USP-030 · gate: —
 
 > **Por que existe.** As Fases 1–6 entregaram os módulos e as páginas de cada fluxo, mas a home pública (`src/app/(public)/page.tsx`) segue no esqueleto de inicialização da Fase 1 ("Esqueleto do monolito modular inicializado") e o app não tem casca de site (nenhum Header/Nav/Footer global; o `layout.tsx` raiz só renderiza `{children}` + `ThemeToggle`). Do protótipo, só o **design system** foi portado (tokens/fontes/dark mode em `globals.css`/`layout.tsx`) — não a composição da landing nem a navegação unificada (`showPage()`). Estas 3 unidades são **net-new** (não constam das 44 USPs do PRD, como a USP-045).
 > **Escopo por USP:** USP-046 = casca do grupo `(public)` (header com navegação + links Entrar/Cadastrar + footer). USP-047 = reconstrói `(public)/page.tsx` reproduzindo o `page-home` do protótipo; **estende — não descarta** — os indicadores da USP-041 (`HomeIndicatorsView`). USP-048 = liga os CTAs/nav às rotas reais já entregues, reproduzindo o fluxo `showPage()` (`/vagas`, `/servicos`, cadastros).
