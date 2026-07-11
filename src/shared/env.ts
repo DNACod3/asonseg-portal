@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseBooleanFlag } from './lib/env-flags';
 
 /**
  * Validação de variáveis de ambiente com Zod (CLAUDE.md / project-guideline §14).
@@ -71,17 +72,20 @@ const envSchema = z.object({
   // CI (o volume de requests do Next + Playwright estoura o teto anônimo de
   // 10/min). Num deploy real da Vercel é proibido (trava no boot — ver
   // `superRefine` abaixo).
-  RATE_LIMIT_DISABLED: z
-    .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() === 'true' : v), z.boolean())
-    .default(false),
+  //
+  // Parse via `parseBooleanFlag` (USP-050 · PUB-1a): aceita as grafias usuais
+  // (true/1/yes/on, false/0/no/off/'') e devolve qualquer valor não reconhecido
+  // cru, fazendo `z.boolean()` reprovar e o boot falhar ruidoso — em vez do
+  // parse anterior (`=== 'true'`), que resolvia grafias como '1' em `false`
+  // silenciosamente (RL-MN-04).
+  RATE_LIMIT_DISABLED: z.preprocess(parseBooleanFlag, z.boolean()).default(false),
 
   // Liga o `FakeCVExtractor` no container em vez do adapter Anthropic
   // (USP-040 / A-12) — E2E/teste determinístico sem chamada real ao LLM. Num
   // deploy real da Vercel é proibido (trava no boot — mesmo padrão de
-  // `RATE_LIMIT_DISABLED`, ver `superRefine` abaixo).
-  CV_EXTRACTOR_FAKE: z
-    .preprocess((v) => (typeof v === 'string' ? v.toLowerCase() === 'true' : v), z.boolean())
-    .default(false),
+  // `RATE_LIMIT_DISABLED`, ver `superRefine` abaixo). Mesmo parser fail-loud
+  // (USP-050 · PUB-1a) — mesma frouxidão de idioma, mesmo guard Vercel.
+  CV_EXTRACTOR_FAKE: z.preprocess(parseBooleanFlag, z.boolean()).default(false),
 });
 
 /**
