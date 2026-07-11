@@ -7,12 +7,21 @@ import { Button, Card, StepIcon, cn } from '@/shared/ui';
  * `<h2>` + 3 cards de categoria + CTA final, fiel ao protótipo
  * (`docs/prototipo/index.html` L983-1021). `servicosHref` é seam (default
  * `/servicos`) reaproveitada por cada card e pelo CTA.
+ *
+ * USP-048 (T2, NAV-03, seam A-09): `categories?` opcional — quando presente,
+ * cada card usa seu próprio `href` (ex.: `/servicos?categoria=<id>`), em vez
+ * do `servicosHref` genérico. Sem a prop, os 3 cards estáticos continuam
+ * todos ligando a `servicosHref` (retrocompatível).
  */
 interface ServiceCategory {
   variant: 'orange' | 'blue' | 'green';
   title: string;
   description: string;
   icon: ReactElement;
+}
+
+export interface ServiceCategoryCard extends ServiceCategory {
+  href: string;
 }
 
 const DOMESTICOS_ICON = (
@@ -92,10 +101,14 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
 
 export interface HomeServicesProps {
   servicosHref?: string;
+  categories?: ServiceCategoryCard[];
   className?: string;
 }
 
-export function HomeServices({ servicosHref = '/servicos', className }: HomeServicesProps) {
+export function HomeServices({ servicosHref = '/servicos', categories, className }: HomeServicesProps) {
+  const cards: ServiceCategoryCard[] =
+    categories ?? SERVICE_CATEGORIES.map((category) => ({ ...category, href: servicosHref }));
+
   return (
     <section aria-labelledby="home-services-heading" className={cn('py-16 sm:py-24', className)}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -113,8 +126,8 @@ export function HomeServices({ servicosHref = '/servicos', className }: HomeServ
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {SERVICE_CATEGORIES.map((category) => (
-            <Link key={category.title} href={servicosHref} className="block">
+          {cards.map((category) => (
+            <Link key={category.title} href={category.href} className="block">
               <Card className="text-center">
                 <StepIcon variant={category.variant}>{category.icon}</StepIcon>
                 <h3 className="font-heading text-lg font-bold text-fg">{category.title}</h3>

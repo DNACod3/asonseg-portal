@@ -38,4 +38,27 @@ describe('HomeServices — destaque de Serviços (HOME-08)', () => {
     const links = screen.getAllByRole('link');
     links.forEach((link) => expect(link).toHaveAttribute('href', '/servicos-integrados'));
   });
+
+  it('aceita a seam categories: cada card usa seu próprio href (USP-048 NAV-03, seam A-09)', () => {
+    render(
+      <HomeServices
+        categories={[
+          {
+            variant: 'orange',
+            title: 'Serviços Domésticos',
+            description: 'Diaristas, faxineiras, passadeiras, cuidadores',
+            icon: <svg aria-hidden="true" />,
+            href: '/servicos?categoria=abc',
+          },
+        ]}
+      />,
+    );
+    const categoryLink = screen.getByRole('link', { name: /Serviços Domésticos/i });
+    expect(categoryLink).toHaveAttribute('href', '/servicos?categoria=abc');
+    // "Ver Todos os Serviços" permanece no default /servicos (não usa categories)
+    expect(screen.getByRole('link', { name: /Ver Todos os Serviços/i })).toHaveAttribute(
+      'href',
+      '/servicos',
+    );
+  });
 });
