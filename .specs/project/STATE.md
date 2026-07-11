@@ -27,7 +27,7 @@
 
 ## Handoff
 
-**Sem unidade de loop em andamento.** Fase 7 concluída (USP-046/047/048 `[x]`, AD-025) — MVP feature-complete **e** com fachada pública pronta. Todas as fases executáveis do ROADMAP (1–7) estão `[x]`. **Próximo marco = Lançamento** (UAT com sponsor + documentação operacional + treinamento + cutover) — é um marco **humano/operacional, NÃO despachado pelo loop** `spec-driven-execution`. Pendências de go-live (não de dev): formalização escrita do DPO (B-001 já decidido em AD-024) + assinatura do conteúdo das checklists/modelo de aceite (B-003/B-004). Pendente desta rodada: **abrir/mergear o PR único** da branch `feat/fase-7-fachada-publica`.
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049 (PASS). Próxima unidade: **USP-050 — Rate limiting** (`.specs/features/ajustes-uat/usp-050-rate-limiting/`). Dossiê de achados: `.specs/features/ajustes-uat/uat-findings-2026-07-11.md`. Fase 9 = itens human-gated, fora do loop.
 
 ---
 
