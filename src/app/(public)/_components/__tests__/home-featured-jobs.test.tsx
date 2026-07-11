@@ -27,4 +27,16 @@ describe('HomeFeaturedJobs — cards de destaque de vaga (HOME-04)', () => {
     expect(screen.getByText('Empresa X')).toBeInTheDocument();
     expect(screen.queryByText('Auxiliar Administrativo')).not.toBeInTheDocument();
   });
+
+  it('sem href (default mock) não renderiza link (USP-048 NAV-02, seam A-09)', () => {
+    render(<HomeFeaturedJobs />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('com href, o card vira um <Link> para o detalhe real da vaga (USP-048 NAV-02, seam A-09)', () => {
+    render(<HomeFeaturedJobs jobs={[{ title: 'Vaga Custom', company: 'Empresa X', href: '/vagas/abc' }]} />);
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', '/vagas/abc');
+    expect(link).toHaveTextContent('Vaga Custom');
+  });
 });

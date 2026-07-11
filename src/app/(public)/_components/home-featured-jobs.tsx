@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Badge, Card, cn } from '@/shared/ui';
 
 /**
@@ -6,12 +7,17 @@ import { Badge, Card, cn } from '@/shared/ui';
  * ícone + título + empresa + tags. Server Component estático — conteúdo
  * default é mock (paridade visual); a seam `jobs?` deixa a USP-048 injetar
  * dados vivos sem reescrever o componente (A-07).
+ *
+ * USP-048 (T1, NAV-02, seam A-09): `href?` opcional por card — quando
+ * presente, o card vira `<Link>` para o detalhe real da vaga (`/vagas/{id}`);
+ * o mock default não tem `href` e segue sem link (retrocompatível).
  */
 export interface FeaturedJob {
   title: string;
   company: string;
   tags?: string[];
   iconVariant?: 'blue' | 'orange';
+  href?: string;
 }
 
 const DEFAULT_JOBS: FeaturedJob[] = [
@@ -65,24 +71,34 @@ export interface HomeFeaturedJobsProps {
 export function HomeFeaturedJobs({ jobs = DEFAULT_JOBS, className }: HomeFeaturedJobsProps) {
   return (
     <div className={cn('flex flex-col gap-4', className)}>
-      {jobs.map((job) => (
-        <Card key={job.title} className="flex items-start gap-4">
-          <JobIcon variant={job.iconVariant} />
-          <div className="flex flex-col gap-1">
-            <h4 className="font-heading font-bold text-fg">{job.title}</h4>
-            <p className="text-sm text-fg-muted">{job.company}</p>
-            {job.tags && job.tags.length > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-2">
-                {job.tags.map((tag, index) => (
-                  <Badge key={tag} variant={TAG_BADGE_VARIANTS[index % TAG_BADGE_VARIANTS.length]}>
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </Card>
-      ))}
+      {jobs.map((job) => {
+        const card = (
+          <Card key={job.title} className="flex items-start gap-4">
+            <JobIcon variant={job.iconVariant} />
+            <div className="flex flex-col gap-1">
+              <h4 className="font-heading font-bold text-fg">{job.title}</h4>
+              <p className="text-sm text-fg-muted">{job.company}</p>
+              {job.tags && job.tags.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {job.tags.map((tag, index) => (
+                    <Badge key={tag} variant={TAG_BADGE_VARIANTS[index % TAG_BADGE_VARIANTS.length]}>
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </Card>
+        );
+
+        if (!job.href) return card;
+
+        return (
+          <Link key={job.title} href={job.href} className="block">
+            {card}
+          </Link>
+        );
+      })}
     </div>
   );
 }
