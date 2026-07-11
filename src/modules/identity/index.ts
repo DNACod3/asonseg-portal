@@ -52,6 +52,10 @@ export type { AuthAttemptsRepo, AttemptKey } from './ports/authAttemptsRepo';
 export { requireActivePerson, getCurrentPerson } from './server/session';
 export type { CurrentPerson } from './server/session';
 
+// ── Hub pós-login `/inicio` (USP-049 / ORQ-1) ─────────────────────────────────
+export { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } from './domain/hub-links';
+export type { HubAccess, HubLink, HubLinkGroup } from './domain/hub-links';
+
 // ── Cadastro assistido pela AS (USP-002) ──────────────────────────────────────
 export { registerPersonByAssistant } from './actions/register-person-by-assistant';
 export type { RegisterByAssistantResult } from './actions/register-person-by-assistant';
