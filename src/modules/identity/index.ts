@@ -56,6 +56,10 @@ export type { CurrentPerson } from './server/session';
 export { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } from './domain/hub-links';
 export type { HubAccess, HubLink, HubLinkGroup } from './domain/hub-links';
 
+// ── Logout (USP-049 / AUTH-3) ──────────────────────────────────────────────────
+export { signOutAction } from './actions/signOut';
+export { SignOutForm } from './components/SignOutForm';
+
 // ── Cadastro assistido pela AS (USP-002) ──────────────────────────────────────
 export { registerPersonByAssistant } from './actions/register-person-by-assistant';
 export type { RegisterByAssistantResult } from './actions/register-person-by-assistant';
