@@ -20,6 +20,7 @@
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:deploy": "dotenv -e .env.local -- prisma migrate deploy",
     "db:seed": "SEED_DEMO=1 dotenv -e .env.local -- prisma db seed",
+    "db:seed:staging": "SEED_DEMO=1 dotenv -e .env.staging -- prisma db seed",
     "db:purge-audit": "dotenv -e .env.local -- tsx scripts/purge-audit-log.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:generate": "prisma generate",
