@@ -1,9 +1,9 @@
 # Roadmap
 
-**Current Milestone:** Fase 6 — Relatórios + Home + Hardening + LGPD
-**Status:** Fase 6 **100% concluída** (3 USPs + unidade de hardening, 1 PR único, AD-023) · MVP feature-complete · próxima etapa: **Lançamento** (UAT + cutover, gated por B-001 DPO)
+**Current Milestone:** Lançamento (UAT + cutover)
+**Status:** Fase 7 — Fachada Pública **100% concluída** (3 USPs, 1 PR único, AD-025). O portal agora "abre como o protótipo": casca de navegação global (header/nav/footer no grupo `(public)`), home/landing fiel a `docs/prototipo/index.html` com indicadores reais da USP-041 embutidos, e navegação integrada (CTAs/nav/busca → rotas reais `/vagas`, `/servicos`, cadastros + destaques ACTIVE anonimizados). **MVP feature-complete E com fachada pronta.** Próxima etapa: **Lançamento** (UAT + cutover; gate humano B-001 já resolvido em AD-024, resta formalização escrita do DPO + gates de conteúdo B-003/B-004 antes do go-live).
 
-Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa, extra do board/IDSD) — mapeados a features versionadas em `.specs/features/`.
+Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa) e `USP-046`…`USP-048` (fachada pública — Fase 7), todas **extras ao PRD/board** — mapeados a features versionadas em `.specs/features/`.
 
 > **Formato executável (contrato lido por `spec-driven-execution`).** Cada unidade é uma linha-USP marcável. O loop pega a primeira `[ ]` cujas `deps` estejam todas `[x]` e cujo `gate` esteja livre.
 > ```
@@ -130,6 +130,23 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 - [x] USP-044 — Notificações por e-mail em eventos do portal · epic: notificacoes-email · dir: .specs/features/notificacoes-email/usp-044-notificacoes-email/ · deps: — · gate: —
 
 > **Hardening de segurança** entregue como unidade ad-hoc U3 (AD-023): CAPTCHA adaptativo no login, headers de segurança em `/api`, guard estático de Server Actions, redação de PII no logger + guard anti-`console.*`, piso de flags de cookie de sessão. **Painel de revogação de consentimentos já existia** (USP-043). **Revisão LGPD com DPO** e as demais frentes LGPD (direito ao esquecimento/anonimização, política de retenção de PII operacional, cascade `ANONIMIZAR`) ficam **deferidas** — gated por **B-001** (DPO não designado), fora do escopo de dev. Ver AD-023 §Deferidos.
+
+---
+
+## Fase 7 — Fachada Pública (Landing + Casca de Navegação) (1-2 sem)
+
+**Goal:** O portal "abre como o protótipo" — casca de navegação global (header + footer), home/landing pública fiel a `docs/prototipo/index.html` e navegação integrada entre as telas públicas já prontas. Fecha o gap entre "features implementadas" e "experiência do protótipo".
+**Target:** Home renderiza hero + busca + destaques (vagas/serviços) + seções institucionais + CTAs, todos sobre os tokens de `globals.css`; toda tela pública compartilha header (com navegação) e footer; os CTAs/links resolvem para as rotas reais já entregues (vagas, serviços, cadastros).
+
+### Unidades
+
+- [x] USP-046 — Casca de navegação pública (Header + Footer globais) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-046-casca-navegacao/ · deps: — · gate: —
+- [x] USP-047 — Home/landing pública fiel ao protótipo · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-047-home-landing/ · deps: USP-046, USP-041 · gate: —
+- [x] USP-048 — Navegação integrada das telas públicas (vagas, serviços, cadastros) · epic: fachada-publica · dir: .specs/features/fachada-publica/usp-048-navegacao-integrada/ · deps: USP-046, USP-047, USP-021, USP-030 · gate: —
+
+> **Por que existe.** As Fases 1–6 entregaram os módulos e as páginas de cada fluxo, mas a home pública (`src/app/(public)/page.tsx`) segue no esqueleto de inicialização da Fase 1 ("Esqueleto do monolito modular inicializado") e o app não tem casca de site (nenhum Header/Nav/Footer global; o `layout.tsx` raiz só renderiza `{children}` + `ThemeToggle`). Do protótipo, só o **design system** foi portado (tokens/fontes/dark mode em `globals.css`/`layout.tsx`) — não a composição da landing nem a navegação unificada (`showPage()`). Estas 3 unidades são **net-new** (não constam das 44 USPs do PRD, como a USP-045).
+> **Escopo por USP:** USP-046 = casca do grupo `(public)` (header com navegação + links Entrar/Cadastrar + footer). USP-047 = reconstrói `(public)/page.tsx` reproduzindo o `page-home` do protótipo; **estende — não descarta** — os indicadores da USP-041 (`HomeIndicatorsView`). USP-048 = liga os CTAs/nav às rotas reais já entregues, reproduzindo o fluxo `showPage()` (`/vagas`, `/servicos`, cadastros).
+> **Precede o Lançamento:** UAT/cutover pressupõem a fachada pronta — não se valida o MVP com a home no esqueleto.
 
 ---
 

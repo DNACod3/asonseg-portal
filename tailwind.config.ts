@@ -25,6 +25,9 @@ const config: Config = {
         border: 'var(--color-border)',
         success: 'var(--color-success)',
         danger: 'var(--color-danger)',
+        // USP-046 (CASCA-08/design.md §4): superfície fixa do footer (não
+        // inverte como `fg`) — mesma razão do token dedicado em globals.css.
+        footer: 'var(--color-footer)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

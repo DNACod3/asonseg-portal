@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 13,
+  "next_id": 15,
   "lessons": [
     {
       "id": "L-001",
@@ -222,6 +222,42 @@
       ],
       "created": "2026-07-09T15:46:03Z",
       "last_seen": "2026-07-09T15:46:03Z"
+    },
+    {
+      "id": "L-013",
+      "key": "surviving_mutant::guardas node fs de import proibido devem casar tanto from pkg quanto import pkg bare side effect sen o um mutante de import sem from sobrevive",
+      "text": "Guardas node:fs de import proibido devem casar tanto 'from \"pkg\"' quanto 'import \"pkg\"' bare/side-effect, senão um mutante de import sem 'from' sobrevive.",
+      "signal": "surviving_mutant",
+      "scope": "src/shared/__tests__/casca-*.test.ts",
+      "status": "candidate",
+      "features": [
+        "fachada-publica/usp-046-casca-navegacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/shared/__tests__/casca-no-icon-state-lib.test.ts:20 (mutant: bare 'import '\\''lucide-react'\\'';' with no 'from') (src/shared/__tests__/casca-*.test.ts)"
+      ],
+      "created": "2026-07-10T23:12:59Z",
+      "last_seen": "2026-07-10T23:12:59Z"
+    },
+    {
+      "id": "L-014",
+      "key": "spec_precision_gap::ao entregar seams de composi o classname actions items adicionar pelo menos um teste rtl que exercite o seam isoladamente n o s via composi o indireta de outro componente",
+      "text": "Ao entregar seams de composição (className?, actions?, items?), adicionar pelo menos um teste RTL que exercite o seam isoladamente, não só via composição indireta de outro componente.",
+      "signal": "spec_precision_gap",
+      "scope": "src/app/(public)/_components/**",
+      "status": "candidate",
+      "features": [
+        "fachada-publica/usp-046-casca-navegacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "CASCA-15 (spec.md) — seam className?/actions? sem teste RTL de merge (src/app/(public)/_components/**)"
+      ],
+      "created": "2026-07-10T23:12:59Z",
+      "last_seen": "2026-07-10T23:12:59Z"
     }
   ]
 }

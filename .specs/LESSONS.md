@@ -84,6 +84,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/modules/persons/domain/socioeconomic-record.ts SPEC_DEVIATION comment (authorization)
 - last seen: 2026-07-09T15:46:03Z
 
+### L-013 — Guardas node:fs de import proibido devem casar tanto 'from "pkg"' quanto 'import "pkg"' bare/side-effect, senão um mutante de import sem 'from' sobrevive.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/shared/__tests__/casca-*.test.ts` · harmful: 0
+- features: fachada-publica/usp-046-casca-navegacao
+- evidence: src/shared/__tests__/casca-no-icon-state-lib.test.ts:20 (mutant: bare 'import '\''lucide-react'\'';' with no 'from') (src/shared/__tests__/casca-*.test.ts)
+- last seen: 2026-07-10T23:12:59Z
+
+### L-014 — Ao entregar seams de composição (className?, actions?, items?), adicionar pelo menos um teste RTL que exercite o seam isoladamente, não só via composição indireta de outro componente.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `src/app/(public)/_components/**` · harmful: 0
+- features: fachada-publica/usp-046-casca-navegacao
+- evidence: CASCA-15 (spec.md) — seam className?/actions? sem teste RTL de merge (src/app/(public)/_components/**)
+- last seen: 2026-07-10T23:12:59Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -100,7 +100,8 @@ export default async function VagasPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
+    // USP-046 (CASCA-12): <main> agora vem do (public)/layout.tsx.
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
       <FormHeader
         title="Vagas de emprego"
         description="Oportunidades abertas na região norte de Florianópolis. Use os filtros para encontrar a vaga ideal."
@@ -139,6 +140,6 @@ export default async function VagasPage({
           </nav>
         )}
       </section>
-    </main>
+    </div>
   );
 }
