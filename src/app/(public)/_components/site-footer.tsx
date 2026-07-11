@@ -14,7 +14,7 @@ import { cn } from '@/shared/ui';
  * sem rota pública real (institucionais, e os que dependem de sessão —
  * Cadastrar Empresa/Publicar Vaga/Buscar Candidatos/Oferecer Serviço, que
  * vivem sob `(app)/**` autenticado) viram texto não-focável "(em breve)"
- * (CASCA-10, A-07) — nunca `href="#"`. Os itens de wiring integrado
+ * (CASCA-10, A-07) — nunca um link sem destino. Os itens de wiring integrado
  * ("Sou Candidato/Sou Empresa" etc.) são USP-048 (DEF-3), não hard-coded
  * aqui.
  */
