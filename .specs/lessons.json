@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 15,
+  "next_id": 17,
   "lessons": [
     {
       "id": "L-001",
@@ -258,6 +258,42 @@
       ],
       "created": "2026-07-10T23:12:59Z",
       "last_seen": "2026-07-10T23:12:59Z"
+    },
+    {
+      "id": "L-015",
+      "key": "ac_gap::next js middleware unit tests that build nextrequest directly with rsc protocol headers next router prefetch rsc baked in do not prove production behavior verify prefetch rsc signal detection in middleware ts against a real next start server curl real browser since these headers can fail to reach request headers in the live request pipeline even though unit tests pass",
+      "text": "Next.js middleware unit tests that build NextRequest directly with RSC-protocol headers (next-router-prefetch, rsc) baked in do not prove production behavior — verify prefetch/RSC signal detection in middleware.ts against a real 'next start' server (curl + real browser), since these headers can fail to reach request.headers in the live request pipeline even though unit tests pass.",
+      "signal": "ac_gap",
+      "scope": "src/middleware.ts,src/shared/lib/rateLimitResponse.ts",
+      "status": "candidate",
+      "features": [
+        "usp-050-rate-limiting"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PREF-01/RL-MN-01 (src/middleware.ts,src/shared/lib/rateLimitResponse.ts)"
+      ],
+      "created": "2026-07-12T13:45:34Z",
+      "last_seen": "2026-07-12T13:45:34Z"
+    },
+    {
+      "id": "L-016",
+      "key": "ac_gap::when a rate limit security bypass keys off a single client controlled http header e g next js s next url adversarially test with a plain curl request forging just that header before accepting the fix an unauthenticated signal used to exempt traffic from a limiter is trivially exploitable unless corroborated with a second harder to forge signal or bounded by a non zero ceiling instead of a hard bypass",
+      "text": "When a rate-limit/security bypass keys off a single client-controlled HTTP header (e.g. Next.js's Next-Url), adversarially test with a plain curl request forging just that header before accepting the fix — an unauthenticated signal used to exempt traffic from a limiter is trivially exploitable unless corroborated with a second, harder-to-forge signal or bounded by a non-zero ceiling instead of a hard bypass.",
+      "signal": "ac_gap",
+      "scope": "src/middleware.ts,src/shared/lib/rateLimitResponse.ts",
+      "status": "candidate",
+      "features": [
+        "usp-050-rate-limiting"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "live-scenario-b-prime (Next-Url spoof) (src/middleware.ts,src/shared/lib/rateLimitResponse.ts)"
+      ],
+      "created": "2026-07-12T14:23:25Z",
+      "last_seen": "2026-07-12T14:23:25Z"
     }
   ]
 }

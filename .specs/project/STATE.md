@@ -27,7 +27,7 @@
 
 ## Handoff
 
-**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049 (PASS). Próxima unidade: **USP-050 — Rate limiting** (`.specs/features/ajustes-uat/usp-050-rate-limiting/`). Dossiê de achados: `.specs/features/ajustes-uat/uat-findings-2026-07-11.md`. Fase 9 = itens human-gated, fora do loop.
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049, USP-050 (PASS; USP-050 fechou em 3 iterações fix→re-verify — verificação adversarial ao vivo achou sinal de prefetch morto e depois bypass forjável do Next-Url, ambos corrigidos). Próxima unidade: **USP-051 — Robustez de formulários** (`.specs/features/ajustes-uat/usp-051-robustez-forms/`).
 
 ---
 

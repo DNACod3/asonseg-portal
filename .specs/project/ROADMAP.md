@@ -160,7 +160,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 ### Unidades
 
 - [x] USP-049 — Pós-login: rota /inicio (hub por papel), redirects corrigidos, /perfil real mínimo, logout · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-049-pos-login-hub/ · deps: — · gate: — · achados: ORQ-1, AUTH-1, AUTH-3, AUTH-4
-- [ ] USP-050 — Rate limiting: parse de flag robusto, buckets por mutação, exclusão de prefetch, página 429 PT-BR · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-050-rate-limiting/ · deps: — · gate: — · achados: PUB-1, PUB-2, SOC-1
+- [x] USP-050 — Rate limiting: parse de flag robusto, buckets por mutação, exclusão de prefetch, página 429 PT-BR · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-050-rate-limiting/ · deps: — · gate: — · achados: PUB-1, PUB-2, SOC-1
 - [ ] USP-051 — Robustez de formulários: fallback GET do login, CSP dev, RangeError de data, noValidate, bodySizeLimit CV, texto /trocar-senha · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-051-robustez-forms/ · deps: — · gate: — · achados: ORQ-2, ORQ-3, EMP-1, EMP-6, CAND-5, AUTH-7
 - [ ] USP-052 — Perfil do candidato consistente: sem perda de dados no save, status real, defaultValues, gate do termo CV_AI_EXTRACTION · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-052-perfil-candidato/ · deps: — · gate: — · achados: CAND-1, CAND-2, CAND-3, CAND-6
 - [ ] USP-053 — Cascata de revogação JOB_APPLICATION conforme política do domínio (encerrar candidaturas + ocultar da busca) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-053-cascata-revogacao/ · deps: — · gate: — · achados: CAND-7
