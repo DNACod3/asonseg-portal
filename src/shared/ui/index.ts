@@ -22,3 +22,11 @@ export { Badge, type BadgeProps } from './badge';
 
 export { ThemeToggle, type ThemeToggleProps } from './theme-toggle';
 export { ThemeScript, THEME_INIT_SCRIPT } from './theme-script';
+
+export {
+  TermMarkdown,
+  parseTermMarkdown,
+  type TermMarkdownProps,
+  type TermBlock,
+  type InlineSpan,
+} from './term-markdown';
