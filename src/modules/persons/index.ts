@@ -4,6 +4,9 @@
 // Máscara de CPF do titular para exibição (USP-049 / PERFIL-01).
 export { maskCpf } from './domain/cpf-mask';
 
+// Rótulos PT-BR de PersonStatus (USP-059 / SOC-4).
+export { PERSON_STATUS_LABELS } from './domain/person-status-labels';
+
 // View Model do próprio titular (viewer=self) para /perfil (USP-049 / AUTH-4).
 export { viewPersonForSelf } from './views/view-person-for-self';
 export type { SelfProfileView } from './views/view-person-for-self';
