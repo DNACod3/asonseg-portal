@@ -13,25 +13,27 @@ import { describe, expect, it } from 'vitest';
  *
  * **Exceção documentada (A-07 / nota de conformidade F0A-05):** os pontos em
  * `persons/components/{candidate-form,provider-form}.tsx`,
- * `jobs/components/job-form.tsx` e `services/components/service-form.tsx`
- * são Client Components que precisam importar uma Server Action diretamente
- * do arquivo-fonte, não do barrel do módulo alheio (`@/modules/identity` /
- * `@/modules/moderation`): o barrel reexporta
+ * `jobs/components/job-form.tsx`, `services/components/service-form.tsx` e
+ * `cv-extraction/components/CvUploadForm.tsx` (CAND-6 / USP-052, A-08) são
+ * Client Components que precisam importar uma Server Action diretamente do
+ * arquivo-fonte, não do barrel do módulo alheio (`@/modules/identity` /
+ * `@/modules/moderation` / `@/modules/consents`): o barrel reexporta
  * código server-only (identity: `./server/session` → `supabase/server.ts` →
  * `next/headers`, e `./ports/captchaVerifier` → `container.ts` →
  * `next-cache-invalidation.ts` → `next/cache`; moderation: mesmo container via
- * `transition-content.ts` → `shared/container.ts`), que o Next se recusa a
- * empacotar no bundle do cliente. **Verificado empiricamente**: rotear esses
- * imports pelo barrel quebra `npm run build` (`Failed to compile` — "You're
- * importing a component that needs 'next/headers'/'revalidatePath'... not
- * supported in the pages/ directory"). Não é drift a corrigir — é o mesmo
- * carve-out do composition root em `shared/container.ts` (que também importa
- * módulos por caminho profundo, documentado e fora de `src/modules/**`), só
- * que do outro lado da fronteira client/server. Cada import excepcionado
- * carrega o comentário de justificativa + `// eslint-disable-next-line
- * no-restricted-imports` imediatamente acima — a guarda trata isso como
- * exceção revisada, não como violação; qualquer OUTRO deep-import sem esse
- * comentário continua barrado.
+ * `transition-content.ts` → `shared/container.ts`; consents: mesma classe via
+ * `require-active-consent.ts`/`revocation-cascade` com IO de Prisma), que o
+ * Next se recusa a empacotar no bundle do cliente. **Verificado
+ * empiricamente**: rotear esses imports pelo barrel quebra `npm run build`
+ * (`Failed to compile` — "You're importing a component that needs
+ * 'next/headers'/'revalidatePath'... not supported in the pages/
+ * directory"). Não é drift a corrigir — é o mesmo carve-out do composition
+ * root em `shared/container.ts` (que também importa módulos por caminho
+ * profundo, documentado e fora de `src/modules/**`), só que do outro lado da
+ * fronteira client/server. Cada import excepcionado carrega o comentário de
+ * justificativa + `// eslint-disable-next-line no-restricted-imports`
+ * imediatamente acima — a guarda trata isso como exceção revisada, não como
+ * violação; qualquer OUTRO deep-import sem esse comentário continua barrado.
  */
 
 const MODULES_DIR = join(process.cwd(), 'src/modules');
@@ -67,7 +69,7 @@ describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', ()
     expect(offenders).toEqual([]);
   });
 
-  it('a exceção documentada continua restrita aos 4 arquivos conhecidos (client/server boundary)', () => {
+  it('a exceção documentada continua restrita aos 5 arquivos conhecidos (client/server boundary)', () => {
     const knownExceptionFiles = new Set<string>();
 
     for (const file of sourceFiles(MODULES_DIR)) {
@@ -85,6 +87,7 @@ describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', ()
         join(MODULES_DIR, 'persons/components/provider-form.tsx'),
         join(MODULES_DIR, 'jobs/components/job-form.tsx'),
         join(MODULES_DIR, 'services/components/service-form.tsx'),
+        join(MODULES_DIR, 'cv-extraction/components/CvUploadForm.tsx'),
       ].sort(),
     );
   });
