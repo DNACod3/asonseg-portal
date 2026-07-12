@@ -1,14 +1,18 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson, type DelegatedGrant } from '@/modules/identity';
+import { listServiceCategories } from '@/modules/services';
+import { listActiveRegions } from '@/modules/jobs';
 import {
   REPORT_TYPES,
   REPORT_TITLES,
+  CONTENT_STATUS_LABELS,
   canViewSocialReports,
   isReportTypeAuthorized,
   buildReportRows,
   getModerationGrants,
   ReportView,
   type ReportType,
+  type FilterOption,
 } from '@/modules/reporting';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request (ADR-0030).
@@ -78,6 +82,21 @@ export default async function RelatorioPage({
 
   const containsPII = tipo === 'social' && canViewSocialReports(person.roles);
 
+  // USP-058/REL-5 (A5/A6): cada relatório recebe só as opções da dimensão que
+  // sua QUERY já honra (status→R1/jobs, categoria→R3/services, região→R6/social) —
+  // resolvidas aqui no server (evita o hazard AD-019 de barrel server no Client
+  // Component). Os demais tipos não recebem opção extra (só período).
+  let statusOptions: FilterOption[] | undefined;
+  let categoryOptions: FilterOption[] | undefined;
+  let regionOptions: FilterOption[] | undefined;
+  if (tipo === 'jobs') {
+    statusOptions = Object.entries(CONTENT_STATUS_LABELS).map(([value, label]) => ({ value, label }));
+  } else if (tipo === 'services') {
+    categoryOptions = (await listServiceCategories()).map((c) => ({ value: c.id, label: c.name }));
+  } else if (tipo === 'social') {
+    regionOptions = (await listActiveRegions()).map((r) => ({ value: r.id, label: r.name }));
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-10">
       <header>
@@ -91,6 +110,9 @@ export default async function RelatorioPage({
         filters={filters}
         outcomeRates={built.outcomeRates}
         containsPII={containsPII}
+        statusOptions={statusOptions}
+        categoryOptions={categoryOptions}
+        regionOptions={regionOptions}
       />
     </main>
   );
