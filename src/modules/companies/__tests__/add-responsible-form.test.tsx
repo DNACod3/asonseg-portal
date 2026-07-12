@@ -33,6 +33,27 @@ beforeEach(() => {
 });
 
 describe('AddResponsibleForm (USP-013, restyle Fase 2)', () => {
+  it('EMP055-09: CPF mal formatado exibe mensagem de campo canônica e NÃO chama a action', async () => {
+    renderForm();
+    preencherEEnviar('123');
+
+    expect(
+      await screen.findByText('CPF inválido (formato ou dígito verificador)'),
+    ).toBeInTheDocument();
+    // Dá tempo pro handler (async, via RHF) rodar antes de afirmar a ausência da chamada.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(actionState.adicionarResponsavel).not.toHaveBeenCalled();
+  });
+
+  it('EMP055-10: e-mail mal formatado exibe "E-mail inválido" e NÃO chama a action', async () => {
+    renderForm();
+    preencherEEnviar('fulano@');
+
+    expect(await screen.findByText('E-mail inválido')).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(actionState.adicionarResponsavel).not.toHaveBeenCalled();
+  });
+
   it('renderiza o campo e o botão de envio usando os primitivos do DS', () => {
     renderForm();
     expect(screen.getByLabelText(/cpf ou e-mail/i)).toBeInTheDocument();

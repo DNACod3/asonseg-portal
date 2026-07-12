@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Input, Label } from '@/shared/ui';
+import { classifyIdentifier } from '../domain/responsible-identifier';
 import { adicionarResponsavel } from '../actions/add-responsible';
 
 // SPEC_DEVIATION (Level-1): o design §4 descreve um fluxo de duas etapas
@@ -15,13 +16,28 @@ import { adicionarResponsavel } from '../actions/add-responsible';
 
 /**
  * Schema do formulário: o `empresaId` vem das props (não é digitado), então o
- * form coleta só o identificador. Reusa a regra de CPF|e-mail do schema da ação.
+ * form coleta só o identificador. O `superRefine` abaixo valida o campo no
+ * client (EMP-8 / USP-055) usando o classificador client-safe do domínio: um
+ * valor sem "@" que não é CPF válido produz a mensagem canônica de CPF; um
+ * valor com "@" que não é e-mail válido produz "E-mail inválido". Vazio
+ * continua coberto por `.min(1, ...)`. A action/servidor permanecem
+ * inalterados (defesa em profundidade).
  */
-const formSchema = z.object({
-  cpfOuEmail: z
-    .string()
-    .min(1, 'Informe um CPF ou e-mail.'),
-});
+const formSchema = z
+  .object({
+    cpfOuEmail: z.string().min(1, 'Informe um CPF ou e-mail.'),
+  })
+  .superRefine((data, ctx) => {
+    const trimmed = data.cpfOuEmail.trim();
+    if (trimmed.length === 0 || classifyIdentifier(trimmed) !== null) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['cpfOuEmail'],
+      message: trimmed.includes('@')
+        ? 'E-mail inválido'
+        : 'CPF inválido (formato ou dígito verificador)',
+    });
+  });
 type AddResponsibleFormValues = z.infer<typeof formSchema>;
 
 export interface AddResponsibleFormProps {
