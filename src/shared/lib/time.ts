@@ -45,3 +45,15 @@ export function hojeSaoPaulo(): Date {
 export function formatDate(date: Date | string, fmt = 'dd/MM/yyyy'): string {
   return format(typeof date === 'string' ? parseISO(date) : date, fmt);
 }
+
+/**
+ * Formata um campo `@db.Date` (date-only, ex.: `Job.validUntil`) **sem** conversão
+ * de fuso (USP-054/MOD-5). O Prisma lê colunas `date` como meia-noite **UTC**;
+ * formatar esse instante no fuso de São Paulo (UTC-3) joga a data-calendário para
+ * o dia anterior. Como o campo não carrega instante (só dia-calendário), a leitura
+ * correta é interpretar o `Date` em UTC — mesmo approach já usado em
+ * `jobs/domain/validade.ts` para `validUntil`.
+ */
+export function formatDateOnly(date: Date, fmt = 'dd/MM/yyyy'): string {
+  return formatInTimeZone(date, 'UTC', fmt);
+}

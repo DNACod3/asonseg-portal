@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatDate } from '@/shared/lib/time';
+import { formatDateOnly } from '@/shared/lib/time';
 import { Badge, Button, Card } from '@/shared/ui';
 import { CompanyJobActions } from './company-job-actions';
 import type { CompanyJobRowView } from '../views/company-job-row.view';
@@ -46,7 +46,7 @@ export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
               )}
             </div>
             <p className="text-xs text-fg-muted">
-              {row.validUntil ? `Válida até ${formatDate(row.validUntil)}` : 'Sem data de validade'}
+              {row.validUntil ? `Válida até ${formatDateOnly(row.validUntil)}` : 'Sem data de validade'}
             </p>
           </div>
 
