@@ -152,3 +152,26 @@ import { env } from '@/shared/env';
 container.register(CV_EXTRACTOR_TOKEN, () =>
   env.CV_EXTRACTOR_FAKE ? new FakeCVExtractor() : new AnthropicCVExtractor(),
 );
+
+// Cascata de artefatos da revogação de JOB_APPLICATION (USP-053 / CAND-7 /
+// A-5): porta definida em `consents`, composta pelos participantes de tx dos
+// módulos donos do dado (`jobs`, `persons`). Imports profundos aqui pelo mesmo
+// motivo do `COMPANY_RESPONSIBILITY_TOKEN` acima — evitar dependência
+// circular (`jobs`/`persons` já importam `consents` pelos barrels).
+// eslint-disable-next-line no-restricted-imports
+import { REVOCATION_EFFECTS_TOKEN } from '@/modules/consents/ports/revocation-effects';
+// eslint-disable-next-line no-restricted-imports
+import { endJobApplicationsForRevocation } from '@/modules/jobs/actions/end-job-applications-for-revocation';
+// eslint-disable-next-line no-restricted-imports
+import { hideCandidateProfileForRevocation } from '@/modules/persons/actions/hide-candidate-profile-for-revocation';
+container.register(REVOCATION_EFFECTS_TOKEN, () => ({
+  async applyJobApplicationCascade(tx, ctx) {
+    const ended = await endJobApplicationsForRevocation(tx, ctx);
+    const hidden = await hideCandidateProfileForRevocation(tx, { personId: ctx.personId });
+    return {
+      applicationsEnded: ended.endedCount,
+      endedApplicationIds: ended.endedApplicationIds,
+      profileHidden: hidden.hidden,
+    };
+  },
+}));
