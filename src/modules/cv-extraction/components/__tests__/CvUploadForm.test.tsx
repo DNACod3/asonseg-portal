@@ -241,10 +241,13 @@ describe('USP-040 — CvUploadForm', () => {
 
       await waitFor(() => expect(actions.uploadCv).toHaveBeenCalledOnce());
       expect(actions.grantConsent).toHaveBeenCalledWith({ purpose: 'CV_AI_EXTRACTION' });
-      // Ordem: grantConsent ANTES de uploadCv (CAND-6 / CVE-MN-03).
-      const grantOrder = actions.grantConsent.mock.invocationCallOrder[0];
-      const uploadOrder = actions.uploadCv.mock.invocationCallOrder[0];
-      expect(grantOrder).toBeLessThan(uploadOrder);
+      // Ordem: grantConsent ANTES de uploadCv (CAND-6 / CVE-MN-03). Ambos os
+      // mocks já foram confirmados chamados acima — os índices existem.
+      const [grantOrder] = actions.grantConsent.mock.invocationCallOrder;
+      const [uploadOrder] = actions.uploadCv.mock.invocationCallOrder;
+      expect(grantOrder).toBeDefined();
+      expect(uploadOrder).toBeDefined();
+      expect(grantOrder as number).toBeLessThan(uploadOrder as number);
     });
 
     it('PERF-05c: grantConsent falha → exibe erro PT-BR e não chama uploadCv', async () => {
