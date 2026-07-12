@@ -63,7 +63,12 @@ export function LoginForm({ siteKey }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      method="post"
+      noValidate
+      className="flex flex-col gap-5"
+    >
       {/* E-mail */}
       <div className="flex flex-col gap-1">
         <Label htmlFor="email">E-mail</Label>
