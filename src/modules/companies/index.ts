@@ -7,6 +7,7 @@ export { COMPANY_TYPES, COMPANY_TYPE_LABELS, COMPANY_TYPE_OPTIONS } from './doma
 export type { CompanyType } from './domain/company-type';
 export { identityFieldsChanged } from './domain/company-edit';
 export type { CompanyIdentityFields } from './domain/company-edit';
+export { COMPANY_GRANT_STATUS_LABELS } from './domain/company-grant-status-labels';
 export {
   buildVerificationSnapshot,
   diffVerificationSnapshot,
