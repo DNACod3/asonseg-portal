@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 17,
+  "next_id": 18,
   "lessons": [
     {
       "id": "L-001",
@@ -294,6 +294,24 @@
       ],
       "created": "2026-07-12T14:23:25Z",
       "last_seen": "2026-07-12T14:23:25Z"
+    },
+    {
+      "id": "L-017",
+      "key": "spec_precision_gap::when a spec s concurrency guarantee is framed as a pre existing db constraint acting as a backstop don t mark the ac fully verified without a dedicated concurrent write test flag it as a spec precision gap instead of silently trusting the index",
+      "text": "When a spec's concurrency guarantee is framed as a pre-existing DB constraint acting as a backstop, don't mark the AC fully verified without a dedicated concurrent-write test — flag it as a spec-precision gap instead of silently trusting the index.",
+      "signal": "spec_precision_gap",
+      "scope": "companies",
+      "status": "candidate",
+      "features": [
+        "ajustes-uat/usp-055-empresas"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "EMP055-04 / .specs/features/ajustes-uat/usp-055-empresas/validation.md (companies)"
+      ],
+      "created": "2026-07-12T19:32:31Z",
+      "last_seen": "2026-07-12T19:32:31Z"
     }
   ]
 }

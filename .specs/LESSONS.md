@@ -108,6 +108,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: live-scenario-b-prime (Next-Url spoof) (src/middleware.ts,src/shared/lib/rateLimitResponse.ts)
 - last seen: 2026-07-12T14:23:25Z
 
+### L-017 — When a spec's concurrency guarantee is framed as a pre-existing DB constraint acting as a backstop, don't mark the AC fully verified without a dedicated concurrent-write test — flag it as a spec-precision gap instead of silently trusting the index.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `companies` · harmful: 0
+- features: ajustes-uat/usp-055-empresas
+- evidence: EMP055-04 / .specs/features/ajustes-uat/usp-055-empresas/validation.md (companies)
+- last seen: 2026-07-12T19:32:31Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
