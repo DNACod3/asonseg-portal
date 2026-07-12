@@ -19,6 +19,10 @@ export {
   JUSTIFICATION_NOT_MEANINGFUL_MESSAGE,
   isMeaningfulJustification,
 } from './domain/justification';
+export {
+  PERMISSION_BY_KIND,
+  CONTENT_KINDS_BY_PERMISSION,
+} from './domain/moderation-permissions';
 
 // ── transitionContent + ports (#122) ─────────────────────────────────────────
 export { transitionContent } from './actions/transition-content';
@@ -90,7 +94,11 @@ export { listTaxonomySuggestions } from './queries/list-taxonomy-suggestions';
 export type { TaxonomySuggestionItem } from './views/taxonomy-suggestion-item';
 export { canApproveTaxonomySuggestions } from './server/taxonomy-suggestion-access';
 export { listVerificationChecklistItems } from './queries/list-verification-checklist';
-export { canAccessModerationQueue, canManagePublishedContent } from './server/moderation-access';
+export {
+  canAccessModerationQueue,
+  canManagePublishedContent,
+  listViewerModeratableKinds,
+} from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
 export { PublishedContentManager } from './components/published-content-manager';

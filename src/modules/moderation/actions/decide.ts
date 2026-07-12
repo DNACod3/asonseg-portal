@@ -1,9 +1,9 @@
 'use server';
 
-import type { PermissionId } from '@prisma/client';
 import { requirePermission } from '@/modules/identity';
 import { fail, type ActionResult } from '@/shared/errors';
-import { ContentKind, ContentStatus } from '../domain/content-status';
+import { ContentStatus } from '../domain/content-status';
+import { PERMISSION_BY_KIND } from '../domain/moderation-permissions';
 import { transitionContent, type TransitionContentData } from './transition-content';
 import {
   approveSchema,
@@ -18,18 +18,12 @@ import {
  * Server Actions de decisão de moderação (#123). Sequência canônica do CLAUDE.md:
  * Zod → `requirePermission(MODERATE_<KIND>)` (P-007) → `transitionContent` (a
  * única via de mudança de status — AC6/P-006). Retornam `ActionResult`, nunca `throw`.
+ *
+ * `PERMISSION_BY_KIND` (permissão exigida por tipo — P-007) mora em
+ * `domain/moderation-permissions.ts`: fonte única compartilhada com
+ * `listViewerModeratableKinds` (MOD-7), para a permissão exigida aqui e a
+ * inferida na UI nunca divergirem.
  */
-
-/** Permissão exigida por tipo de conteúdo (P-007 / catálogo USP-008 / D-006). */
-const PERMISSION_BY_KIND: Record<ContentKind, PermissionId> = {
-  [ContentKind.JOB]: 'MODERATE_JOB',
-  [ContentKind.CV]: 'MODERATE_CV',
-  [ContentKind.SERVICE]: 'MODERATE_SERVICE',
-  // Perfil de candidato (USP-009) reusa a permissão de moderação de CV — o perfil
-  // contém o CV e é a mesma capacidade do coordenador; evita novo PermissionId
-  // (enum Prisma) + seeding RBAC. Reavaliar se a moderação divergir (AC-04 / USP-016).
-  [ContentKind.CANDIDATE_PROFILE]: 'MODERATE_CV',
-};
 
 const INVALID_INPUT = 'Não foi possível processar a decisão: dados inválidos.';
 
