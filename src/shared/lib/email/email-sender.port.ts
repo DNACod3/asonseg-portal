@@ -103,6 +103,30 @@ export interface JobExpiryEmailData {
   diasRestantes: number;
 }
 
+/** Dados do template de aprovação de conteúdo (moderação — NOT-03 / E-002 / USP-057). */
+export interface ModerationApprovedEmailData {
+  /** Nome do AUTOR do conteúdo (saudação) — nunca o do moderador (USP057-MN-04). */
+  autorNome: string;
+  /** Rótulo PT-BR do tipo: "vaga" | "serviço" | "perfil de candidato". */
+  tipoConteudo: string;
+  /** Título público do conteúdo (ou `headline` do perfil de candidato). */
+  tituloConteudo: string;
+  /** URL absoluta da área do autor (CTA). */
+  areaUrl: string;
+}
+
+/** Dados do template de devolução para ajustes (moderação — NOT-04 / E-003 / USP-057). */
+export interface ModerationReturnedEmailData extends ModerationApprovedEmailData {
+  /** Motivo informado pela moderação (`notice.justification`, obrigatório). */
+  motivo: string;
+}
+
+/** Dados do template de rejeição de conteúdo (moderação — NOT-05 / E-004 / USP-057). */
+export interface ModerationRejectedEmailData extends ModerationApprovedEmailData {
+  /** Motivo informado pela moderação (`notice.justification`, obrigatório). */
+  motivo: string;
+}
+
 /**
  * Mensagem a enviar, discriminada por `template`. O adapter escolhe o renderer
  * correspondente — o consumidor nunca monta HTML nem conhece o provedor.
@@ -116,7 +140,10 @@ export type EmailMessage =
   | { to: string; template: 'application-confirmation'; data: ApplicationConfirmationEmailData }
   | { to: string; template: 'service-interest-notification'; data: ServiceInterestNotificationEmailData }
   | { to: string; template: 'referral-notification'; data: ReferralNotificationEmailData }
-  | { to: string; template: 'job-expiry'; data: JobExpiryEmailData };
+  | { to: string; template: 'job-expiry'; data: JobExpiryEmailData }
+  | { to: string; template: 'moderation-approved'; data: ModerationApprovedEmailData }
+  | { to: string; template: 'moderation-returned'; data: ModerationReturnedEmailData }
+  | { to: string; template: 'moderation-rejected'; data: ModerationRejectedEmailData };
 
 /** Resultado do envio. `id` é o identificador do provedor quando disponível. */
 export interface EmailSendResult {

@@ -18,6 +18,40 @@ describe('resolveOutboxEmail', () => {
     expect(message).toEqual(payload);
   });
 
+  it('@usp057-05 payload com template moderation-approved/-returned/-rejected → passthrough (AC-044-D2)', async () => {
+    const approved: EmailMessage = {
+      to: 'autor@example.com',
+      template: 'moderation-approved',
+      data: { autorNome: 'Maria', tipoConteudo: 'vaga', tituloConteudo: 'Vaga X', areaUrl: 'https://portal.test/empresa' },
+    };
+    const returned: EmailMessage = {
+      to: 'autor@example.com',
+      template: 'moderation-returned',
+      data: {
+        autorNome: 'Maria',
+        tipoConteudo: 'vaga',
+        tituloConteudo: 'Vaga X',
+        motivo: 'Faltou informação',
+        areaUrl: 'https://portal.test/empresa',
+      },
+    };
+    const rejected: EmailMessage = {
+      to: 'autor@example.com',
+      template: 'moderation-rejected',
+      data: {
+        autorNome: 'Maria',
+        tipoConteudo: 'vaga',
+        tituloConteudo: 'Vaga X',
+        motivo: 'Não compatível',
+        areaUrl: 'https://portal.test/empresa',
+      },
+    };
+
+    await expect(resolveOutboxEmail(approved)).resolves.toEqual(approved);
+    await expect(resolveOutboxEmail(returned)).resolves.toEqual(returned);
+    await expect(resolveOutboxEmail(rejected)).resolves.toEqual(rejected);
+  });
+
   it('@ac-044-d3 payload {kind:JOB_EXPIRY_D3} → delega ao hidratador injetado', async () => {
     const jobExpiryResolver = vi.fn().mockResolvedValue({
       to: 'responsavel@example.com',

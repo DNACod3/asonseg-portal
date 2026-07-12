@@ -16,6 +16,9 @@ import { renderApplicationConfirmationEmail } from './templates/application-conf
 import { renderServiceInterestNotificationEmail } from './templates/service-interest-notification';
 import { renderReferralNotificationEmail } from './templates/referral-notification';
 import { renderJobExpiryEmail } from './templates/job-expiry';
+import { renderModerationApprovedEmail } from './templates/moderation-approved';
+import { renderModerationReturnedEmail } from './templates/moderation-returned';
+import { renderModerationRejectedEmail } from './templates/moderation-rejected';
 
 /**
  * Subconjunto estrutural do client Resend que o adapter consome. Mantê-lo
@@ -54,6 +57,12 @@ function render(message: EmailMessage): RenderedEmail {
       return renderReferralNotificationEmail(message.data);
     case 'job-expiry':
       return renderJobExpiryEmail(message.data);
+    case 'moderation-approved':
+      return renderModerationApprovedEmail(message.data);
+    case 'moderation-returned':
+      return renderModerationReturnedEmail(message.data);
+    case 'moderation-rejected':
+      return renderModerationRejectedEmail(message.data);
   }
 }
 
