@@ -51,12 +51,17 @@ function actionsForStatus(status: CompanyJobRow['status']): CompanyJobRowActions
       return { canEdit: true, canPause: true, canUnpause: false, canArchive: true, canExtend: true, canSubmit: false };
     case 'PAUSED':
       return { canEdit: true, canPause: false, canUnpause: true, canArchive: true, canExtend: false, canSubmit: false };
+    case 'DRAFT':
+    case 'AWAITING_ADJUSTMENTS':
+      // USP-054/EMP-2/MOD-3: rascunho e devolvida-para-ajustes ganham Editar
+      // (updateJobDraft, preserva o status) e Submeter/Reenviar
+      // (submitJobForModeration → transitionContent, USP-023 AC1). Sem pausar/
+      // despausar/arquivar/prorrogar — essas ações pertencem só ao ciclo ACTIVE/PAUSED.
+      return { canEdit: true, canPause: false, canUnpause: false, canArchive: false, canExtend: false, canSubmit: true };
     default:
-      // DRAFT/AWAITING_ADJUSTMENTS/ARCHIVED/EXPIRED/IN_MODERATION/REJECTED/INACTIVATED:
-      // fora do escopo de ações desta US — `editJob` só aceita vaga ACTIVE (E-001), e o
-      // fluxo de rascunho (criar/reenviar) já existe em `/vagas/nova` (USP-020). Nenhuma
-      // ação leve aqui evita um link/botão morto (submeter rascunho por `jobId` fica para
-      // uma US de gestão de rascunho, fora do escopo de USP-023).
+      // ARCHIVED/EXPIRED/IN_MODERATION/REJECTED/INACTIVATED: estados terminais ou já
+      // em fila — nenhuma ação do autor (USP054-06/E1, preserva P-006: sem
+      // ressurreição de estado terminal, sem duplicar submissão já em moderação).
       return { canEdit: false, canPause: false, canUnpause: false, canArchive: false, canExtend: false, canSubmit: false };
   }
 }
@@ -77,10 +82,22 @@ export interface CompanyJobRowView {
    * O painel renderiza "expira em N dias" quando não-nulo (P-003, sinal in-portal).
    */
   expiraEmDias: number | null;
+  /**
+   * Motivo da última devolução para ajustes (USP-054/MOD-3), lido de
+   * `AuditLog.justification` (`CONTENT_RETURNED_FOR_ADJUSTMENTS`) por
+   * `listLatestReturnReasons`. `null` quando a vaga não está em
+   * `AWAITING_ADJUSTMENTS`, nunca foi devolvida, ou o registro legado não tem
+   * `justification` (USP054-E2 — fallback neutro é responsabilidade da UI).
+   */
+  returnReason: string | null;
 }
 
-/** Projeta uma linha crua de `listCompanyJobs` para o formato de exibição do painel. */
-export function viewCompanyJobRow(row: CompanyJobRow): CompanyJobRowView {
+/**
+ * Projeta uma linha crua de `listCompanyJobs` para o formato de exibição do painel.
+ * `returnReason` é opcional (retrocompatível) — só relevante para
+ * `AWAITING_ADJUSTMENTS`; chamadas existentes que não o passam recebem `null`.
+ */
+export function viewCompanyJobRow(row: CompanyJobRow, returnReason: string | null = null): CompanyJobRowView {
   // `diasAteExpiracao` espera um instante real como "hoje" (converte para SP
   // internamente via date-fns-tz) — `new Date()`, não `hojeSaoPaulo()` (que já
   // devolve o dia-calendário embalado em meia-noite UTC; reprocessá-lo pelo fuso
@@ -99,5 +116,6 @@ export function viewCompanyJobRow(row: CompanyJobRow): CompanyJobRowView {
     publishedAt: row.publishedAt,
     actions: actionsForStatus(row.status),
     expiraEmDias: expiraEmDias != null && expiraEmDias >= 0 && expiraEmDias <= EXPIRY_BADGE_WINDOW_DAYS ? expiraEmDias : null,
+    returnReason: row.status === 'AWAITING_ADJUSTMENTS' ? returnReason : null,
   };
 }

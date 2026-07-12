@@ -64,3 +64,96 @@ describe('viewCompanyJobRow — badge de expiração (USP-024 / E-004 / P-003)',
     expect(view.expiraEmDias).toBeNull();
   });
 });
+
+// FACTS (USP-054/EMP-2/MOD-3) — ações de ciclo de vida para DRAFT/AWAITING_ADJUSTMENTS
+// e o campo `returnReason` no painel do autor.
+describe('viewCompanyJobRow — ações de rascunho/aguardando ajustes (USP054-01/02/06)', () => {
+  it('USP054-01: DRAFT → canEdit=true, canSubmit=true; demais ações false', () => {
+    const view = viewCompanyJobRow(baseRow({ status: ContentStatus.DRAFT }));
+    expect(view.actions).toEqual({
+      canEdit: true,
+      canSubmit: true,
+      canPause: false,
+      canUnpause: false,
+      canArchive: false,
+      canExtend: false,
+    });
+  });
+
+  it('USP054-02: AWAITING_ADJUSTMENTS → canEdit=true, canSubmit=true; demais ações false', () => {
+    const view = viewCompanyJobRow(baseRow({ status: ContentStatus.AWAITING_ADJUSTMENTS }));
+    expect(view.actions).toEqual({
+      canEdit: true,
+      canSubmit: true,
+      canPause: false,
+      canUnpause: false,
+      canArchive: false,
+      canExtend: false,
+    });
+  });
+
+  it.each([
+    ContentStatus.ARCHIVED,
+    ContentStatus.EXPIRED,
+    ContentStatus.INACTIVATED,
+    ContentStatus.REJECTED,
+    ContentStatus.IN_MODERATION,
+  ] as const)(
+    'USP054-06/E1: %s permanece all-false (sem ressurreição de estado terminal / já em fila)',
+    (status) => {
+      const view = viewCompanyJobRow(baseRow({ status }));
+      expect(view.actions).toEqual({
+        canEdit: false,
+        canSubmit: false,
+        canPause: false,
+        canUnpause: false,
+        canArchive: false,
+        canExtend: false,
+      });
+    },
+  );
+
+  it('ACTIVE/PAUSED preservados (regressão): canSubmit continua false, demais ações intactas', () => {
+    expect(viewCompanyJobRow(baseRow({ status: ContentStatus.ACTIVE })).actions).toEqual({
+      canEdit: true,
+      canPause: true,
+      canUnpause: false,
+      canArchive: true,
+      canExtend: true,
+      canSubmit: false,
+    });
+    expect(viewCompanyJobRow(baseRow({ status: ContentStatus.PAUSED })).actions).toEqual({
+      canEdit: true,
+      canPause: false,
+      canUnpause: true,
+      canArchive: true,
+      canExtend: false,
+      canSubmit: false,
+    });
+  });
+});
+
+describe('viewCompanyJobRow — returnReason (USP-054/MOD-3)', () => {
+  it('USP054-07: AWAITING_ADJUSTMENTS com motivo → expõe returnReason', () => {
+    const view = viewCompanyJobRow(
+      baseRow({ status: ContentStatus.AWAITING_ADJUSTMENTS }),
+      'Falta descrever os requisitos da vaga',
+    );
+    expect(view.returnReason).toBe('Falta descrever os requisitos da vaga');
+  });
+
+  it('USP054-E2: AWAITING_ADJUSTMENTS sem registro de motivo (legado) → returnReason=null', () => {
+    const view = viewCompanyJobRow(baseRow({ status: ContentStatus.AWAITING_ADJUSTMENTS }), null);
+    expect(view.returnReason).toBeNull();
+  });
+
+  it('USP054-10: vaga não está em AWAITING_ADJUSTMENTS (ex. ACTIVE) → returnReason=null mesmo se motivo for passado', () => {
+    const view = viewCompanyJobRow(baseRow({ status: ContentStatus.ACTIVE }), 'motivo antigo de uma devolução passada');
+    expect(view.returnReason).toBeNull();
+  });
+
+  it('assinatura retrocompatível: chamar sem o 2º argumento devolve returnReason=null', () => {
+    const view = viewCompanyJobRow(baseRow({ status: ContentStatus.AWAITING_ADJUSTMENTS }));
+    expect(view.returnReason).toBeNull();
+  });
+});

@@ -36,7 +36,11 @@ export default async function GestaoVagasPage({
   }
 
   const rawRows = await listCompanyJobs(empresaId);
-  const rows = rawRows.map(viewCompanyJobRow);
+  // USP-054/T4: `viewCompanyJobRow` ganhou um 2º parâmetro opcional (`returnReason`).
+  // `.map(viewCompanyJobRow)` passaria o índice do array nessa posição (footgun de
+  // `Array.prototype.map`) — chamada explícita evita o bug. A fiação do motivo real
+  // (via `listLatestReturnReasons`) chega em T7 (USP-054/MOD-3).
+  const rows = rawRows.map((row) => viewCompanyJobRow(row));
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
