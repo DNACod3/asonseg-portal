@@ -3,12 +3,17 @@
 import { useRef, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Label, Textarea } from '@/shared/ui';
+import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
 // `domain/mime.ts` é módulo-leaf puro (sem IO/Prisma) — mesma fonte de verdade
 // do limite (MAX_CV_BYTES) já usada pela Server Action `upload-cv.ts` (server).
 // Import relativo dentro do próprio módulo (não atravessa o barrel de outro
 // módulo, então não é o caso restrito por `no-restricted-imports`).
 import { isWithinCvSizeLimit } from '../domain/mime';
+// Import direto do módulo `'use server'` (não do barrel `@/modules/consents`):
+// mesma situação de `persons/components/candidate-form.tsx` (linha 14-15) — o
+// arquivo é `'use server'`, o import vira um stub RPC client-safe.
+// eslint-disable-next-line no-restricted-imports
+import { grantConsent } from '@/modules/consents/actions/grant-consent';
 import { uploadCv } from '../actions/upload-cv';
 import { extractCvFromUpload } from '../actions/extract-cv';
 import { confirmCvFields } from '../actions/confirm-cv-fields';
@@ -51,6 +56,10 @@ type Stage = 'idle' | 'uploading' | 'extracting' | 'ready';
 export interface CvUploadFormProps {
   /** Chamado após a confirmação bem-sucedida dos campos (ex.: `router.refresh()`). */
   onConfirmed?: () => void;
+  /** Termo CV_AI_EXTRACTION carregado server-side (versão + hash íntegros); `null` se indisponível. */
+  term: { version: string; contentHash: string; body: string } | null;
+  /** O consentimento CV_AI_EXTRACTION já está ativo? Se sim, o aceite não é exigido de novo. */
+  alreadyGranted: boolean;
 }
 
 /**
@@ -63,7 +72,7 @@ export interface CvUploadFormProps {
  * gracioso: mensagem amigável + campos vazios editáveis, sem erro disruptivo
  * (CVE-MN-06) — o cadastro segue completável manualmente.
  */
-export function CvUploadForm({ onConfirmed }: CvUploadFormProps) {
+export function CvUploadForm({ onConfirmed, term, alreadyGranted }: CvUploadFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const [stage, setStage] = useState<Stage>('idle');
@@ -71,6 +80,9 @@ export function CvUploadForm({ onConfirmed }: CvUploadFormProps) {
   const [aiSuggested, setAiSuggested] = useState(false);
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  // CAND-6 / PERF-05: espelha o gate de aceite do `candidate-form.tsx` — inicia
+  // já aceito quando o consentimento está ativo (paridade com `alreadyCandidate`).
+  const [consentChecked, setConsentChecked] = useState(alreadyGranted);
 
   const {
     register,
@@ -100,6 +112,20 @@ export function CvUploadForm({ onConfirmed }: CvUploadFormProps) {
     setStage('uploading');
 
     startTransition(async () => {
+      // CAND-6 / PERF-05 / PERF-05c: sem consentimento ativo, concede o termo
+      // ANTES do upload — espelha `activateAdditionalRole` antes de
+      // `activateCandidateRole` no `candidate-form.tsx`. Falha no grant
+      // interrompe o fluxo sem chamar `uploadCv` (reforça CVE-MN-03: nunca
+      // invocar o LLM sem consentimento).
+      if (!alreadyGranted) {
+        const grantResult = await grantConsent({ purpose: 'CV_AI_EXTRACTION' });
+        if (!grantResult.ok) {
+          setServerError(grantResult.error.message);
+          setStage('idle');
+          return;
+        }
+      }
+
       const formData = new FormData();
       formData.set('file', file);
       const uploadResult = await uploadCv(formData);
@@ -151,8 +177,44 @@ export function CvUploadForm({ onConfirmed }: CvUploadFormProps) {
     });
   }
 
+  // CAND-6 / PERF-05 / PERF-MN-03: sem consentimento ativo, o envio fica
+  // travado até o aceite do termo; sem o termo carregado, trava com aviso.
+  const needsTermAcceptance = !alreadyGranted;
+  const uploadDisabled = isPending || (needsTermAcceptance && (term === null || !consentChecked));
+
   return (
     <div className="flex flex-col gap-5">
+      {needsTermAcceptance &&
+        (term ? (
+          <LgpdBox title="Termo de uso para extração de currículo por IA">
+            <div
+              className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
+              aria-label="Conteúdo do termo de extração de currículo por IA"
+            >
+              {term.body}
+            </div>
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+              />
+              <span>
+                Li e aceito o <strong>Termo de uso para extração de currículo por IA</strong> (versão{' '}
+                {term.version}) e autorizo o tratamento dos meus dados para essa finalidade.
+              </span>
+            </label>
+          </LgpdBox>
+        ) : (
+          <div
+            role="alert"
+            className="rounded-lg bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] p-3 text-sm text-danger"
+          >
+            Termo de extração de currículo por IA indisponível no momento. Tente novamente mais tarde.
+          </div>
+        ))}
+
       <div>
         <Label htmlFor="cv-file">Currículo (PDF, DOC ou DOCX)</Label>
         <input
@@ -168,7 +230,7 @@ export function CvUploadForm({ onConfirmed }: CvUploadFormProps) {
           size="sm"
           className="mt-2"
           onClick={onUploadClick}
-          disabled={isPending}
+          disabled={uploadDisabled}
         >
           {stage === 'uploading'
             ? 'Enviando…'
