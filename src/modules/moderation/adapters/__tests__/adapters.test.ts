@@ -199,7 +199,7 @@ describe('PrismaModerationContentRepository', () => {
 describe('stubs (GAP-3 / GAP-4)', () => {
   it('StubModerationNotification resolve sem lançar (apenas loga)', async () => {
     await expect(
-      new StubModerationNotification().sendModerationDecision({
+      new StubModerationNotification().sendModerationDecision({} as never, {
         contentKind: ContentKind.JOB,
         contentId: 'c1',
         from: ContentStatus.IN_MODERATION,

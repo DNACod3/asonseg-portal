@@ -94,9 +94,11 @@ export async function transitionContent(
         audit.after = { status: to };
         audit.justification = justification ?? null;
 
-        // Side effects soft-fail: falha não aborta a transição (R2).
+        // Side effects soft-fail: falha não aborta a transição (R2). `tx`
+        // threaded ao port (USP-057) — enqueue eager na mesma transação
+        // (AD-007/P-007), espelhando o hook de Empresa abaixo.
         await runSoftFail('notification', () =>
-          container.resolve(MODERATION_NOTIFICATION_TOKEN).sendModerationDecision({
+          container.resolve(MODERATION_NOTIFICATION_TOKEN).sendModerationDecision(tx, {
             contentKind,
             contentId,
             from,
