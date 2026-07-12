@@ -55,6 +55,23 @@ beforeEach(() => {
 });
 
 describe('CreateCompanyForm (USP-012, restyle Fase 2)', () => {
+  it('EMP055-06/EMP055-MN-02: renderiza os 5 radios de Tipo (incl. SA, LUCRO_PRESUMIDO, LUCRO_REAL)', () => {
+    renderForm();
+    const radios = screen.getAllByRole('radio');
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual([
+      'MEI',
+      'SIMPLES_NACIONAL',
+      'LUCRO_PRESUMIDO',
+      'LUCRO_REAL',
+      'SA',
+    ]);
+  });
+
+  it('EMP055-06: mantém SIMPLES_NACIONAL como default de criação', () => {
+    renderForm();
+    expect(screen.getByRole('radio', { name: /^simples nacional$/i })).toBeChecked();
+  });
+
   it('renderiza os campos e o botão de submit usando os primitivos do DS', () => {
     renderForm();
     expect(screen.getByLabelText(/^cnpj$/i)).toBeInTheDocument();
