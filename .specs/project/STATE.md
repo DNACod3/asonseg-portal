@@ -27,7 +27,7 @@
 
 ## Handoff
 
-**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..055 (PASS). Próxima unidade: **USP-056 — Moderação (CV na fila, heurística, ações por permissão, confirmação em sugestões)** (`.specs/features/ajustes-uat/usp-056-moderacao/`).
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..056 (PASS). Próxima unidade: **USP-057 — E-mails de decisão de moderação** (`.specs/features/ajustes-uat/usp-057-emails-moderacao/`; dep USP-056 ✅).
 
 ---
 
