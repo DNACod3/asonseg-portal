@@ -146,6 +146,21 @@ describe('persons/activateCandidateRole', () => {
     });
   });
 
+  it('PERF-MN-01: payload update (só obrigatórios) não inclui as chaves de CV ausentes do input', async () => {
+    await activateCandidateRole(validInput());
+    const updateData = txState.upsert.mock.calls[0]?.[0]?.update;
+    expect(updateData).not.toHaveProperty('skillsText');
+    expect(updateData).not.toHaveProperty('coursesText');
+    expect(updateData).not.toHaveProperty('educationArea');
+    expect(updateData).not.toHaveProperty('availability');
+    expect(updateData).not.toHaveProperty('headline');
+    expect(updateData).not.toHaveProperty('experienceText');
+    expect(updateData).toMatchObject({
+      educationLevel: 'ENSINO_MEDIO',
+      primaryAreaOfInterestId: AREA_ID,
+    });
+  });
+
   it('Zod: telefone inválido → VALIDATION, sem auditoria', async () => {
     const res = await activateCandidateRole({ ...validInput(), phone: '12' });
     expect(res.ok).toBe(false);

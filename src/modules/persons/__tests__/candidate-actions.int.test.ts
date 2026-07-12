@@ -124,6 +124,34 @@ skipIfNoDb('USP-009 #44 — cadastro de candidato (integração)', () => {
     expect(person?.phone).toBe('11988887777'); // normalizado (só dígitos) — '(11) 98888-7777' de baseInput()
   });
 
+  it('CAND-1 / PERF-MN-01: update com só obrigatórios preserva campos de CV já persistidos', async () => {
+    mockPerson = baseMockPerson(personId);
+    await prisma.candidateProfile.update({
+      where: { personId },
+      data: {
+        skillsText: 'Excel avançado',
+        coursesText: 'Curso de Excel',
+        educationArea: 'Administração',
+        availability: 'Integral',
+      },
+    });
+
+    const res = await activateCandidateRole({
+      educationLevel: 'ENSINO_SUPERIOR',
+      primaryAreaOfInterestId: jobAreaId,
+      phone: '(11) 97777-6666',
+    });
+
+    expect(res.ok).toBe(true);
+    const profile = await prisma.candidateProfile.findUnique({ where: { personId } });
+    expect(profile?.skillsText).toBe('Excel avançado');
+    expect(profile?.coursesText).toBe('Curso de Excel');
+    expect(profile?.educationArea).toBe('Administração');
+    expect(profile?.availability).toBe('Integral');
+    // Os campos gerenciados pelo formulário foram atualizados normalmente.
+    expect(profile?.educationLevel).toBe('ENSINO_SUPERIOR');
+  });
+
   it('CAD-01 validação Zod: rejeita telefone inválido', async () => {
     mockPerson = baseMockPerson(personId);
     const res = await activateCandidateRole({ ...baseInput(), phone: '12' });
