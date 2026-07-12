@@ -112,4 +112,4 @@ export { exportReport } from './actions/export-report';
 export type { ExportPayload } from './actions/export-report';
 
 export { ReportView } from './components/report-view';
-export type { ReportViewProps, ReportViewColumn, ReportViewFilters } from './components/report-view';
+export type { ReportViewProps, ReportViewColumn, ReportViewFilters, FilterOption } from './components/report-view';
