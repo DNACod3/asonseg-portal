@@ -38,8 +38,10 @@ export type {
   SubmitJobData,
   EditJobInput,
   EditJobData,
+  UpdateJobDraftInput,
+  UpdateJobDraftData,
 } from './schemas/publish-job.schema';
-export { editJobSchema } from './schemas/publish-job.schema';
+export { editJobSchema, updateJobDraftSchema } from './schemas/publish-job.schema';
 export {
   jobIdSchema,
   pauseJobSchema,
@@ -65,6 +67,7 @@ export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
 export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
 export { extendJobValidity, type ExtendJobValidityResult } from './actions/extend-job-validity';
 export { editJob, type EditJobResult } from './actions/edit-job';
+export { updateJobDraft, type UpdateJobDraftResult } from './actions/update-job-draft';
 export { runJobExpiration, type RunJobExpirationResult } from './actions/run-job-expiration';
 export {
   enqueueExpiryReminder,

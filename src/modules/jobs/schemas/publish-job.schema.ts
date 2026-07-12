@@ -195,6 +195,68 @@ export const editJobSchema = z.object({
   salaryVisible,
 });
 
+/**
+ * Schema de **edição de rascunho/devolvida** (USP-054 / EMP-2 / A-1). Salva os campos
+ * informativos de uma vaga `DRAFT`/`AWAITING_ADJUSTMENTS` **sem** transicionar (a
+ * transição é ação separada — `submitJobForModeration`). Deriva de `publishJobSchema`
+ * (mesma completude/validação do submit, já que o próximo passo natural é submeter):
+ * **exclui** `companyId` (imutável, resolvido a partir da vaga carregada) e **inclui**
+ * `validUntil` (D-1 — evita um beco de validade: um rascunho com validade vencida
+ * precisa poder ser corrigido por este fluxo, diferente de `editJobSchema` que exclui
+ * `validUntil` porque `extendJobValidity` já cobre a vaga `ACTIVE`).
+ */
+export const updateJobDraftSchema = z
+  .object({
+    jobId: z.string().uuid('Vaga inválida.'),
+    title,
+    areaId,
+    description,
+    requirements,
+    workRegime,
+    location,
+    benefits,
+    salary,
+    contractType,
+    regionId,
+    educationLevelRequired,
+    salaryMin: salaryAmount,
+    salaryMax: salaryAmount,
+    salaryVisible,
+    validUntil: validUntilStr,
+  })
+  .superRefine((data, ctx) => {
+    // Mesmas regras de `publishJobSchema` (AD-5 + E-004/E-005): faixa coerente e
+    // validade futura dentro do teto — o rascunho editado é o que será submetido.
+    if (
+      typeof data.salaryMin === 'number' &&
+      typeof data.salaryMax === 'number' &&
+      data.salaryMax < data.salaryMin
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['salaryMax'],
+        message: 'O salário máximo não pode ser menor que o mínimo.',
+      });
+    }
+    const parsedValidUntil = new Date(data.validUntil);
+    if (!Number.isNaN(parsedValidUntil.getTime())) {
+      const status = validadeStatus(parsedValidUntil, new Date());
+      if (status === 'passado') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: 'A data de validade deve ser futura.',
+        });
+      } else if (status === 'excede_teto') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: `A validade não pode ultrapassar ${MAX_VALIDADE_DIAS} dias.`,
+        });
+      }
+    }
+  });
+
 export type PublishJobInput = z.input<typeof publishJobSchema>;
 export type PublishJobData = z.output<typeof publishJobSchema>;
 export type DraftJobInput = z.input<typeof draftJobSchema>;
@@ -203,3 +265,5 @@ export type SubmitJobInput = z.input<typeof submitJobSchema>;
 export type SubmitJobData = z.output<typeof submitJobSchema>;
 export type EditJobInput = z.input<typeof editJobSchema>;
 export type EditJobData = z.output<typeof editJobSchema>;
+export type UpdateJobDraftInput = z.input<typeof updateJobDraftSchema>;
+export type UpdateJobDraftData = z.output<typeof updateJobDraftSchema>;
