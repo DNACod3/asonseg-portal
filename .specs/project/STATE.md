@@ -27,11 +27,15 @@
 
 ## Handoff
 
-**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..053 (PASS). Próxima unidade: **USP-054 — Ciclo de vida da vaga no painel** (`.specs/features/ajustes-uat/usp-054-ciclo-vida-vaga/`).
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..054 (PASS). Próxima unidade: **USP-055 — Empresas (2ª empresa, radios de tipo, msg de CPF)** (`.specs/features/ajustes-uat/usp-055-empresas/`).
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-026: ISR das páginas de vagas 1800s→600s (USP-054/EMP-3) — 2026-07-12
+
+**Decision:** Alinhar `export const revalidate` de `(public)/vagas/page.tsx` e `/vagas/[id]/page.tsx` a **600s**, o "ISR 10min" documentado em CLAUDE.md/ADR-0013 — supersede o literal `1800` que estava no código. Correção acoplada ao EMP-3 (revalidação ao sair de ACTIVE): sem isso, uma vaga pausada/arquivada só sumiria da busca pública após a janela de TTL, agora reduzida e coerente com a doc. Sem impacto de arquitetura.
 
 ### AD-025: Fase 7 — Fachada Pública (Casca + Home + Navegação integrada), rodada única em 1 PR — PASS 2026-07-10
 
