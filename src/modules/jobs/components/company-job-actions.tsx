@@ -10,12 +10,22 @@ import { pauseJob } from '../actions/pause-job';
 import { unpauseJob } from '../actions/unpause-job';
 import { archiveJob } from '../actions/archive-job';
 import { extendJobValidity } from '../actions/extend-job-validity';
+import { submitJobForModeration } from '../actions/submit-job-for-moderation';
+import type { CompanyJobRow } from '../queries/list-company-jobs';
 import type { CompanyJobRowActions as RowActions } from '../views/company-job-row.view';
 import { Button, Input } from '@/shared/ui';
 
 export interface CompanyJobActionsProps {
   jobId: string;
   actions: RowActions;
+  /**
+   * Status atual da vaga (USP-054/EMP-2/MOD-3) — só usado para escolher o rótulo do
+   * botão de `canSubmit` ("Enviar para moderação" em `DRAFT`, "Reenviar para
+   * moderação" em `AWAITING_ADJUSTMENTS"). Opcional: `actions.canSubmit` só é
+   * `true` para esses dois status (view model), então o default cobre o caso em
+   * que o chamador não o passa.
+   */
+  status?: CompanyJobRow['status'];
 }
 
 /** yyyy-MM-dd de amanhã — piso do input de prorrogação (mesmo padrão de JobForm). */
@@ -32,7 +42,7 @@ function tomorrowIso(): string {
  * terminal — P-006). `router.refresh()` em todo sucesso para a lista refletir o
  * novo status/badge.
  */
-export function CompanyJobActions({ jobId, actions }: CompanyJobActionsProps) {
+export function CompanyJobActions({ jobId, actions, status }: CompanyJobActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +58,15 @@ export function CompanyJobActions({ jobId, actions }: CompanyJobActionsProps) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [confirmArchive, isPending]);
+
+  function runSubmit() {
+    setError(null);
+    startTransition(async () => {
+      const res = await submitJobForModeration({ jobId });
+      if (!res.ok) setError(res.error.message);
+      else router.refresh();
+    });
+  }
 
   function runPause() {
     setError(null);
@@ -95,6 +114,15 @@ export function CompanyJobActions({ jobId, actions }: CompanyJobActionsProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
+        {actions.canSubmit && (
+          <Button variant="primary" size="sm" onClick={runSubmit} disabled={isPending}>
+            {isPending
+              ? 'Enviando…'
+              : status === 'AWAITING_ADJUSTMENTS'
+                ? 'Reenviar para moderação'
+                : 'Enviar para moderação'}
+          </Button>
+        )}
         {actions.canPause && (
           <Button variant="outline" size="sm" onClick={runPause} disabled={isPending}>
             {isPending ? 'Pausando…' : 'Pausar'}

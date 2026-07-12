@@ -10,11 +10,15 @@ export interface CompanyJobListProps {
 }
 
 /**
- * Lista de gestão de vagas da Empresa (USP-023 / T8-T9 — painel). Cada vaga mostra
- * status (`Badge`) e ações contextuais por status (spec.md — Painel de gestão):
- * "Editar"/"Enviar para moderação" são navegação (rotas reais); pausar/despausar/
- * prorrogar/arquivar são cabeadas aos Server Actions via `CompanyJobActions`
- * (componente cliente, T9) com confirmação hand-rolled para arquivar.
+ * Lista de gestão de vagas da Empresa (USP-023 / T8-T9; USP-054 / EMP-2 / MOD-3 —
+ * painel). Cada vaga mostra status (`Badge`) e ações contextuais por status
+ * (spec.md — Painel de gestão): "Editar" é navegação (rota real, para
+ * `DRAFT`/`AWAITING_ADJUSTMENTS`/`ACTIVE`); "Enviar"/"Reenviar para moderação"
+ * (canSubmit — `DRAFT`/`AWAITING_ADJUSTMENTS`) e pausar/despausar/prorrogar/
+ * arquivar são ações diretas via `CompanyJobActions` (componente cliente) — o
+ * antigo `Link` de `canSubmit` para `.../editar` era um caminho errado (USP-054/
+ * EMP-2: submeter não exige editar). `AWAITING_ADJUSTMENTS` também exibe o motivo
+ * da última devolução (MOD-3), com fallback quando o registro legado não existe.
  */
 export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
   if (rows.length === 0) {
@@ -48,6 +52,14 @@ export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
             <p className="text-xs text-fg-muted">
               {row.validUntil ? `Válida até ${formatDateOnly(row.validUntil)}` : 'Sem data de validade'}
             </p>
+            {/* USP-054/MOD-3: motivo da última devolução, visível só p/ AWAITING_ADJUSTMENTS.
+                Fallback neutro quando não há registro (USP054-E2 — nunca aborta a render). */}
+            {row.status === 'AWAITING_ADJUSTMENTS' && (
+              <p className="text-xs text-fg-muted">
+                <span className="font-medium text-fg">Motivo da devolução:</span>{' '}
+                {row.returnReason ?? 'Sem motivo registrado'}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col items-start gap-2 sm:items-end">
@@ -57,13 +69,8 @@ export function CompanyJobList({ empresaId, rows }: CompanyJobListProps) {
                   <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Editar</Link>
                 </Button>
               )}
-              {row.actions.canSubmit && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/empresa/${empresaId}/vagas/${row.id}/editar`}>Enviar para moderação</Link>
-                </Button>
-              )}
             </div>
-            <CompanyJobActions jobId={row.id} actions={row.actions} />
+            <CompanyJobActions jobId={row.id} actions={row.actions} status={row.status} />
           </div>
         </Card>
       ))}

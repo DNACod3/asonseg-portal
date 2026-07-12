@@ -35,7 +35,11 @@ vi.mock('@/modules/identity', () => ({
 }));
 
 vi.mock('@/modules/jobs', () => ({
-  JobEditForm: ({ jobId }: { jobId: string }) => <div data-testid="job-edit-form">{jobId}</div>,
+  JobEditForm: ({ jobId, mode }: { jobId: string; mode?: string }) => (
+    <div data-testid="job-edit-form" data-mode={mode ?? 'active-edit'}>
+      {jobId}
+    </div>
+  ),
   listApprovedJobAreas: (...a: unknown[]) => guardState.listApprovedJobAreas(...a),
   listActiveRegions: (...a: unknown[]) => guardState.listActiveRegions(...a),
 }));
@@ -101,7 +105,7 @@ describe('EditarVagaPage — gate de rota (P-005/D-005)', () => {
     );
   });
 
-  it('responsável ATIVO + vaga ACTIVE → renderiza o formulário de edição', async () => {
+  it('responsável ATIVO + vaga ACTIVE → renderiza o formulário de edição em mode="active-edit"', async () => {
     guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
     guardState.grantFindFirst.mockResolvedValue({ id: 'g-1' });
     guardState.jobFindFirst.mockResolvedValue(JOB_ACTIVE);
@@ -110,10 +114,36 @@ describe('EditarVagaPage — gate de rota (P-005/D-005)', () => {
     render(ui);
 
     expect(guardState.notFoundCalled).toBe(false);
-    expect(screen.getByTestId('job-edit-form')).toHaveTextContent(JOB_ID);
+    const form = screen.getByTestId('job-edit-form');
+    expect(form).toHaveTextContent(JOB_ID);
+    expect(form).toHaveAttribute('data-mode', 'active-edit');
   });
 
-  it('responsável ATIVO + vaga não-ACTIVE → mostra aviso em vez do formulário', async () => {
+  it('USP-054/EMP-2: responsável ATIVO + vaga DRAFT → renderiza o formulário em mode="draft-edit"', async () => {
+    guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
+    guardState.grantFindFirst.mockResolvedValue({ id: 'g-1' });
+    guardState.jobFindFirst.mockResolvedValue({ ...JOB_ACTIVE, status: 'DRAFT' });
+
+    const ui = await EditarVagaPage({ params });
+    render(ui);
+
+    expect(guardState.notFoundCalled).toBe(false);
+    expect(screen.getByTestId('job-edit-form')).toHaveAttribute('data-mode', 'draft-edit');
+  });
+
+  it('USP-054/EMP-2: responsável ATIVO + vaga AWAITING_ADJUSTMENTS → renderiza o formulário em mode="draft-edit"', async () => {
+    guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
+    guardState.grantFindFirst.mockResolvedValue({ id: 'g-1' });
+    guardState.jobFindFirst.mockResolvedValue({ ...JOB_ACTIVE, status: 'AWAITING_ADJUSTMENTS' });
+
+    const ui = await EditarVagaPage({ params });
+    render(ui);
+
+    expect(guardState.notFoundCalled).toBe(false);
+    expect(screen.getByTestId('job-edit-form')).toHaveAttribute('data-mode', 'draft-edit');
+  });
+
+  it('responsável ATIVO + vaga em status terminal/em fila (ex.: PAUSED) → mostra aviso em vez do formulário', async () => {
     guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
     guardState.grantFindFirst.mockResolvedValue({ id: 'g-1' });
     guardState.jobFindFirst.mockResolvedValue({ ...JOB_ACTIVE, status: 'PAUSED' });

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
 import { JobEditForm, listApprovedJobAreas, listActiveRegions } from '@/modules/jobs';
+import { formatDateOnly } from '@/shared/lib/time';
 import { prisma } from '@/shared/lib/prisma';
 import { Card, FormCard, FormHeader } from '@/shared/ui';
 
@@ -8,11 +9,14 @@ import { Card, FormCard, FormHeader } from '@/shared/ui';
 export const dynamic = 'force-dynamic';
 
 /**
- * Edição de uma vaga `ACTIVE` (USP-023 / T9 / E-001 / AC-023-1). Mesma guarda de
- * `/vagas` e `/vagas/nova` (P-005/D-005): responsável ATIVO da Empresa, senão
- * `notFound()`. Só vagas `ACTIVE` são editáveis por este fluxo (o guard efetivo
- * é a precondição de `editJob`, `status='ACTIVE'`) — vaga em outro status mostra
- * uma mensagem em vez do formulário, evitando um submit fadado a `CONFLICT`.
+ * Edição de vaga (USP-023 / T9 / E-001 / AC-023-1; USP-054 / EMP-2 / A-1). Mesma
+ * guarda de `/vagas` e `/vagas/nova` (P-005/D-005): responsável ATIVO da Empresa,
+ * senão `notFound()`. Roteia o formulário por status:
+ *  - `ACTIVE` → `JobEditForm mode="active-edit"` (inalterado — `editJob`→`submitJobForModeration`).
+ *  - `DRAFT`/`AWAITING_ADJUSTMENTS` → `JobEditForm mode="draft-edit"` (`updateJobDraft`,
+ *    sem transição — USP054-03).
+ *  - Demais status (terminal/em fila) → `Card` "não editável" (evita um submit
+ *    fadado a `CONFLICT`).
  */
 export default async function EditarVagaPage({
   params,
@@ -54,6 +58,7 @@ export default async function EditarVagaPage({
         salaryMin: true,
         salaryMax: true,
         salaryVisible: true,
+        validUntil: true,
         status: true,
       },
     }),
@@ -64,15 +69,27 @@ export default async function EditarVagaPage({
     notFound();
   }
 
+  const isActiveEdit = job.status === 'ACTIVE';
+  // USP-054/EMP-2: DRAFT/AWAITING_ADJUSTMENTS editam sem transicionar (draft-edit);
+  // demais status (terminal/em fila) não têm fluxo de edição por esta rota.
+  const isDraftEdit = job.status === 'DRAFT' || job.status === 'AWAITING_ADJUSTMENTS';
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
-      <FormHeader title="Editar vaga" description="A vaga volta a rascunho e passa por nova moderação antes de reaparecer." />
+      <FormHeader
+        title="Editar vaga"
+        description={
+          isActiveEdit
+            ? 'A vaga volta a rascunho e passa por nova moderação antes de reaparecer.'
+            : 'Salve as alterações; envie ou reenvie para moderação quando estiver pronta.'
+        }
+      />
 
-      {job.status !== 'ACTIVE' ? (
+      {!isActiveEdit && !isDraftEdit ? (
         <Card>
           <p className="text-sm text-fg-muted">
-            Esta vaga não pode ser editada por este fluxo no status atual. Só vagas ativas podem
-            ser editadas.
+            Esta vaga não pode ser editada por este fluxo no status atual. Só vagas ativas, em
+            rascunho ou aguardando ajustes podem ser editadas.
           </p>
         </Card>
       ) : (
@@ -81,6 +98,7 @@ export default async function EditarVagaPage({
             jobId={jobId}
             jobAreas={jobAreas}
             regions={regions}
+            mode={isActiveEdit ? 'active-edit' : 'draft-edit'}
             initialValues={{
               title: job.title,
               areaId: job.areaId ?? '',
@@ -96,6 +114,9 @@ export default async function EditarVagaPage({
               salaryMin: job.salaryMin?.toString() ?? '',
               salaryMax: job.salaryMax?.toString() ?? '',
               salaryVisible: job.salaryVisible,
+              // MOD-5: yyyy-MM-dd sem deslocamento de fuso (mesmo formatDateOnly de T3) —
+              // um input[type=date] cru sobre `validUntil` reintroduziria o −1 dia.
+              validUntil: job.validUntil ? formatDateOnly(job.validUntil, 'yyyy-MM-dd') : undefined,
             }}
           />
         </FormCard>

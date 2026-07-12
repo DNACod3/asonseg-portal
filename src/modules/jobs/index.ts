@@ -41,7 +41,11 @@ export type {
   UpdateJobDraftInput,
   UpdateJobDraftData,
 } from './schemas/publish-job.schema';
-export { editJobSchema, updateJobDraftSchema } from './schemas/publish-job.schema';
+export {
+  editJobSchema,
+  updateJobDraftSchema,
+  updateJobDraftFieldsSchema,
+} from './schemas/publish-job.schema';
 export {
   jobIdSchema,
   pauseJobSchema,

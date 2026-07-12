@@ -1,13 +1,19 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import type { ActionError } from '@/shared/errors';
-import { editJobSchema, type EditJobInput } from '../schemas/publish-job.schema';
+import {
+  editJobSchema,
+  updateJobDraftFieldsSchema,
+  type EditJobInput,
+  type UpdateJobDraftInput,
+} from '../schemas/publish-job.schema';
 import { editJob } from '../actions/edit-job';
 import { submitJobForModeration } from '../actions/submit-job-for-moderation';
+import { updateJobDraft } from '../actions/update-job-draft';
 import type { JobAreaOption } from '../queries/list-approved-job-areas';
 import type { RegionOption } from '../queries/list-active-regions';
 import { Button, Input, Label, Textarea } from '@/shared/ui';
@@ -16,49 +22,104 @@ const selectClass =
   'w-full rounded-sm border-[1.5px] border-border bg-surface px-4 py-3 text-[0.95rem] text-fg transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60';
 const errorClass = 'mt-1 text-xs text-danger';
 
+/** yyyy-MM-dd de amanhã — piso do input de validade (mesmo padrão de JobForm). */
+function tomorrowIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Rótulo do botão de submit — varia por modo e estado de pendência. */
+function submitLabel(isPending: boolean, isDraftEdit: boolean): string {
+  if (isPending) return 'Salvando…';
+  return isDraftEdit ? 'Salvar rascunho' : 'Salvar e enviar para moderação';
+}
+
+export type JobEditFormMode = 'active-edit' | 'draft-edit';
+
+/** Valores do formulário — superset (`updateJobDraftSchema` inclui `validUntil`; `editJobSchema` não). */
+type JobEditFormValues = Omit<UpdateJobDraftInput, 'jobId'>;
+
 export interface JobEditFormProps {
   jobId: string;
   jobAreas: JobAreaOption[];
   regions: RegionOption[];
-  /** Valores atuais da vaga (ACTIVE) — pré-preenchem o formulário (AC-023-1). */
-  initialValues: Omit<EditJobInput, 'jobId'>;
+  /**
+   * `active-edit` (USP-023 / E-001, default): `editJob` (→`DRAFT`) encadeado com
+   * `submitJobForModeration` (→`IN_MODERATION`) — só para vaga `ACTIVE`.
+   * `draft-edit` (USP-054 / EMP-2 / A-1): `updateJobDraft` **apenas**, sem chain —
+   * preserva o status (`DRAFT`/`AWAITING_ADJUSTMENTS`, MN-02); renderiza `validUntil`
+   * (D-1 — evita um beco de validade vencida num rascunho).
+   */
+  mode?: JobEditFormMode;
+  /** Valores atuais da vaga. `validUntil` (yyyy-MM-dd) só é exibido/exigido em `draft-edit`. */
+  initialValues: Omit<EditJobInput, 'jobId'> & { validUntil?: string };
 }
 
 /**
- * Formulário de edição de uma vaga `ACTIVE` (USP-023 / T9 / E-001 / AC-023-1).
- * Mesmos campos e padrões visuais de `JobForm` (AD-014), restrito ao subconjunto
- * de `editJobSchema` (sem `companyId`/`validUntil` — imutável e fora de escopo
- * aqui, respectivamente). No submit: `editJob` (→ `DRAFT`) e, em sucesso,
- * encadeia `submitJobForModeration({ jobId })` (→ `IN_MODERATION`) — a UI nunca
- * deixa a vaga parada em `DRAFT` sem reenvio (D-001 do intent).
+ * Formulário de edição de vaga (USP-023 / T9 / E-001 / AC-023-1; USP-054 / EMP-2 /
+ * A-1). Mesmos campos e padrões visuais de `JobForm` (AD-014). Dois modos:
+ *  - `active-edit` (default, vaga `ACTIVE`): `editJob` (→`DRAFT`) encadeado com
+ *    `submitJobForModeration({ jobId })` (→`IN_MODERATION`) — a UI nunca deixa a
+ *    vaga parada em `DRAFT` sem reenvio (D-001 do intent).
+ *  - `draft-edit` (vaga `DRAFT`/`AWAITING_ADJUSTMENTS`): `updateJobDraft` **sem**
+ *    chain — salva os campos (incl. `validUntil`) preservando o status; submeter/
+ *    reenviar é a ação separada em `CompanyJobActions` (USP054-03/MN-02).
  */
-export function JobEditForm({ jobId, jobAreas, regions, initialValues }: JobEditFormProps) {
+export function JobEditForm({
+  jobId,
+  jobAreas,
+  regions,
+  mode = 'active-edit',
+  initialValues,
+}: JobEditFormProps) {
+  const isDraftEdit = mode === 'draft-edit';
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const schema = isDraftEdit ? updateJobDraftFieldsSchema : editJobSchema.omit({ jobId: true });
 
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<Omit<EditJobInput, 'jobId'>>({
-    resolver: zodResolver(editJobSchema.omit({ jobId: true })),
-    defaultValues: initialValues,
+  } = useForm<JobEditFormValues>({
+    // `mode` decide o schema em runtime; os dois compartilham quase todos os campos
+    // (draft-edit acrescenta `validUntil`) — o cast alinha o tipo estático ao superset.
+    resolver: zodResolver(schema) as unknown as Resolver<JobEditFormValues>,
+    defaultValues: { ...initialValues, validUntil: initialValues.validUntil ?? '' },
   });
 
   function applyFieldErrors(error: ActionError) {
     if (!error.fieldErrors) return;
     for (const [field, messages] of Object.entries(error.fieldErrors)) {
-      if (messages?.[0]) setError(field as keyof Omit<EditJobInput, 'jobId'>, { message: messages[0] });
+      if (messages?.[0]) setError(field as keyof JobEditFormValues, { message: messages[0] });
     }
   }
 
-  function onSubmit(data: Omit<EditJobInput, 'jobId'>) {
+  function onSubmit(data: JobEditFormValues) {
     setServerError(null);
     setSuccess(null);
     startTransition(async () => {
+      if (isDraftEdit) {
+        // updateJobDraftSchema ignora chaves desconhecidas — `data` aqui já só tem
+        // os campos do superset, todos aceitos por updateJobDraft (incl. validUntil).
+        const draftResult = await updateJobDraft({ jobId, ...data });
+        if (!draftResult.ok) {
+          applyFieldErrors(draftResult.error);
+          setServerError(draftResult.error.message);
+          return;
+        }
+        setSuccess('Rascunho salvo.');
+        router.refresh();
+        return;
+      }
+
+      // active-edit: editJobSchema não declara `validUntil` — o Zod descarta a
+      // chave extra silenciosamente (schema não-strict), sem efeito no envio.
       const editResult = await editJob({ jobId, ...data });
       if (!editResult.ok) {
         applyFieldErrors(editResult.error);
@@ -185,6 +246,18 @@ export function JobEditForm({ jobId, jobAreas, regions, initialValues }: JobEdit
         </Label>
       </fieldset>
 
+      {/* USP-054/D-1: só em draft-edit — evita um beco de validade vencida no rascunho. */}
+      {isDraftEdit && (
+        <div>
+          <Label htmlFor="validUntil">
+            Validade da vaga{' '}
+            <span className="font-normal text-fg-muted">(até quando recebe candidatos)</span>
+          </Label>
+          <Input id="validUntil" type="date" min={tomorrowIso()} {...register('validUntil')} />
+          {errors.validUntil && <p className={errorClass}>{errors.validUntil.message}</p>}
+        </div>
+      )}
+
       {success && (
         <div
           role="status"
@@ -204,7 +277,7 @@ export function JobEditForm({ jobId, jobAreas, regions, initialValues }: JobEdit
       )}
 
       <Button type="submit" variant="primary" disabled={isPending}>
-        {isPending ? 'Salvando…' : 'Salvar e enviar para moderação'}
+        {submitLabel(isPending, isDraftEdit)}
       </Button>
     </form>
   );
