@@ -5,6 +5,7 @@ import {
   canAccessModerationQueue,
   viewModerationQueue,
   listVerificationChecklistItems,
+  listViewerModeratableKinds,
   type ModerationQueueRow,
   type VerificationPanelData,
 } from '@/modules/moderation';
@@ -36,10 +37,12 @@ export default async function ModeracaoPage() {
 
   // Leituras independentes em paralelo (rota force-dynamic — cada request paga os
   // round-trips; evita await sequencial). A checklist é a fonte seedável (F0B-01),
-  // não constante no bundle.
-  const [items, checklistItems] = await Promise.all([
+  // não constante no bundle. `moderatableKinds` (MOD-7) alimenta o gating de ação
+  // na UI — a checagem autoritativa (P-007) segue na Server Action.
+  const [items, checklistItems, moderatableKinds] = await Promise.all([
     viewModerationQueue({ viewerPersonId: person.id }),
     listVerificationChecklistItems(),
+    listViewerModeratableKinds(person),
   ]);
 
   // Contexto de verificação das Empresas das vagas na fila (USP-017) — ambas as
@@ -104,7 +107,11 @@ export default async function ModeracaoPage() {
         </p>
       </header>
 
-      <ModerationQueue items={rows} checklistItems={checklistItems} />
+      <ModerationQueue
+        items={rows}
+        checklistItems={checklistItems}
+        viewerModeratableKinds={moderatableKinds}
+      />
     </main>
   );
 }

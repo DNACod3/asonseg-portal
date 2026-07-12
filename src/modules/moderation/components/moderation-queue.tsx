@@ -38,10 +38,20 @@ type ReasonMode = 'return' | 'reject';
 export function ModerationQueue({
   items,
   checklistItems,
+  viewerModeratableKinds,
 }: {
   items: ModerationQueueRow[];
   /** Itens da checklist de verificação (F0B-01 — fonte seedável, carregada pelo Server Component). */
   checklistItems?: readonly VerificationChecklistItem[];
+  /**
+   * `ContentKind` que o viewer pode moderar (USP-056 / MOD-7 / P-007). **Opcional**
+   * — quando omitido, todos os tipos são considerados moderáveis (backward-compat:
+   * uso existente e coordenador, que não passa o prop, seguem vendo todas as ações
+   * — MOD7-03). Itens de tipo fora do conjunto não exibem controles acionáveis; a
+   * checagem autoritativa (`requirePermission`, P-007) permanece na Server Action,
+   * inalterada — este prop só evita oferecer uma ação fadada ao erro na UI.
+   */
+  viewerModeratableKinds?: readonly ContentKind[];
 }) {
   const [rows, setRows] = useState(items);
   const [doneCount, setDoneCount] = useState(0);
@@ -124,6 +134,9 @@ export function ModerationQueue({
         const error = errors[row.contentId];
         // P-001 — vaga de Empresa não verificada exige checklist concluída p/ aprovar.
         const needsChecklist = Boolean(row.verification && !row.verification.isVerified);
+        // MOD7-02/USP056-MN-04 — prop ausente (undefined) = todos moderáveis (MOD7-03).
+        const canModerate =
+          !viewerModeratableKinds || viewerModeratableKinds.includes(row.contentKind);
         return (
           <li
             key={row.contentId}
@@ -156,7 +169,10 @@ export function ModerationQueue({
               />
             )}
 
-            {reasonEntry ? (
+            {!canModerate ? (
+              // MOD7-02/USP056-MN-04 — sem ação acionável para tipo fora da permissão do viewer.
+              <p className="text-sm text-fg-muted">Você não tem permissão para moderar este tipo.</p>
+            ) : reasonEntry ? (
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`reason-${row.contentId}`} className="text-xs font-medium text-fg-muted">
                   {reasonEntry.mode === 'return'

@@ -136,3 +136,44 @@ describe('ModerationQueue', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/não foi possível concluir/i));
   });
 });
+
+describe('ModerationQueue — gating de ações por permissão (USP-056/MOD-7)', () => {
+  const cvRow = { ...baseRow, contentId: 'cv-1', contentKind: ContentKind.CV, title: 'CV de Auxiliar' };
+
+  it('[USP056-MN-04] item CV com viewerModeratableKinds=[JOB] não exibe ações acionáveis', () => {
+    render(<ModerationQueue items={[cvRow]} viewerModeratableKinds={[ContentKind.JOB]} />);
+
+    expect(screen.queryByRole('button', { name: /aprovar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /devolver para ajustes/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /rejeitar/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/não tem permissão para moderar este tipo/i)).toBeInTheDocument();
+  });
+
+  it('[MOD7-03] item JOB com viewerModeratableKinds=[JOB] exibe as ações normalmente', () => {
+    render(<ModerationQueue items={[baseRow]} viewerModeratableKinds={[ContentKind.JOB]} />);
+
+    expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /devolver para ajustes/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /rejeitar/i })).toBeInTheDocument();
+  });
+
+  it('[MOD7-03] prop ausente (coordenador) → todas as ações disponíveis para qualquer tipo, sem regressão', () => {
+    render(<ModerationQueue items={[cvRow]} />);
+
+    expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /devolver para ajustes/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /rejeitar/i })).toBeInTheDocument();
+    expect(screen.queryByText(/não tem permissão para moderar este tipo/i)).not.toBeInTheDocument();
+  });
+
+  it('[MOD7-03] viewerModeratableKinds com todos os kinds → todas as ações disponíveis', () => {
+    render(
+      <ModerationQueue
+        items={[cvRow]}
+        viewerModeratableKinds={[ContentKind.JOB, ContentKind.SERVICE, ContentKind.CV, ContentKind.CANDIDATE_PROFILE]}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
+  });
+});
