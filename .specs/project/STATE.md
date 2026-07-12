@@ -27,7 +27,7 @@
 
 ## Handoff
 
-**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..058 (PASS). Próxima unidade: **USP-059 — Casca e conteúdo (not-found, favicon, termos, Markdown, rótulos)** (`.specs/features/ajustes-uat/usp-059-casca-conteudo/`).
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..059 (PASS). Próxima e ÚLTIMA unidade: **USP-060 — Higiene de dev/seed** (`.specs/features/ajustes-uat/usp-060-higiene-dev/`).
 
 ---
 
