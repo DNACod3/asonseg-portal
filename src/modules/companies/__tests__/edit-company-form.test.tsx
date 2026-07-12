@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { EditCompanyFormProps } from '../components/edit-company-form';
 
 /**
  * Testes de UI do formulário de edição de Empresa (USP-015 / #142). Cobre:
@@ -21,10 +22,10 @@ vi.mock('next/navigation', () => ({
 
 const { EditCompanyForm } = await import('../components/edit-company-form');
 
-const EMPRESA = {
+const EMPRESA: EditCompanyFormProps['empresa'] = {
   id: '11111111-1111-4111-8111-111111111111',
   cnpj: '11222333000181',
-  type: 'SIMPLES_NACIONAL' as const,
+  type: 'SIMPLES_NACIONAL',
   razaoSocial: 'Padaria Aurora Alimentos Ltda',
   nomeFantasia: 'Padaria Aurora',
   setor: 'Alimentação',
