@@ -1,29 +1,18 @@
 import { notFound } from 'next/navigation';
-import { requireActivePerson } from '@/modules/identity';
+import { ALL_ROLE_LABELS, requireActivePerson } from '@/modules/identity';
 import {
   hasInactivationPrivilege,
   hasReactivationPrivilege,
   viewPersonForStaff,
   InactivatePersonDialog,
   ReactivatePersonDialog,
+  PERSON_STATUS_LABELS,
 } from '@/modules/persons';
 import { Badge, Card } from '@/shared/ui';
 import { formatSaoPaulo } from '@/shared/lib/time';
 
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request.
 export const dynamic = 'force-dynamic';
-
-/** Rótulos PT-BR dos papéis exibidos a operadores institucionais. */
-const ROLE_LABELS: Record<string, string> = {
-  CANDIDATE: 'Candidato(a)',
-  PROVIDER: 'Prestador(a)',
-  CLIENT: 'Cliente',
-  COMPANY_RESPONSIBLE: 'Responsável de Empresa',
-  VOLUNTEER: 'Voluntário(a)',
-  COORDINATOR: 'Coordenador(a)',
-  SOCIAL_ASSISTANT: 'Assistente social',
-  BOARD: 'Diretoria',
-};
 
 /**
  * Tela de gestão de uma Pessoa para coordenador/diretoria (USP-007 / USP-045).
@@ -47,7 +36,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
   }
 
   const isSelf = person.id === viewer.id;
-  const roleLabels = person.roles.map((r) => ROLE_LABELS[r] ?? r);
+  const roleLabels = person.roles.map((r) => ALL_ROLE_LABELS[r] ?? r);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
@@ -55,7 +44,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
         <div className="flex items-center gap-3">
           <h1 className="font-heading text-2xl font-bold text-fg">{person.fullName}</h1>
           <Badge variant={person.status === 'ATIVO' ? 'green' : 'gray'}>
-            {person.status === 'ATIVO' ? 'Ativa' : 'Inativa'}
+            {PERSON_STATUS_LABELS[person.status] ?? person.status}
           </Badge>
         </div>
         {roleLabels.length > 0 && (
