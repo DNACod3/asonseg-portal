@@ -26,7 +26,7 @@ em conformidade LGPD. É a ação central do épico e a fonte da métrica **MP8*
 
 - [ ] AS/coordenador/voluntário com permissão delegada `REFER_PERSON_TO_JOB` encaminha uma Pessoa para uma **vaga ativa**, persistindo o `Referral`.
 - [ ] O papel **candidato** é ativado automaticamente quando ausente, com **aceite tácito** `SOCIAL_REFERRAL_TO_JOB`, na mesma transação auditada.
-- [ ] O encaminhamento gera **candidatura vinculada** (`Application` com `viaReferralId` + `viaEncaminhamento=true`) com badge **"Encaminhado pela ASONSEG"** e enfileira e-mail informativo à Pessoa.
+- [ ] O encaminhamento gera **candidatura vinculada** (`Application` com `viaReferralId` + `viaEncaminhamento=true`) com badge **"Candidato encaminhado pela ASONSEG"** e enfileira e-mail informativo à Pessoa.
 - [ ] Quando a Pessoa **não tem CV anexo**, o **resumo profissional textual** é exigido e persistido no `Referral`.
 - [ ] O encaminhamento é **bloqueado** quando a vaga não está ativa (revalidado no momento da persistência).
 
@@ -53,7 +53,7 @@ em conformidade LGPD. É a ação central do épico e a fonte da métrica **MP8*
 | A base legal do papel candidato ativado por encaminhamento é `SOCIAL_REFERRAL_TO_JOB` (tácito), **distinta** do aceite self-service `JOB_APPLICATION`. | agent | Registrar consent tácito `SOCIAL_REFERRAL_TO_JOB` na tx; **não** exigir `JOB_APPLICATION`. | AC-037-2 é explícito ("aceite tácito SOCIAL_REFERRAL_TO_JOB"). `PURPOSE_ROLE_MAP[SOCIAL_REFERRAL_TO_JOB]=null` permanece null (revogar o consent do encaminhamento **não** cascateia revogação do papel candidato — a Pessoa pode ter candidaturas independentes). | y |
 | A `Application` do encaminhamento é escrita por um helper **owned por `jobs`** (`createReferralApplication`), participante da tx do `Referral`; `referrals` não escreve na tabela `applications` diretamente. | agent | Novo helper tx-participante em `@/modules/jobs` (precedente `ensureClientRole` em persons chamado por services). | AD-017: Application é do módulo `jobs`; `referrals` importa de `@/modules/jobs`. `applyToJob` **não** serve (exige sessão do próprio candidato + consent `JOB_APPLICATION` + profile ACTIVE — incompatível com o encaminhamento). | y |
 | `viaEncaminhamento` (boolean, já materializado por AD-017/USP-025) **coexiste** com o novo FK `viaReferralId`. | agent | Manter ambos; invariante `viaReferralId != null ⟺ viaEncaminhamento = true`. | USP-027 já lê `viaEncaminhamento` para o badge (AD-017 impact). O FK é o vínculo autoritativo (1:1) para USP-039. Evita re-migrar/re-cabear USP-027. | y |
-| Badge institucional = **"Encaminhado pela ASONSEG"** (texto canônico do technical-design §3.5), não a variante longa do prompt. | agent | Usar "Encaminhado pela ASONSEG". | O TD §3.5/§acceptance usa esse literal; alinhar à fonte de projeto. | y |
+| Badge institucional = **"Candidato encaminhado pela ASONSEG"** (literal canônico do PRD/épico AC-037-5), não a variante curta antes registrada nesta linha. | agent | Usar "Candidato encaminhado pela ASONSEG". | O PRD/épico (AC-037-5) e o código (`job-applicants-list.tsx`) já usam o literal longo; esta linha e o TD §3.5 estavam desalinhados (SOC-6, USP-059). | y |
 | Múltiplos `Referral` para a mesma (Pessoa, vaga) ao longo do tempo são permitidos; a unicidade "uma candidatura ativa" é garantida **só** por `uq_application_active`. | agent | Sem índice único adicional no `Referral`. | Ver seção "Uniqueness". Um novo encaminhamento após cancelar a candidatura é válido (histórico). | y |
 | Termo `social-referral-to-job/v1.0.md` + hash no `TERMS_REGISTRY` já existem. | agent | Reusar `loadTerm('SOCIAL_REFERRAL_TO_JOB')`. | Arquivo `legal/consent-terms/social-referral-to-job/v1.0.md` `status: aprovado`, hash registrado. | y |
 
@@ -86,14 +86,14 @@ Empresa receba a recomendação institucional da ASONSEG.
 2. **AC-037-2** QUANDO a Pessoa não tem papel candidato ativo ENTÃO o sistema DEVE ativar o papel candidato automaticamente, com **aceite tácito** `SOCIAL_REFERRAL_TO_JOB`, na mesma transação.
 3. **AC-037-3** QUANDO a Pessoa não tem CV anexo ENTÃO o sistema DEVE exigir **resumo profissional textual obrigatório** como parte do encaminhamento e persisti-lo no `Referral`.
 4. **AC-037-4** QUANDO o usuário informa o motivo do encaminhamento ENTÃO o sistema DEVE persistir o motivo como campo **opcional** (`justification`).
-5. **AC-037-5** QUANDO o encaminhamento é persistido ENTÃO o sistema DEVE gerar **candidatura vinculada** ao encaminhamento (`Application.viaReferralId` + `viaEncaminhamento=true`), com badge **"Encaminhado pela ASONSEG"**, e **enfileirar** e-mail informativo à Pessoa.
+5. **AC-037-5** QUANDO o encaminhamento é persistido ENTÃO o sistema DEVE gerar **candidatura vinculada** ao encaminhamento (`Application.viaReferralId` + `viaEncaminhamento=true`), com badge **"Candidato encaminhado pela ASONSEG"**, e **enfileirar** e-mail informativo à Pessoa.
 6. **AC-037-6** QUANDO o usuário encaminha a mesma Pessoa para vagas diferentes ENTÃO o sistema DEVE permitir **múltiplos** encaminhamentos.
 7. **AC-037-7** QUANDO a vaga selecionada não está com status "ativo" ENTÃO o sistema DEVE **bloquear** o encaminhamento.
 
 **Independent Test**: Logado como AS, encaminhar uma Pessoa **sem CV** para uma vaga
 ativa; confirmar que o sistema exige o resumo profissional, ativa o papel candidato
 (consent `SOCIAL_REFERRAL_TO_JOB` gravado), cria a candidatura com badge
-"Encaminhado pela ASONSEG" e enfileira o e-mail; repetir contra uma vaga inativa e
+"Candidato encaminhado pela ASONSEG" e enfileira o e-mail; repetir contra uma vaga inativa e
 confirmar o bloqueio.
 
 ---
@@ -139,7 +139,7 @@ numeração do épico (AC-037-N). Must-nots são adições locais.
 
 ## Success Criteria
 
-- [ ] Encaminhamento cria `Referral` + `Application` vinculada (`viaReferralId`/`viaEncaminhamento=true`) com badge "Encaminhado pela ASONSEG", ativa papel candidato (consent tácito `SOCIAL_REFERRAL_TO_JOB`) e enfileira e-mail — tudo numa transação auditada (`REFERRAL_CREATED` + `CANDIDATE_ROLE_ACTIVATED` + `CONSENT_GRANTED` + `APPLICATION_CREATED`).
+- [ ] Encaminhamento cria `Referral` + `Application` vinculada (`viaReferralId`/`viaEncaminhamento=true`) com badge "Candidato encaminhado pela ASONSEG", ativa papel candidato (consent tácito `SOCIAL_REFERRAL_TO_JOB`) e enfileira e-mail — tudo numa transação auditada (`REFERRAL_CREATED` + `CANDIDATE_ROLE_ACTIVATED` + `CONSENT_GRANTED` + `APPLICATION_CREATED`).
 - [ ] Sem CV + sem resumo → bloqueio `VALIDATION`; vaga não-ativa (inclusive flip dentro da janela) → bloqueio; duplicata ativa → `CONFLICT` com rollback.
 - [ ] Pessoa sem `emailLogin` → encaminhamento OK, e-mail não enfileirado (no-op).
 - [ ] Ator sem `REFER_PERSON_TO_JOB` → `FORBIDDEN`.
