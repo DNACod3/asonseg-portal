@@ -258,49 +258,67 @@ describe('middleware — registration só em mutação; /cadastro-assistido fora
   });
 });
 
-describe('middleware — fetch de dados do client router não consome nem bloqueia bucket (USP-050 · PUB-1b)', () => {
-  // Ciclo de fix pós-Verifier (achado empírico, Next 15.5.18): o header
-  // Next-Router-Prefetch (e rsc, e o query param _rsc) nunca chegam a
-  // request.headers/nextUrl no servidor real — confirmado com curl -v +
-  // instrumentação temporária (revertida) + browser Chromium real via
-  // Playwright. O sinal que sobrevive é `Next-Url`, setado pelo client router
-  // em TODA fetch de dados RSC (prefetch e navegação client-side real —
-  // indistinguíveis no middleware desta versão). Os testes abaixo usam o
-  // sinal real confirmado, não o documentado-mas-morto.
+describe('middleware — fetch de dados do client router cai num teto próprio, generoso-mas-finito, NÃO num bypass (USP-050 · PUB-1b, iteração 3)', () => {
+  // Iteração 2 (ciclo de fix pós-Verifier): o header Next-Router-Prefetch (e
+  // rsc, e o query param _rsc) nunca chegam a request.headers/nextUrl no
+  // servidor real — confirmado com curl -v + instrumentação temporária
+  // (revertida) + browser Chromium real via Playwright. O sinal que sobrevive
+  // é `Next-Url`.
+  //
+  // Iteração 3 (achado adversarial do Verifier): um bypass TOTAL baseado em
+  // `Next-Url` é explorável — o header é forjável por qualquer cliente
+  // (`curl -H "Next-Url: /" ...` em loop nunca gerava 429), zerando a
+  // proteção anti-scraping de toda rota GET pública (US #200/#201,
+  // ADR-0029). Corrigido roteando esses GET/HEAD para a categoria própria
+  // `routerData` (60/min — ver rateLimit.ts), que conta e bloqueia como
+  // qualquer outra categoria.
   const ROUTER_FETCH = { 'next-url': '/' };
 
-  it('RL-MN-01 (negativo): 15 fetches do client router (prefetch/soft-nav) do mesmo IP → 0×429; navegação de documento subsequente segue sem 429', () => {
+  it('PREF-01/PREF-03: volume típico de navegação real (15 fetches, bem abaixo do teto de 60) fica sem 429; navegação de documento subsequente também', () => {
     const ip = { 'x-real-ip': '8.8.8.1' };
     for (let i = 0; i < 15; i++) {
       const res = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
       expect(res.status).not.toBe(429);
     }
-    // Navegação de documento real (sem Next-Url) do mesmo IP não é bloqueada —
-    // prova que os fetches do client router não consumiram o bucket anônimo (10/min).
-    const real = middleware(req('/vagas', ip));
+    // Documento (Accept: text/html, sem Next-Url) cai em anonymous — bucket
+    // independente do routerData — não é penalizado pelos 15 fetches acima.
+    const real = middleware(req('/vagas', { ...ip, accept: 'text/html' }));
     expect(real.status).not.toBe(429);
   });
 
-  it('PREF-02: resposta de fetch do client router NÃO inclui headers X-RateLimit-* (não contabilizado)', () => {
+  it('PREF-02: resposta de fetch do client router INCLUI headers X-RateLimit-* refletindo o bucket routerData (60), distinto do anônimo (10)', () => {
     const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.2', ...ROUTER_FETCH }));
-    expect(res.headers.get('X-RateLimit-Limit')).toBeNull();
-    expect(res.headers.get('X-RateLimit-Remaining')).toBeNull();
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('60');
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('59');
   });
 
   it('fetch do client router preserva os headers de segurança e o gate de sessão', () => {
     const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.3', ...ROUTER_FETCH }));
     expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
     const protectedRes = middleware(req('/perfil', { 'x-real-ip': '8.8.8.4', ...ROUTER_FETCH }));
-    expect(protectedRes.status).toBe(307); // gate de sessão intacto, mesmo em fetch do client router
+    expect(protectedRes.status).toBe(307); // gate de sessão intacto
   });
 
-  it('REGRESSÃO (achado do Verifier): Next-Router-Prefetch sozinho (sem Next-Url) NÃO isenta o bucket — o header morto não basta', () => {
+  it('REGRESSÃO (achado do Verifier, iteração 2): Next-Router-Prefetch sozinho (sem Next-Url) cai em anonymous — o header morto não basta', () => {
     const ip = { 'x-real-ip': '8.8.8.5' };
     for (let i = 0; i < 10; i++) {
       middleware(req('/vagas', { ...ip, 'next-router-prefetch': '1' }));
     }
     const blocked = middleware(req('/vagas', { ...ip, 'next-router-prefetch': '1' }));
-    expect(blocked.status).toBe(429); // sem Next-Url, contou normalmente e estourou o teto anônimo
+    expect(blocked.status).toBe(429); // sem Next-Url, contou como anonymous e estourou o teto de 10
+  });
+
+  it('ADVERSARIAL (achado do Verifier, iteração 3): Next-Url FORJADO em loop pelo mesmo IP eventualmente toma 429 — não é mais um opt-out gratuito do rate limit', () => {
+    const ip = { 'x-real-ip': '8.8.8.7' };
+    let sawBlocked = false;
+    for (let i = 0; i < 60; i++) {
+      const res = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
+      expect(res.status).not.toBe(429);
+    }
+    const blocked = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
+    sawBlocked = blocked.status === 429;
+    expect(sawBlocked).toBe(true); // 61ª request com Next-Url forjado → 429 (teto routerData = 60)
+    expect(blocked.headers.get('X-RateLimit-Limit')).toBe('60');
   });
 
   it('gate de método (defesa em profundidade): um POST com Next-Url (hipotético) NÃO é isento — mutação de /cadastro continua contando em registration', () => {
@@ -351,12 +369,16 @@ describe('middleware — 429 de documento (HTML PT-BR) vs. RSC/fetch (JSON) — 
   });
 });
 
-describe('middleware — RL-MN-07: RATE_LIMITS/janelas inalterados (regressão da Fase 8)', () => {
-  it('valores canônicos de RATE_LIMITS permanecem 10/60/3/5/20 com as janelas originais', () => {
+describe('middleware — RL-MN-07: RATE_LIMITS das categorias herdadas inalterados; routerData é adição explícita (iteração 3)', () => {
+  it('valores canônicos das categorias herdadas permanecem 10/60/3/5/20 com as janelas originais', () => {
     expect(RATE_LIMITS.anonymous).toEqual({ limit: 10, windowMs: 60_000 });
     expect(RATE_LIMITS.authenticated).toEqual({ limit: 60, windowMs: 60_000 });
     expect(RATE_LIMITS.registration).toEqual({ limit: 3, windowMs: 15 * 60_000 });
     expect(RATE_LIMITS.passwordReset).toEqual({ limit: 5, windowMs: 15 * 60_000 });
     expect(RATE_LIMITS.responsibleLookup).toEqual({ limit: 20, windowMs: 60_000 });
+  });
+
+  it('routerData (adição autorizada da iteração 3) tem o teto generoso-mas-finito documentado: 60/min', () => {
+    expect(RATE_LIMITS.routerData).toEqual({ limit: 60, windowMs: 60_000 });
   });
 });

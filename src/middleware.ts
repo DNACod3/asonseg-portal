@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { env } from '@/shared/env';
 import { clientIp } from '@/shared/lib/clientIp';
 import { applySecurityHeaders } from '@/shared/lib/securityHeaders';
-import { rateLimiter, RATE_LIMITS, type RateLimitCategory, type RateLimitResult } from '@/shared/lib/rateLimit';
+import { rateLimiter, RATE_LIMITS, type RateLimitCategory } from '@/shared/lib/rateLimit';
 import { isRouterDataRequest, isDocumentRequest, renderRateLimitedHtml } from '@/shared/lib/rateLimitResponse';
 
 /**
@@ -42,49 +42,44 @@ export function middleware(request: NextRequest): NextResponse {
 
   const ip = clientIp(request.headers);
 
-  // Fetch de dados do client router (USP-050 · PUB-1b — corrigido no ciclo de
-  // fix pós-Verifier): cobre prefetch E navegação client-side real do <Link>
-  // (`Next-Router-Prefetch`/`RSC`/`_rsc` nunca chegam a request.headers/
-  // nextUrl neste servidor — confirmado empiricamente; o sinal que sobrevive é
-  // `Next-Url`, ver rateLimitResponse.ts). Como as duas são indistinguíveis
-  // aqui, nenhuma delas conta nem bloqueia bucket — segue direto para o gate
-  // de sessão + security headers, sem headers X-RateLimit-* (RL-MN-01). Gate
-  // explícito a GET/HEAD: uma mutação (Server Action é sempre POST, e não
-  // carrega `Next-Url` — confirmado empiricamente) nunca é isenta por aqui.
-  const isRouterFetch =
-    (request.method === 'GET' || request.method === 'HEAD') && isRouterDataRequest(request.headers);
-  let result: RateLimitResult | null = null;
+  // USP-050 (iteração 3 — achado adversarial do Verifier): o header `Next-Url`
+  // (fetch de dados do client router — prefetch OU navegação client-side real,
+  // indistinguíveis nesta versão do Next) é FORJÁVEL por qualquer cliente
+  // (curl). Um bypass total do rate limit baseado nele vira um opt-out
+  // gratuito e não-autenticado da proteção anti-scraping (US #200/#201,
+  // ADR-0029) — achado confirmado ao vivo (`curl -H "Next-Url: /" ...` em
+  // loop nunca gerava 429). Por isso NÃO há bypass: `resolveCategory` roteia
+  // esses GET/HEAD para a categoria própria `routerData` (teto
+  // generoso-mas-finito, ver rateLimit.ts), que passa pelo MESMO
+  // check/429/headers que qualquer outra categoria — nada escapa do pipeline.
+  const category = resolveCategory(request);
+  // Chave por categoria+IP; cadastro é sempre por IP (anti-spam de auto-cadastro).
+  const key = `${category}:${ip}`;
+  const result = rateLimiter.check(key, RATE_LIMITS[category]);
 
-  if (!isRouterFetch) {
-    const category = resolveCategory(request);
-    // Chave por categoria+IP; cadastro é sempre por IP (anti-spam de auto-cadastro).
-    const key = `${category}:${ip}`;
-    result = rateLimiter.check(key, RATE_LIMITS[category]);
+  // Poda amostrada (~1% das requisições): contém o crescimento do Map em memória
+  // sem custo por request e sem depender de um gatilho externo/forjável.
+  if (Math.random() < 0.01) rateLimiter.prune();
 
-    // Poda amostrada (~1% das requisições): contém o crescimento do Map em memória
-    // sem custo por request e sem depender de um gatilho externo/forjável.
-    if (Math.random() < 0.01) rateLimiter.prune();
-
-    if (!result.allowed && !env.RATE_LIMIT_DISABLED) {
-      logRateLimited(category, ip, request.nextUrl.pathname);
-      // 429 de navegação de documento → HTML PT-BR (USP-050 · PUB-1c); RSC/
-      // fetch/Server Action continuam recebendo o JSON atual, inalterado
-      // (RL-MN-06).
-      const res = isDocumentRequest(request.headers)
-        ? new NextResponse(renderRateLimitedHtml(result.retryAfterSeconds), {
-            status: 429,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-          })
-        : NextResponse.json(
-            { ok: false, error: { code: 'RATE_LIMITED', message: 'Muitas requisições. Tente novamente em instantes.' } },
-            { status: 429 },
-          );
-      res.headers.set('Retry-After', String(result.retryAfterSeconds));
-      res.headers.set('Cache-Control', 'no-store');
-      applyRateLimitHeaders(res.headers, result.limit, 0, result.resetAt);
-      applySecurityHeaders(res.headers, { hsts, supabaseOrigin });
-      return res;
-    }
+  if (!result.allowed && !env.RATE_LIMIT_DISABLED) {
+    logRateLimited(category, ip, request.nextUrl.pathname);
+    // 429 de navegação de documento → HTML PT-BR (USP-050 · PUB-1c); RSC/
+    // fetch/Server Action continuam recebendo o JSON atual, inalterado
+    // (RL-MN-06).
+    const res = isDocumentRequest(request.headers)
+      ? new NextResponse(renderRateLimitedHtml(result.retryAfterSeconds), {
+          status: 429,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        })
+      : NextResponse.json(
+          { ok: false, error: { code: 'RATE_LIMITED', message: 'Muitas requisições. Tente novamente em instantes.' } },
+          { status: 429 },
+        );
+    res.headers.set('Retry-After', String(result.retryAfterSeconds));
+    res.headers.set('Cache-Control', 'no-store');
+    applyRateLimitHeaders(res.headers, result.limit, 0, result.resetAt);
+    applySecurityHeaders(res.headers, { hsts, supabaseOrigin });
+    return res;
   }
 
   // Gate de sessão (T-08): rota autenticada sem cookie de sessão → /login.
@@ -93,13 +88,13 @@ export function middleware(request: NextRequest): NextResponse {
     loginUrl.pathname = '/login';
     loginUrl.search = '';
     const redirectRes = NextResponse.redirect(loginUrl);
-    if (result !== null) applyRateLimitHeaders(redirectRes.headers, result.limit, result.remaining, result.resetAt);
+    applyRateLimitHeaders(redirectRes.headers, result.limit, result.remaining, result.resetAt);
     applySecurityHeaders(redirectRes.headers, { hsts, supabaseOrigin });
     return redirectRes;
   }
 
   const res = NextResponse.next();
-  if (result !== null) applyRateLimitHeaders(res.headers, result.limit, result.remaining, result.resetAt);
+  applyRateLimitHeaders(res.headers, result.limit, result.remaining, result.resetAt);
   applySecurityHeaders(res.headers, { hsts, supabaseOrigin });
   return res;
 }
@@ -128,17 +123,33 @@ function isProtectedPath(pathname: string): boolean {
  * Decide a categoria de rate limit a partir da rota, do método e do cookie de
  * sessão.
  *
+ * `routerData` (USP-050 · PUB-1b, iteração 3 — teto generoso-mas-finito, NÃO
+ * um bypass) tem prioridade sobre as demais categorias para GET/HEAD: cobre
+ * prefetch e navegação client-side real do `<Link>` (indistinguíveis nesta
+ * versão do Next — o header `Next-Url` é o único sinal que sobrevive ao
+ * middleware). Como `Next-Url` é forjável, esta categoria ainda **conta e
+ * bloqueia** (só que com um teto alto o bastante para não penalizar
+ * navegação real — ver `RATE_LIMITS.routerData`). Restrito a GET/HEAD: uma
+ * mutação nunca cai aqui (Server Actions são sempre POST e, confirmado
+ * empiricamente, não carregam `Next-Url`), preservando `registration`
+ * (RL-MN-02) mesmo que o header seja forjado numa mutação.
+ *
  * `registration` (USP-050 · PUB-2/SOC-1) exige o segmento **exato** do fluxo
  * público (`/cadastro` ou `/cadastro/…`, ex.: `/cadastro/consentimento`) **e**
  * uma **mutação** (método ≠ GET/HEAD — Server Actions/form submits são sempre
- * POST). GET/HEAD/prefetch caem em `anonymous`/`authenticated` normal
+ * POST). GET/HEAD sem `Next-Url` caem em `anonymous`/`authenticated` normal
  * (RL-MN-02); `/cadastro-assistido` (fluxo interno da AS) nunca casa o
  * segmento exato, então nunca entra em `registration` (RL-MN-03).
  */
 function resolveCategory(request: NextRequest): RateLimitCategory {
   const path = request.nextUrl.pathname;
-  const isPublicCadastro = path === '/cadastro' || path.startsWith('/cadastro/');
   const isMutation = request.method !== 'GET' && request.method !== 'HEAD';
+
+  if (!isMutation && isRouterDataRequest(request.headers)) {
+    return 'routerData';
+  }
+
+  const isPublicCadastro = path === '/cadastro' || path.startsWith('/cadastro/');
   if (isPublicCadastro && isMutation) {
     return 'registration';
   }
