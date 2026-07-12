@@ -7,6 +7,10 @@ import { reportModerationQueue } from './report-moderation-queue';
 import { viewSocialReport } from '../views/social-report.view';
 import type { ReportType } from '../schemas/export-report';
 import type { ReportFiltersInput } from '../schemas/report-filters';
+import { listServiceCategories } from '@/modules/services';
+
+/** Marcador neutro para categoria ausente/órfã (spec A7). */
+const EMPTY_CATEGORY_MARKER = '—';
 
 export interface BuiltReport {
   columns: CsvColumn<Record<string, unknown>>[];
@@ -54,17 +58,25 @@ export async function buildReportRows(
       };
     }
     case 'services': {
-      const report = await reportServices(filters);
+      const [report, categories] = await Promise.all([reportServices(filters), listServiceCategories()]);
+      // USP058-01/02/04 (REL-2): resolução de nome ocorre só na projeção —
+      // `report-services.ts` e seu int-test de shape (`{status,categoryId,count}`)
+      // permanecem intocados (spec A4).
+      const nameByCategoryId = new Map(categories.map((c) => [c.id, c.name]));
       const rows: Record<string, unknown>[] = report.byStatusAndCategory.map((r) => ({
         status: r.status,
-        categoryId: r.categoryId,
+        categoria: r.categoryId ? (nameByCategoryId.get(r.categoryId) ?? EMPTY_CATEGORY_MARKER) : EMPTY_CATEGORY_MARKER,
         count: r.count,
       }));
-      rows.push({ status: 'MANIFESTACOES_INTERESSE', categoryId: null, count: report.interestsCount });
+      rows.push({
+        status: 'MANIFESTACOES_INTERESSE',
+        categoria: EMPTY_CATEGORY_MARKER,
+        count: report.interestsCount,
+      });
       return {
         columns: [
           { key: 'status', label: 'Status' },
-          { key: 'categoryId', label: 'Categoria' },
+          { key: 'categoria', label: 'Categoria' },
           { key: 'count', label: 'Quantidade (MP5) / manifestações (MP7)' },
         ],
         rows,
