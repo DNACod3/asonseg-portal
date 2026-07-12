@@ -51,6 +51,12 @@ beforeEach(() => {
 });
 
 describe('PasswordResetRequestForm', () => {
+  // RF-MN-01 (ORQ-3): defesa em profundidade — só e-mail, mas o mesmo method=post.
+  it('RF-MN-01: o <form> declara method="post" (sem fallback GET)', () => {
+    const { container } = render(<PasswordResetRequestForm siteKey={SITE_KEY} />);
+    expect(container.querySelector('form')).toHaveAttribute('method', 'post');
+  });
+
   it('e-mail válido + CAPTCHA → chama a action e exibe a confirmação genérica', async () => {
     render(<PasswordResetRequestForm siteKey={SITE_KEY} />);
     fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'maria@example.com' } });
@@ -97,6 +103,12 @@ describe('PasswordResetForm', () => {
     fireEvent.change(screen.getByLabelText('Nova senha'), { target: { value: senhaNova } });
     fireEvent.change(screen.getByLabelText('Confirmar nova senha'), { target: { value: confirmar } });
   }
+
+  // RF-MN-01 (ORQ-3): sem GET fallback (o form carrega senha nova).
+  it('RF-MN-01: o <form> declara method="post" (sem fallback GET)', () => {
+    const { container } = render(<PasswordResetForm token="hashed-abc" />);
+    expect(container.querySelector('form')).toHaveAttribute('method', 'post');
+  });
 
   it('válido → envia token + senha e redireciona para o login', async () => {
     render(<PasswordResetForm token="hashed-abc" />);

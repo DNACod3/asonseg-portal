@@ -76,7 +76,12 @@ export function PasswordResetRequestForm({ siteKey }: { siteKey: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      method="post"
+      noValidate
+      className="flex flex-col gap-5"
+    >
       <div className="flex flex-col gap-1">
         <Label htmlFor="email">E-mail</Label>
         <Input

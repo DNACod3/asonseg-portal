@@ -46,7 +46,12 @@ export function PasswordResetForm({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      method="post"
+      noValidate
+      className="flex flex-col gap-5"
+    >
       <input type="hidden" {...register('token')} />
 
       <div className="flex flex-col gap-1">
