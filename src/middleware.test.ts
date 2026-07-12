@@ -258,32 +258,59 @@ describe('middleware — registration só em mutação; /cadastro-assistido fora
   });
 });
 
-describe('middleware — prefetch RSC não consome nem bloqueia bucket (USP-050 · PUB-1b)', () => {
-  const PREFETCH = { 'next-router-prefetch': '1' };
+describe('middleware — fetch de dados do client router não consome nem bloqueia bucket (USP-050 · PUB-1b)', () => {
+  // Ciclo de fix pós-Verifier (achado empírico, Next 15.5.18): o header
+  // Next-Router-Prefetch (e rsc, e o query param _rsc) nunca chegam a
+  // request.headers/nextUrl no servidor real — confirmado com curl -v +
+  // instrumentação temporária (revertida) + browser Chromium real via
+  // Playwright. O sinal que sobrevive é `Next-Url`, setado pelo client router
+  // em TODA fetch de dados RSC (prefetch e navegação client-side real —
+  // indistinguíveis no middleware desta versão). Os testes abaixo usam o
+  // sinal real confirmado, não o documentado-mas-morto.
+  const ROUTER_FETCH = { 'next-url': '/' };
 
-  it('RL-MN-01 (negativo): 15 prefetches do mesmo IP → 0×429; navegação real subsequente segue sem 429', () => {
+  it('RL-MN-01 (negativo): 15 fetches do client router (prefetch/soft-nav) do mesmo IP → 0×429; navegação de documento subsequente segue sem 429', () => {
     const ip = { 'x-real-ip': '8.8.8.1' };
     for (let i = 0; i < 15; i++) {
-      const res = middleware(req('/vagas', { ...ip, ...PREFETCH }));
+      const res = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
       expect(res.status).not.toBe(429);
     }
-    // Navegação real (sem header de prefetch) do mesmo IP não é bloqueada —
-    // prova que os prefetches não consumiram o bucket anônimo (10/min).
+    // Navegação de documento real (sem Next-Url) do mesmo IP não é bloqueada —
+    // prova que os fetches do client router não consumiram o bucket anônimo (10/min).
     const real = middleware(req('/vagas', ip));
     expect(real.status).not.toBe(429);
   });
 
-  it('PREF-02: resposta de prefetch NÃO inclui headers X-RateLimit-* (não contabilizado)', () => {
-    const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.2', ...PREFETCH }));
+  it('PREF-02: resposta de fetch do client router NÃO inclui headers X-RateLimit-* (não contabilizado)', () => {
+    const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.2', ...ROUTER_FETCH }));
     expect(res.headers.get('X-RateLimit-Limit')).toBeNull();
     expect(res.headers.get('X-RateLimit-Remaining')).toBeNull();
   });
 
-  it('prefetch preserva os headers de segurança e o gate de sessão', () => {
-    const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.3', ...PREFETCH }));
+  it('fetch do client router preserva os headers de segurança e o gate de sessão', () => {
+    const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.3', ...ROUTER_FETCH }));
     expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
-    const protectedRes = middleware(req('/perfil', { 'x-real-ip': '8.8.8.4', ...PREFETCH }));
-    expect(protectedRes.status).toBe(307); // gate de sessão intacto, mesmo em prefetch
+    const protectedRes = middleware(req('/perfil', { 'x-real-ip': '8.8.8.4', ...ROUTER_FETCH }));
+    expect(protectedRes.status).toBe(307); // gate de sessão intacto, mesmo em fetch do client router
+  });
+
+  it('REGRESSÃO (achado do Verifier): Next-Router-Prefetch sozinho (sem Next-Url) NÃO isenta o bucket — o header morto não basta', () => {
+    const ip = { 'x-real-ip': '8.8.8.5' };
+    for (let i = 0; i < 10; i++) {
+      middleware(req('/vagas', { ...ip, 'next-router-prefetch': '1' }));
+    }
+    const blocked = middleware(req('/vagas', { ...ip, 'next-router-prefetch': '1' }));
+    expect(blocked.status).toBe(429); // sem Next-Url, contou normalmente e estourou o teto anônimo
+  });
+
+  it('gate de método (defesa em profundidade): um POST com Next-Url (hipotético) NÃO é isento — mutação de /cadastro continua contando em registration', () => {
+    const ip = { 'x-real-ip': '8.8.8.6' };
+    expect(
+      middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH })).headers.get('X-RateLimit-Limit'),
+    ).toBe('3');
+    middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH }));
+    middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH }));
+    expect(middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH })).status).toBe(429);
   });
 });
 
@@ -299,10 +326,16 @@ describe('middleware — 429 de documento (HTML PT-BR) vs. RSC/fetch (JSON) — 
     expect(blocked.headers.get('Content-Security-Policy')).toBeTruthy();
   });
 
-  it('RL-MN-06 (negativo): request RSC (rsc:1) bloqueado continua JSON {ok:false} — nunca HTML', async () => {
+  it('RL-MN-06 (negativo): request RSC/fetch/Server Action real (Accept genérico, sem text/html) bloqueado continua JSON {ok:false} — nunca HTML', async () => {
+    // Assinatura real de um Server Action POST confirmada empiricamente
+    // (login via browser real): accept: 'text/x-component', sem Accept
+    // text/html. Usamos POST (mutação) para também provar que o gate de
+    // método não interfere no ramo JSON — só no bypass do bucket.
     const ip = { 'x-real-ip': '9.9.9.2' };
-    for (let i = 0; i < 10; i++) middleware(req('/vagas', { ...ip, accept: 'text/html', rsc: '1' }));
-    const blocked = middleware(req('/vagas', { ...ip, accept: 'text/html', rsc: '1' }));
+    for (let i = 0; i < 3; i++) {
+      middleware(reqWithMethod('/cadastro', 'POST', { ...ip, accept: 'text/x-component' }));
+    }
+    const blocked = middleware(reqWithMethod('/cadastro', 'POST', { ...ip, accept: 'text/x-component' }));
     expect(blocked.status).toBe(429);
     expect(blocked.headers.get('content-type')).toContain('application/json');
     const body = await blocked.json();

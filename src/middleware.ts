@@ -3,7 +3,7 @@ import { env } from '@/shared/env';
 import { clientIp } from '@/shared/lib/clientIp';
 import { applySecurityHeaders } from '@/shared/lib/securityHeaders';
 import { rateLimiter, RATE_LIMITS, type RateLimitCategory, type RateLimitResult } from '@/shared/lib/rateLimit';
-import { isPrefetchRequest, isDocumentRequest, renderRateLimitedHtml } from '@/shared/lib/rateLimitResponse';
+import { isRouterDataRequest, isDocumentRequest, renderRateLimitedHtml } from '@/shared/lib/rateLimitResponse';
 
 /**
  * Middleware do Next.js (Edge) — duas responsabilidades de hardening (US #200):
@@ -42,14 +42,20 @@ export function middleware(request: NextRequest): NextResponse {
 
   const ip = clientIp(request.headers);
 
-  // Prefetch RSC (USP-050 · PUB-1b): o <Link> do App Router dispara ~10-15
-  // prefetches por load de página. Um prefetch NÃO conta nem bloqueia nenhum
-  // bucket — segue direto para o gate de sessão + security headers, sem
-  // headers X-RateLimit-* (RL-MN-01).
-  const prefetch = isPrefetchRequest(request.headers);
+  // Fetch de dados do client router (USP-050 · PUB-1b — corrigido no ciclo de
+  // fix pós-Verifier): cobre prefetch E navegação client-side real do <Link>
+  // (`Next-Router-Prefetch`/`RSC`/`_rsc` nunca chegam a request.headers/
+  // nextUrl neste servidor — confirmado empiricamente; o sinal que sobrevive é
+  // `Next-Url`, ver rateLimitResponse.ts). Como as duas são indistinguíveis
+  // aqui, nenhuma delas conta nem bloqueia bucket — segue direto para o gate
+  // de sessão + security headers, sem headers X-RateLimit-* (RL-MN-01). Gate
+  // explícito a GET/HEAD: uma mutação (Server Action é sempre POST, e não
+  // carrega `Next-Url` — confirmado empiricamente) nunca é isenta por aqui.
+  const isRouterFetch =
+    (request.method === 'GET' || request.method === 'HEAD') && isRouterDataRequest(request.headers);
   let result: RateLimitResult | null = null;
 
-  if (!prefetch) {
+  if (!isRouterFetch) {
     const category = resolveCategory(request);
     // Chave por categoria+IP; cadastro é sempre por IP (anti-spam de auto-cadastro).
     const key = `${category}:${ip}`;

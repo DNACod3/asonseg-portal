@@ -5,16 +5,43 @@
  */
 
 /**
- * Reconhece um request de **prefetch** disparado pelo `<Link>` do Next.js
- * App Router. O header `Next-Router-Prefetch: 1` é o único sinal confiável —
- * `RSC: 1`/`?_rsc=` aparecem em todo request RSC (prefetch **e** navegação
- * soft), logo não distinguem prefetch sozinhos (confirmado na doc do Next 15).
+ * Reconhece um **fetch de dados do client router** do Next.js App Router
+ * (RSC) — cobre TANTO prefetch (hover/viewport de `<Link>`) QUANTO uma
+ * navegação client-side real (clique que completa a rota).
  *
- * Fallback secundário: header `Purpose: prefetch` (usado por alguns clientes/
- * proxies para sinalizar prefetch fora do ecossistema Next).
+ * **Correção pós-verificação (USP-050, ciclo de fix — achado empírico do
+ * Verifier, Next 15.5.18):** a doc do Next 15 promete o header
+ * `Next-Router-Prefetch: 1` como sinal de prefetch, mas ele — junto com `RSC`
+ * e o query param `_rsc` — **nunca chega a `request.headers`/`request.nextUrl`
+ * dentro do Edge Middleware** neste servidor real. Confirmado com
+ * instrumentação temporária (revertida) + `curl -v` + um browser Chromium
+ * real (Playwright): um header de controle arbitrário chega, esses não —
+ * são consumidos/normalizados pelo Next internamente antes de invocar o
+ * middleware do usuário. Como prefetch e navegação client-side real usam a
+ * MESMA função de fetch (`fetchServerResponse`) e **nenhum sinal sobrevive
+ * para diferenciá-las** no middleware desta versão, esta função
+ * deliberadamente NÃO tenta separar as duas (decisão ancorada na intenção de
+ * PUB-1b: "navegar normalmente pelo portal não deve estourar o teto
+ * anônimo" — ver spec.md Assumptions).
+ *
+ * O sinal que **sobrevive de fato** (confirmado empiricamente) é o header
+ * `Next-Url`: o client router o define em toda fetch de dados RSC (prefetch
+ * **e** navegação real), mas NUNCA em navegação de documento real (hard
+ * load/endereço — confirmado: `Accept: text/html` + `Sec-Fetch-Mode:
+ * navigate`, sem `Next-Url`) nem em clientes fora do Next (curl, scrapers —
+ * confirmado: um Server Action POST real chega com `Next-Action`/
+ * `Content-Type: text/plain`, também sem `Next-Url`). Por isso é seguro para
+ * excluir prefetch+soft-nav do rate limit sem abrir uma brecha de scraping
+ * anônimo (GET) nem de abuso de mutação (POST — adicionalmente protegido
+ * pelo gate de método em `middleware.ts`, que só aplica este bypass a
+ * GET/HEAD).
+ *
+ * Fallback secundário: header `Purpose: prefetch` (mecanismo legado de outro
+ * ecossistema/CDN; não confirmado no Next 15.5, mantido por não ter custo
+ * caso nunca dispare).
  */
-export function isPrefetchRequest(headers: Headers): boolean {
-  if (headers.get('next-router-prefetch') === '1') return true;
+export function isRouterDataRequest(headers: Headers): boolean {
+  if (headers.get('next-url') !== null) return true;
   return headers.get('purpose') === 'prefetch';
 }
 
@@ -22,13 +49,21 @@ export function isPrefetchRequest(headers: Headers): boolean {
  * Reconhece uma **navegação de documento** (hard load / barra de endereço),
  * para decidir se o 429 deve ser servido como HTML em vez de JSON.
  *
- * Navegação de documento sempre manda `Accept: text/html,…` e **sem** header
- * `rsc`. Requests RSC/Server Action mandam `rsc: 1`/`Next-Action` e um
- * `Accept` genérico (ex.: wildcard ou `text/x-component`). Falha segura: sem
- * `Accept` (ou sem `text/html`), cai no ramo JSON.
+ * Navegação de documento sempre manda `Accept: text/html,…` (confirmado
+ * empiricamente: `Sec-Fetch-Mode: navigate`, `Sec-Fetch-Dest: document`).
+ * Requests RSC/fetch/Server Action mandam um `Accept` genérico (wildcard ou
+ * `text/x-component` — confirmado tanto para prefetch/soft-nav quanto para um
+ * Server Action POST real). Falha segura: sem `Accept` (ou sem `text/html`),
+ * cai no ramo JSON.
+ *
+ * **Correção pós-verificação (USP-050):** o check anterior (`rsc === '1'`)
+ * era código morto — o header `rsc` nunca chega a `request.headers` nesta
+ * versão do Next (mesma raiz de `isRouterDataRequest` acima) — removido.
+ * `Accept` sozinho já é o único sinal confiável disponível e é suficiente na
+ * prática (nenhum caso real observado de RSC/Server-Action mandando
+ * `Accept: text/html`).
  */
 export function isDocumentRequest(headers: Headers): boolean {
-  if (headers.get('rsc') === '1') return false;
   const accept = headers.get('accept') ?? '';
   return accept.includes('text/html');
 }

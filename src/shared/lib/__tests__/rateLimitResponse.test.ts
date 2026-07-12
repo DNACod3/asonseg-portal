@@ -1,39 +1,54 @@
 import { describe, it, expect } from 'vitest';
-import { isPrefetchRequest, isDocumentRequest, renderRateLimitedHtml } from '@/shared/lib/rateLimitResponse';
+import { isRouterDataRequest, isDocumentRequest, renderRateLimitedHtml } from '@/shared/lib/rateLimitResponse';
 
 /**
- * USP-050 (PUB-1b/PUB-1c) — sinais de prefetch/documento e página 429 PT-BR.
+ * USP-050 (PUB-1b/PUB-1c) — sinais de fetch do client router/documento e
+ * página 429 PT-BR.
+ *
+ * Ciclo de fix pós-Verifier: o header `Next-Router-Prefetch` (e `rsc`, e o
+ * query param `_rsc`) NUNCA chegam a `request.headers`/`request.nextUrl` no
+ * servidor real (Next 15.5.18) — confirmado empiricamente com curl -v +
+ * instrumentação temporária (revertida) + um browser Chromium real via
+ * Playwright. O sinal que sobrevive é `Next-Url` (setado pelo client router
+ * em toda fetch de dados RSC — prefetch E navegação client-side real, pois
+ * nenhum sinal as diferencia no middleware desta versão). `isPrefetchRequest`
+ * foi renomeado para `isRouterDataRequest` para refletir o escopo real.
  */
-describe('isPrefetchRequest', () => {
-  it('Next-Router-Prefetch: 1 → true', () => {
-    expect(isPrefetchRequest(new Headers({ 'next-router-prefetch': '1' }))).toBe(true);
+describe('isRouterDataRequest', () => {
+  it('Next-Url presente → true (fetch de dados do client router — prefetch OU navegação real)', () => {
+    expect(isRouterDataRequest(new Headers({ 'next-url': '/' }))).toBe(true);
   });
 
   it('header ausente → false', () => {
-    expect(isPrefetchRequest(new Headers())).toBe(false);
+    expect(isRouterDataRequest(new Headers())).toBe(false);
   });
 
   it('fallback: Purpose: prefetch → true', () => {
-    expect(isPrefetchRequest(new Headers({ purpose: 'prefetch' }))).toBe(true);
+    expect(isRouterDataRequest(new Headers({ purpose: 'prefetch' }))).toBe(true);
   });
 
-  it('Next-Router-Prefetch com valor diferente de "1" → false', () => {
-    expect(isPrefetchRequest(new Headers({ 'next-router-prefetch': '0' }))).toBe(false);
+  it('REGRESSÃO (achado do Verifier): Next-Router-Prefetch sozinho (sem Next-Url) NÃO é mais um sinal válido — nunca chega ao servidor real', () => {
+    expect(isRouterDataRequest(new Headers({ 'next-router-prefetch': '1' }))).toBe(false);
+  });
+
+  it('RSC sozinho (sem Next-Url) também não é sinal — mesma raiz do achado do Verifier', () => {
+    expect(isRouterDataRequest(new Headers({ rsc: '1' }))).toBe(false);
   });
 });
 
 describe('isDocumentRequest', () => {
-  it('Accept com text/html e sem rsc → true', () => {
+  it('Accept com text/html → true (navegação de documento real)', () => {
     expect(isDocumentRequest(new Headers({ accept: 'text/html,application/xhtml+xml' }))).toBe(true);
   });
 
-  it('Accept com text/html mas rsc:1 → false (RSC vence)', () => {
+  it('Accept com text/html continua true mesmo com Next-Url presente (rsc dead-code removido; Next-Url nunca ocorre com Accept:text/html na prática, mas Accept sozinho já discrimina)', () => {
     expect(
-      isDocumentRequest(new Headers({ accept: 'text/html,application/xhtml+xml', rsc: '1' })),
-    ).toBe(false);
+      isDocumentRequest(new Headers({ accept: 'text/html,application/xhtml+xml', 'next-url': '/' })),
+    ).toBe(true);
   });
 
-  it('Accept sem text/html (RSC/fetch) → false', () => {
+  it('Accept sem text/html (RSC/fetch/Server Action real: */* ou text/x-component) → false', () => {
+    expect(isDocumentRequest(new Headers({ accept: '*/*' }))).toBe(false);
     expect(isDocumentRequest(new Headers({ accept: 'text/x-component' }))).toBe(false);
   });
 
