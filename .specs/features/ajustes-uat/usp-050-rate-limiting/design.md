@@ -6,8 +6,11 @@
 > **Adaptar, não re-derivar (design upstream).** As decisões de arquitetura do rate limit estão fixadas em
 > **technical-design §8** (tetos/janelas), **ADR-0029** (hardening/anti-brute-force), **ADR-0014** (CAPTCHA como
 > defesa complementar) e no design da US #200/#201. Este design **não re-decide** nenhuma delas — só ajusta a
-> **classificação** (que categoria/quando conta) e o **parse** de uma flag. Buckets, tetos, janelas e o algoritmo
-> de janela deslizante (`rateLimit.ts`) ficam **intactos** (RL-MN-07).
+> **classificação** (que categoria/quando conta) e o **parse** de uma flag. Buckets, tetos e janelas **herdados**
+> (`anonymous`/`authenticated`/`registration`/`passwordReset`/`responsibleLookup`) e o algoritmo de janela
+> deslizante (`rateLimit.ts`) ficam **intactos** (RL-MN-07). **Iteração 3 (achado adversarial do Verifier)**:
+> uma categoria nova, `routerData`, foi adicionada — reusa o mesmo algoritmo/lib, só amplia o `Record` de
+> categorias (ver RL-MN-08); não é uma re-decisão da arquitetura herdada.
 
 ## Decisões de projeto ativas (STATE.md `## Decisions`)
 
@@ -36,11 +39,9 @@ graph TD
     subgraph edge["Edge Middleware (por request)"]
       R["NextRequest"] --> API{"/api/*?"}
       API -->|sim| SH1["só security headers (H2, intacto)"]
-      API -->|não| PF{"GET/HEAD && isRouterDataRequest (Next-Url)?"}
-      PF -->|sim| GATE["pula rate-limit; gate de sessão + security headers"]
-      PF -->|não| CAT["resolveCategory (method + segmento)"]
-      CAT --> CHK["rateLimiter.check (RATE_LIMITS, INTACTO)"]
-      CHK -->|allowed| GATE
+      API -->|não| CAT["resolveCategory (routerData > registration > passwordReset > auth/anon)"]
+      CAT --> CHK["rateLimiter.check (RATE_LIMITS[category])"]
+      CHK -->|allowed| GATE["gate de sessão + security headers"]
       CHK -->|bloqueado & !RATE_LIMIT_DISABLED| RESP{"isDocumentRequest?"}
       RESP -->|sim| HTML["renderRateLimitedHtml (novo, PT-BR)"]
       RESP -->|não| JSON["JSON ActionResult (INTACTO)"]
@@ -51,16 +52,22 @@ graph TD
 vira HTML; RSC/fetch/Server Action seguem JSON (RL-MN-06). **Correção pós-Verifier**: o check `rsc !== '1'` era
 código morto (`rsc` nunca chega ao middleware no servidor real) — removido; `Accept` sozinho é suficiente.
 
-**Fluxo de classificação** (PUB-2/SOC-1): `registration` só quando `path` é o segmento público `/cadastro`
-(exato ou `/cadastro/…`) **e** o método é mutação (POST). GET/HEAD/fetch do client router e `/cadastro-assistido`
-caem em `anonymous`/`authenticated`.
+**Fluxo de classificação** (PUB-2/SOC-1/PUB-1b): `resolveCategory` roteia, em ordem —
+1. `routerData` (iteração 3): GET/HEAD com `Next-Url` presente (fetch de dados do client router — prefetch ou
+   soft-nav, indistinguíveis nesta versão do Next).
+2. `registration`: `path` é o segmento público `/cadastro` (exato ou `/cadastro/…`) **e** o método é mutação
+   (POST).
+3. `passwordReset`: `/recuperar-senha`/`/reivindicar-credencial`.
+4. `authenticated`/`anonymous`: default, por cookie de sessão.
 
-**Fluxo de bypass do client router** (PUB-1b — **corrigido no ciclo de fix pós-Verifier**): `GET`/`HEAD` **e**
-`Next-Url` presente → o request **não** entra no `rateLimiter` (não conta, não bloqueia, sem headers
-`X-RateLimit-*`), mas segue o resto do middleware (gate de sessão + security headers). Cobre prefetch **e**
-navegação client-side real (indistinguíveis no middleware do Next 15.5.18 real — `Next-Router-Prefetch` nunca
-chega a `request.headers`, confirmado empiricamente com `curl -v` + browser real via Playwright). O gate de
-método garante que uma mutação nunca é isenta.
+`/cadastro-assistido` nunca casa (2) — cai em (4). Uma mutação nunca cai em (1) — gate de método explícito.
+
+**Fluxo `routerData`** (PUB-1b — **corrigido duas vezes**): iteração 2 tentou um bypass total (nunca entra no
+`rateLimiter`); **refutado pela verificação adversarial (iteração 3)** — `Next-Url` é forjável, então um bypass
+total é um opt-out gratuito e não-autenticado da proteção anti-scraping (ADR-0029). Correção final: `routerData`
+passa pelo **mesmo** `rateLimiter.check`/429/headers que qualquer outra categoria, só que com um teto
+generoso-mas-finito (`RATE_LIMITS.routerData`, 60/min) — ver Tech Decisions para a justificativa do número. O
+gate de método garante que uma mutação nunca cai nessa categoria.
 
 ---
 
@@ -71,8 +78,8 @@ método garante que uma mutação nunca é isenta.
 | Component | Location | How to Use |
 | --- | --- | --- |
 | `envSchema` + `parseEnv` + `superRefine` | `src/shared/env.ts` | Editar **só** o `preprocess` de `RATE_LIMIT_DISABLED` e `CV_EXTRACTOR_FAKE` para chamar `parseBooleanFlag`. `superRefine` e `AUTH_LOGIN_ENABLED` **inalterados**. |
-| `middleware` + `resolveCategory` + `isAuthenticated` + `applyRateLimitHeaders` + `logRateLimited` | `src/middleware.ts` | `resolveCategory` passa a considerar método + segmento; novo ramo prefetch antes do `check`; ramo 429 decide HTML×JSON. Helpers de header/log reusados. |
-| `rateLimiter` (singleton) + `RATE_LIMITS` + `RateLimitResult` | `src/shared/lib/rateLimit.ts` | **Consumido como está** — nenhuma mudança de lib (RL-MN-07). |
+| `middleware` + `resolveCategory` + `isAuthenticated` + `applyRateLimitHeaders` + `logRateLimited` | `src/middleware.ts` | `resolveCategory` passa a considerar método + segmento + `Next-Url` (categoria `routerData`, testada antes das demais); ramo 429 decide HTML×JSON. Helpers de header/log reusados. Sem ramo de bypass — todo request passa pelo mesmo `check`. |
+| `rateLimiter` (singleton) + `RATE_LIMITS` + `RateLimitResult` | `src/shared/lib/rateLimit.ts` | Algoritmo/singleton **consumidos como estão** (RL-MN-07). `RATE_LIMITS` ganha a chave nova `routerData` (iteração 3, adição explicitamente autorizada) — categorias herdadas byte-a-byte inalteradas. |
 | `applySecurityHeaders` / `securityHeaders` | `src/shared/lib/securityHeaders.ts` | Aplicado à resposta 429 (HTML e JSON) e às respostas normais — **inalterado**. A CSP `style-src 'unsafe-inline'` já permite o `<style>` inline da página 429. |
 | `clientIp` | `src/shared/lib/clientIp.ts` | Reusado para a chave do bucket — **inalterado**. |
 | base `validEnv` + testes `parseEnv` | `src/shared/__tests__/env.test.ts` | Estender com as variações de flag (fail-loud, Vercel-guard, CI-path). |
@@ -134,28 +141,31 @@ método garante que uma mutação nunca é isenta.
 - **Reuses**: strings PT-BR no mesmo tom das mensagens de erro existentes; casca mínima (não a casca `(public)`,
   que é de rota — indisponível no Edge).
 
-### 3. `middleware` — wiring da classificação, bypass do client router e 429 (editar)
+### 3. `middleware` — wiring da classificação (routerData/registration/passwordReset/auth) e 429 (editar)
 
-- **Purpose**: Aplicar o bypass de rate limit para fetches de dados do client router, classificação por
-  método/segmento e a decisão HTML×JSON no 429, sem tocar o algoritmo de rate limit.
+- **Purpose**: Classificar todo request numa categoria (incluindo a nova `routerData`) e decidir HTML×JSON no
+  429, sem tocar o algoritmo de rate limit nem introduzir um ramo de bypass.
 - **Location**: `src/middleware.ts`
 - **Interfaces** (mudanças internas):
-  - Após o branch `/api`: `const isRouterFetch = (method === 'GET' || method === 'HEAD') &&
-    isRouterDataRequest(request.headers)`. Se `isRouterFetch` → **pular** `resolveCategory`/`check`/`prune`/429 e
-    os headers `X-RateLimit-*`; seguir para o gate de sessão + security headers. (`result` fica `null`;
-    `applyRateLimitHeaders` é chamado **só** quando `result !== null`.) O gate de método (`GET`/`HEAD`) é defesa
-    em profundidade: confirmado empiricamente que um Server Action POST real não carrega `Next-Url`, mas o gate
-    explícito remove qualquer ambiguidade futura (PUB-2 exige que mutações sempre contem).
+  - **Sem bypass** (revertido da iteração 2 após o achado adversarial): todo request, após o branch `/api`, passa
+    por `resolveCategory` → `rateLimiter.check` → 429/headers, igual para qualquer categoria. `result` volta a
+    ser não-nulo sempre (simplifica de volta à estrutura anterior à USP-050).
   - `resolveCategory(request)`:
     ```
     const path = request.nextUrl.pathname;
-    const isPublicCadastro = path === '/cadastro' || path.startsWith('/cadastro/');
     const isMutation = request.method !== 'GET' && request.method !== 'HEAD';
+
+    if (!isMutation && isRouterDataRequest(request.headers)) return 'routerData';
+
+    const isPublicCadastro = path === '/cadastro' || path.startsWith('/cadastro/');
     if (isPublicCadastro && isMutation) return 'registration';
     if (path.startsWith('/recuperar-senha') || path.startsWith('/reivindicar-credencial')) return 'passwordReset';
     return isAuthenticated(request) ? 'authenticated' : 'anonymous';
     ```
-    (Remove o ramo morto `startsWith('/cadastrar')`.)
+    `routerData` é testada **primeiro** (antes de `registration`) mas só para GET/HEAD — o gate de método é
+    defesa em profundidade: confirmado empiricamente que um Server Action POST real não carrega `Next-Url`, mas
+    o gate explícito remove qualquer ambiguidade futura (PUB-2 exige que mutações sempre contem). (Remove o ramo
+    morto `startsWith('/cadastrar')`.)
   - Ramo 429 (`!result.allowed && !env.RATE_LIMIT_DISABLED`): se `isDocumentRequest(request.headers)` →
     `new NextResponse(renderRateLimitedHtml(result.retryAfterSeconds), { status: 429 })` com
     `Content-Type: text/html; charset=utf-8`; senão → o `NextResponse.json({ ok:false, … })` **atual** (intacto).
@@ -177,8 +187,10 @@ método garante que uma mutação nunca é isenta.
 
 ## Data Models
 
-Nenhum. Sem schema/migração. Sem novo tipo persistido. `RateLimitResult`/`RateLimitCategory`/`RATE_LIMITS`
-permanecem como estão.
+Nenhum. Sem schema/migração. Sem novo tipo persistido (`rateLimiter` continua em memória, `Map` por processo).
+`RateLimitResult` inalterado. `RateLimitCategory` (`keyof typeof RATE_LIMITS`) ganha `'routerData'` automaticamente
+ao adicionar a chave — nenhuma mudança manual de tipo. `RATE_LIMITS`: categorias herdadas byte-a-byte inalteradas;
+`routerData` é a única adição (iteração 3, autorizada explicitamente — ver RL-MN-07/08 em spec.md).
 
 ---
 
@@ -190,7 +202,8 @@ permanecem como estão.
 | `RATE_LIMIT_DISABLED=true` num deploy Vercel real | `superRefine` (intacto) adiciona issue `VERCEL_ENV` → boot falha | Deploy real nunca sobe com rate limit desligado (fail-closed) |
 | 429 em navegação de documento | Página HTML PT-BR + `Retry-After` + `no-store` | Usuário lê explicação em português, sabe quanto esperar |
 | 429 em RSC/fetch/Server Action | JSON `{ok:false, error:{code:'RATE_LIMITED', message}}` (intacto) | Cliente RSC/Action recebe o shape esperado, sem quebrar |
-| Fetch de dados do client router (prefetch ou soft-nav) que estouraria o teto | Ignorado (não conta, não bloqueia) — GET/HEAD com `Next-Url` | Navegação de documento do usuário não é penalizada por prefetch/soft-nav |
+| Fetch de dados do client router (prefetch ou soft-nav) do volume típico de navegação | Roteado para a categoria `routerData` (60/min — GET/HEAD com `Next-Url`); conta, mas fica bem abaixo do teto | Navegação real não é penalizada; documento (bucket independente) também não |
+| `Next-Url` forjado em loop pelo mesmo IP (achado adversarial, iteração 3) | `routerData` bloqueia com 429 ao exceder 60/min — mesmo pipeline de qualquer categoria | Scraper limitado a ~1 req/s sustentado; não é mais um opt-out gratuito |
 | Request sem `Accept` no 429 | Ramo JSON (falha segura) | Sem HTML indevido; comportamento previsível |
 
 ---
@@ -200,7 +213,8 @@ permanecem como estão.
 | Concern | Location (file:line) | Impact | Mitigation |
 | --- | --- | --- | --- |
 | Teste-âncora `middleware.test.ts:63-70` fixa o comportamento **bugado** (GET `/cadastro` = `registration`) | `src/middleware.test.ts:63` | Ao corrigir PUB-2, esse teste quebra | **Atualizar** o teste para POST (mantém a asserção 3/15min sob submissão) + teste novo GET→anônimo. É adequação de contrato deliberada (spec Assumptions), não enfraquecimento — documentado em tasks (T4). |
-| ~~Confiar só em `RSC: 1`/`?_rsc=` para detectar prefetch classificaria navegações soft como prefetch~~ **MATERIALIZADO NO LIVE OUTCOME-CHECK** (não apenas um risco teórico) | `src/shared/lib/rateLimitResponse.ts` | O sinal documentado (`Next-Router-Prefetch: 1`) confirmado Context7 **nunca chega** a `request.headers` no servidor real (Next 15.5.18) — o risco anotado aqui na fase de design se concretizou; `PREF-01/RL-MN-01` falharam no live outcome-check do Verifier. | **Corrigido no ciclo de fix pós-Verifier**: sinal trocado para `Next-Url` (confirmado empiricamente sobrevivente); escopo ampliado para cobrir prefetch + soft-nav (indistinguíveis no middleware real); gate de método (GET/HEAD) protege mutações. Ver spec.md Assumptions para a evidência completa. |
+| ~~Confiar só em `RSC: 1`/`?_rsc=` para detectar prefetch classificaria navegações soft como prefetch~~ **MATERIALIZADO NO LIVE OUTCOME-CHECK** (iteração 2) | `src/shared/lib/rateLimitResponse.ts` | O sinal documentado (`Next-Router-Prefetch: 1`) confirmado Context7 **nunca chega** a `request.headers` no servidor real (Next 15.5.18) — o risco anotado aqui na fase de design se concretizou; `PREF-01/RL-MN-01` falharam no live outcome-check do Verifier. | **Corrigido na iteração 2**: sinal trocado para `Next-Url` (confirmado empiricamente sobrevivente); escopo ampliado para cobrir prefetch + soft-nav. |
+| ~~Um bypass total baseado em `Next-Url` seria seguro~~ **REFUTADO PELA VERIFICAÇÃO ADVERSARIAL** (iteração 3) | `src/middleware.ts` (`resolveCategory`, iteração 2) | `Next-Url` é um header comum, forjável por qualquer cliente HTTP — o bypass total virou um opt-out gratuito e não-autenticado do rate limit anônimo para toda rota GET pública, anulando ADR-0029/US #200. Confirmado ao vivo: `curl -H "Next-Url: /" ...` em loop nunca gerava 429. Lição L-016. | **Corrigido na iteração 3**: bypass total substituído pela categoria `routerData` (teto 60/min, generoso-mas-finito) — conta e bloqueia como qualquer categoria; RL-MN-08 é o sensor. |
 | Servir HTML a um request RSC quebraria o cliente Flight | `src/middleware.ts` (ramo 429) | Server Actions/RSC receberiam HTML e falhariam | `isDocumentRequest` exige `Accept: text/html`; `rsc==='1'` era dead code (removido no ciclo de fix — nunca chega ao middleware real). RL-MN-06 é o sensor; confirmado ao vivo que um Server Action POST real (`Accept: text/x-component`) segue no ramo JSON. |
 | CSP bloquear a página 429 se usasse asset externo | `renderRateLimitedHtml` | Página 429 quebrada | Página 100% self-contained; `<style>` inline coberto por `style-src 'unsafe-inline'`; `default-src 'self'`. |
 | Singleton `rateLimiter` compartilhado entre testes | `src/middleware.test.ts` | Contaminação de estado entre casos | `rateLimiter.reset()` no `beforeEach` (padrão já existente); vitest isola módulos por arquivo. |
@@ -215,7 +229,8 @@ permanecem como estão.
 | Decision | Choice | Rationale |
 | --- | --- | --- |
 | Onde servir a página 429 | **Do Edge Middleware** (string HTML), não de uma rota Next | O middleware retorna antes do roteamento; `not-found.tsx`/`error.tsx` só chegam na USP-059. Mantém a correção auto-contida e **fora de `src/app/**`** (evita a regressão de branch-gate: `src/app` não entra no coverage include). |
-| ~~Sinal de prefetch~~ Sinal de fetch do client router | ~~`Next-Router-Prefetch: 1`~~ → **`Next-Url`** (revisado no ciclo de fix pós-Verifier) | O sinal documentado (`Next-Router-Prefetch: 1`) **nunca chega** a `request.headers` no servidor real (Next 15.5.18) — refutado empiricamente (curl -v + browser real). `Next-Url` é o sinal que sobrevive, presente em toda fetch de dados RSC (prefetch **e** navegação client-side real — as duas indistinguíveis no middleware desta versão, então o bypass cobre ambas, gate de método `GET`/`HEAD` protege mutações). |
+| ~~Sinal de prefetch~~ Sinal de fetch do client router | ~~`Next-Router-Prefetch: 1`~~ → **`Next-Url`** (revisado na iteração 2) | O sinal documentado (`Next-Router-Prefetch: 1`) **nunca chega** a `request.headers` no servidor real (Next 15.5.18) — refutado empiricamente (curl -v + browser real). `Next-Url` é o sinal que sobrevive, presente em toda fetch de dados RSC (prefetch **e** navegação client-side real — as duas indistinguíveis no middleware desta versão). |
+| ~~Tratamento do fetch de dados do client router~~ Bypass total → **categoria `routerData` (60/min)** (revisado na iteração 3, verificação adversarial) | ~~Excluir da contagem~~ → Rotear para `RATE_LIMITS.routerData = { limit: 60, windowMs: 60_000 }`, testado antes de `registration` em `resolveCategory`, restrito a GET/HEAD | `Next-Url` é forjável — um bypass total anulava a proteção anti-scraping de toda rota GET pública (ADR-0029). 60/min é ~4-7x o volume medido de uma navegação real (8-15 router-fetches/load — dossiê PUB-1b e outcome-check da iteração 2) e reusa o teto já aceito de `authenticated` (não é um número novo); ainda limita um scraper forjando o header a ~1 req/s sustentado. Confirmado ao vivo: 60 requests forjados → 200, a 61ª → 429. |
 | Sinal HTML×JSON | `Accept: text/html` (check `rsc` removido) | Casa exatamente o dossiê ("Accept text/html → HTML; RSC/fetch → JSON") e falha segura (sem Accept → JSON). O check `!== 'rsc:1'` era código morto (mesma raiz do achado acima) — removido no ciclo de fix; `Accept` sozinho já discriminava corretamente. |
 | `registration` por método | Mutação = método ≠ GET/HEAD (POST) | A cota foi dimensionada para submissões (TD §8). Server Actions são sempre POST. |
 | Matcher por segmento exato | `=== '/cadastro' || startsWith('/cadastro/')` | Exclui `/cadastro-assistido` (SOC-1) e mantém `/cadastro/consentimento`. Remove o ramo morto `/cadastrar`. |
