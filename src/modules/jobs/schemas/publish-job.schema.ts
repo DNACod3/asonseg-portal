@@ -111,19 +111,27 @@ export const publishJobSchema = z
         message: 'O salário máximo não pode ser menor que o mínimo.',
       });
     }
-    const status = validadeStatus(new Date(data.validUntil), new Date());
-    if (status === 'passado') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['validUntil'],
-        message: 'A data de validade deve ser futura.',
-      });
-    } else if (status === 'excede_teto') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['validUntil'],
-        message: `A validade não pode ultrapassar ${MAX_VALIDADE_DIAS} dias.`,
-      });
+    // EMP-1 / RF-03 / RF-MN-03: `validUntil` vazia/inválida já falha no campo-level
+    // (`validUntilStr` acima); aqui só chamamos `validadeStatus` quando a data é
+    // parseável — evita que `formatInTimeZone` (dentro de `validadeStatus`) lance
+    // `RangeError` sobre `Invalid Date`, o que abortava a renderização dos erros
+    // do RHF e deixava "Enviar para moderação" com aparência de botão morto.
+    const parsedValidUntil = new Date(data.validUntil);
+    if (!Number.isNaN(parsedValidUntil.getTime())) {
+      const status = validadeStatus(parsedValidUntil, new Date());
+      if (status === 'passado') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: 'A data de validade deve ser futura.',
+        });
+      } else if (status === 'excede_teto') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: `A validade não pode ultrapassar ${MAX_VALIDADE_DIAS} dias.`,
+        });
+      }
     }
   });
 
