@@ -167,3 +167,39 @@ describe('JobForm — restyle Design System (USP-020)', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Rascunho salvo.'));
   });
 });
+
+/**
+ * EMP-1 / EMP-6 / RF-03 / RF-04. Antes do fix, `validUntil` vazia fazia o
+ * `superRefine` lançar `RangeError` (formatInTimeZone sobre Invalid Date), o
+ * que abortava a renderização dos erros do RHF — "Enviar para moderação"
+ * parecia um botão morto. O `noValidate` no `<form>` garante que a mensagem
+ * PT-BR do Zod aparece em vez do tooltip nativo em inglês do `<input
+ * type="date">`.
+ */
+describe('JobForm — validade vazia não derruba o form (EMP-1/EMP-6)', () => {
+  it('EMP-6: o <form> declara noValidate', () => {
+    const { container } = render(
+      <JobForm companyId={UUID_COMPANY} jobAreas={uuidJobAreas} regions={uuidRegions} />,
+    );
+    expect(container.querySelector('form')).toHaveAttribute('novalidate', '');
+  });
+
+  it('EMP-1: submeter com validade vazia exibe "Data de validade é obrigatória." inline, sem crash', async () => {
+    render(<JobForm companyId={UUID_COMPANY} jobAreas={uuidJobAreas} regions={uuidRegions} />);
+
+    fireEvent.change(screen.getByLabelText(/título da vaga/i), { target: { value: 'Vendedor(a)' } });
+    fireEvent.change(screen.getByLabelText(/área de atuação/i), { target: { value: UUID_AREA } });
+    fireEvent.change(screen.getByLabelText(/^descrição$/i), { target: { value: 'Descrição válida.' } });
+    fireEvent.change(screen.getByLabelText(/^requisitos$/i), { target: { value: 'Requisitos válidos.' } });
+    fireEvent.change(screen.getByLabelText(/regime de trabalho/i), { target: { value: 'Presencial' } });
+    fireEvent.change(screen.getByLabelText(/tipo de contrato/i), { target: { value: 'CLT' } });
+    fireEvent.change(screen.getByLabelText(/^região$/i), { target: { value: UUID_REGION } });
+    fireEvent.change(screen.getByLabelText(/local$/i), { target: { value: 'São José - SC' } });
+    // `validUntil` propositalmente NÃO preenchido (fica '' — default do form).
+
+    fireEvent.click(screen.getByRole('button', { name: /enviar para moderação/i }));
+
+    expect(await screen.findByText('Data de validade é obrigatória.')).toBeInTheDocument();
+    expect(actions.submitJobForModeration).not.toHaveBeenCalled();
+  });
+});
