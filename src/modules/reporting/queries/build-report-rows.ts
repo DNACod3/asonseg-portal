@@ -8,6 +8,8 @@ import { viewSocialReport } from '../views/social-report.view';
 import type { ReportType } from '../schemas/export-report';
 import type { ReportFiltersInput } from '../schemas/report-filters';
 import { listServiceCategories } from '@/modules/services';
+import { INCOME_BRACKET_LABELS, HOUSING_SITUATION_LABELS, type IncomeBracket, type HousingSituation } from '@/modules/persons';
+import { labelContentStatus, MANIFESTATIONS_STATUS_LABEL } from '../domain/report-labels';
 
 /** Marcador neutro para categoria ausente/órfã (spec A7). */
 const EMPTY_CATEGORY_MARKER = '—';
@@ -47,7 +49,8 @@ export async function buildReportRows(
           { key: 'status', label: 'Status' },
           { key: 'count', label: 'Quantidade' },
         ],
-        rows: rows.map((r) => ({ status: r.status, count: r.count })),
+        // USP058-11 (REL-3): status em PT-BR — nunca o token cru do enum.
+        rows: rows.map((r) => ({ status: labelContentStatus(r.status), count: r.count })),
       };
     }
     case 'applications': {
@@ -63,13 +66,14 @@ export async function buildReportRows(
       // `report-services.ts` e seu int-test de shape (`{status,categoryId,count}`)
       // permanecem intocados (spec A4).
       const nameByCategoryId = new Map(categories.map((c) => [c.id, c.name]));
+      // USP058-11/12 (REL-3): status em PT-BR + marcador de manifestações traduzido.
       const rows: Record<string, unknown>[] = report.byStatusAndCategory.map((r) => ({
-        status: r.status,
+        status: labelContentStatus(r.status),
         categoria: r.categoryId ? (nameByCategoryId.get(r.categoryId) ?? EMPTY_CATEGORY_MARKER) : EMPTY_CATEGORY_MARKER,
         count: r.count,
       }));
       rows.push({
-        status: 'MANIFESTACOES_INTERESSE',
+        status: MANIFESTATIONS_STATUS_LABEL,
         categoria: EMPTY_CATEGORY_MARKER,
         count: report.interestsCount,
       });
@@ -138,11 +142,14 @@ export async function buildReportRows(
       const rows: Record<string, unknown>[] = [];
       for (const entry of social.sensitive ?? []) {
         const regionName = entry.regionName ?? 'Sem região';
+        // USP058-13 (REL-3): renda/moradia em PT-BR — reuso de @/modules/persons (spec A3).
         for (const [bracket, count] of Object.entries(entry.byIncomeBracket)) {
-          rows.push({ regionName, dimensao: 'Faixa de renda', categoria: bracket, quantidade: count });
+          const categoria = INCOME_BRACKET_LABELS[bracket as IncomeBracket] ?? bracket;
+          rows.push({ regionName, dimensao: 'Faixa de renda', categoria, quantidade: count });
         }
         for (const [situation, count] of Object.entries(entry.byHousingSituation)) {
-          rows.push({ regionName, dimensao: 'Situação de moradia', categoria: situation, quantidade: count });
+          const categoria = HOUSING_SITUATION_LABELS[situation as HousingSituation] ?? situation;
+          rows.push({ regionName, dimensao: 'Situação de moradia', categoria, quantidade: count });
         }
         rows.push({
           regionName,

@@ -109,8 +109,10 @@ describe.skipIf(!hasDb)('USP-042/T11 — exportReport (integração)', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.format).toBe('CSV');
-      expect(result.data.content).toContain('ACTIVE;2');
-      expect(result.data.content).toContain('DRAFT;1');
+      // USP-058/REL-3 (G2): status em PT-BR também no export — a projeção única
+      // (buildReportRows) traduz antes de chegar ao serializador CSV.
+      expect(result.data.content).toContain('Ativo;2');
+      expect(result.data.content).toContain('Rascunho;1');
     }
 
     const after = await prisma.auditLog.count({ where: { action: 'REPORT_EXPORTED', actorPersonId: coordId } });

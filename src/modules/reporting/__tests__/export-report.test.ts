@@ -150,7 +150,8 @@ describe('exportReport', () => {
       expect(result.data.format).toBe('CSV');
       expect(result.data.mimeType).toContain('text/csv');
       expect(result.data.content).toContain('Status;Quantidade');
-      expect(result.data.content).toContain('ACTIVE;3');
+      // USP-058/REL-3 (G2): status em PT-BR também no export (buildReportRows traduz antes do CSV).
+      expect(result.data.content).toContain('Ativo;3');
     }
     expect(auditState.events).toContain('REPORT_EXPORTED');
     expect(auditState.last).toMatchObject({
