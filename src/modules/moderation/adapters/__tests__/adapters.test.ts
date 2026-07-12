@@ -29,6 +29,7 @@ describe('NextCacheInvalidation', () => {
     await adapter.revalidateForContent({
       contentKind: ContentKind.JOB,
       contentId: 'c1',
+      from: ContentStatus.IN_MODERATION,
       to: ContentStatus.ACTIVE,
     });
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
@@ -36,6 +37,7 @@ describe('NextCacheInvalidation', () => {
     await adapter.revalidateForContent({
       contentKind: ContentKind.SERVICE,
       contentId: 'c2',
+      from: ContentStatus.IN_MODERATION,
       to: ContentStatus.ACTIVE,
     });
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/servicos');
@@ -45,16 +47,42 @@ describe('NextCacheInvalidation', () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.CV,
       contentId: 'c3',
+      from: ContentStatus.IN_MODERATION,
       to: ContentStatus.ACTIVE,
     });
     expect(cacheState.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it('transição que não muda visibilidade pública (PAUSED) faz early-return', async () => {
+  it('USP-054/EMP-3: JOB ACTIVE→PAUSED (sai de ACTIVE) revalida /vagas e o detalhe', async () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.JOB,
       contentId: 'c4',
+      from: ContentStatus.ACTIVE,
       to: ContentStatus.PAUSED,
+    });
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas/c4');
+    expect(cacheState.revalidatePath).toHaveBeenCalledTimes(2);
+  });
+
+  it('USP-054/EMP-3: JOB ACTIVE→ARCHIVED (sai de ACTIVE) revalida /vagas e o detalhe', async () => {
+    await new NextCacheInvalidation().revalidateForContent({
+      contentKind: ContentKind.JOB,
+      contentId: 'c4b',
+      from: ContentStatus.ACTIVE,
+      to: ContentStatus.ARCHIVED,
+    });
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
+    expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas/c4b');
+    expect(cacheState.revalidatePath).toHaveBeenCalledTimes(2);
+  });
+
+  it('USP-054/MN-04: transição real entre dois status não-ACTIVE (DRAFT→IN_MODERATION) faz early-return', async () => {
+    await new NextCacheInvalidation().revalidateForContent({
+      contentKind: ContentKind.JOB,
+      contentId: 'c4c',
+      from: ContentStatus.DRAFT,
+      to: ContentStatus.IN_MODERATION,
     });
     expect(cacheState.revalidatePath).not.toHaveBeenCalled();
   });
@@ -63,6 +91,7 @@ describe('NextCacheInvalidation', () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.JOB,
       contentId: 'c5',
+      from: ContentStatus.ACTIVE,
       to: ContentStatus.INACTIVATED,
     });
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
@@ -72,6 +101,7 @@ describe('NextCacheInvalidation', () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.JOB,
       contentId: 'job-7',
+      from: ContentStatus.ACTIVE,
       to: ContentStatus.INACTIVATED,
     });
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas');
@@ -83,16 +113,18 @@ describe('NextCacheInvalidation', () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.JOB,
       contentId: 'job-8',
+      from: ContentStatus.IN_MODERATION,
       to: ContentStatus.ACTIVE,
     });
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/vagas/job-8');
   });
 
-  it('USP-018: transição sem mudança de visibilidade (PAUSED) não revalida o detalhe', async () => {
+  it('USP-018: transição sem mudança de visibilidade nem saída de ACTIVE (PAUSED→ACTIVE já é entrada; aqui IN_MODERATION→AWAITING_ADJUSTMENTS) não revalida o detalhe', async () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.JOB,
       contentId: 'job-9',
-      to: ContentStatus.PAUSED,
+      from: ContentStatus.IN_MODERATION,
+      to: ContentStatus.AWAITING_ADJUSTMENTS,
     });
     expect(cacheState.revalidatePath).not.toHaveBeenCalledWith('/vagas/job-9');
   });
@@ -101,6 +133,7 @@ describe('NextCacheInvalidation', () => {
     await new NextCacheInvalidation().revalidateForContent({
       contentKind: ContentKind.SERVICE,
       contentId: 'service-1',
+      from: ContentStatus.IN_MODERATION,
       to: ContentStatus.ACTIVE,
     });
     expect(cacheState.revalidatePath).toHaveBeenCalledWith('/servicos');
@@ -113,6 +146,7 @@ describe('NextCacheInvalidation', () => {
       new NextCacheInvalidation().revalidateForContent({
         contentKind: 'UNKNOWN' as ContentKindType,
         contentId: 'c6',
+        from: ContentStatus.IN_MODERATION,
         to: ContentStatus.ACTIVE,
       }),
     ).resolves.toBeUndefined();

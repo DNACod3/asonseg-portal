@@ -106,7 +106,9 @@ export async function transitionContent(
           }),
         );
         await runSoftFail('cache', () =>
-          container.resolve(CACHE_INVALIDATION_TOKEN).revalidateForContent({ contentKind, contentId, to }),
+          container
+            .resolve(CACHE_INVALIDATION_TOKEN)
+            .revalidateForContent({ contentKind, contentId, from, to }),
         );
 
         // Hook de Empresa (USP-017) — writes transacionais acoplados à decisão
