@@ -27,7 +27,7 @@
 
 ## Handoff
 
-**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049, USP-050, USP-051, USP-052 (PASS). Próxima unidade: **USP-053 — Cascata de revogação JOB_APPLICATION** (`.specs/features/ajustes-uat/usp-053-cascata-revogacao/`).
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..053 (PASS). Próxima unidade: **USP-054 — Ciclo de vida da vaga no painel** (`.specs/features/ajustes-uat/usp-054-ciclo-vida-vaga/`).
 
 ---
 
