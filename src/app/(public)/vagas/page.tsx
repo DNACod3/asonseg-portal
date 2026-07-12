@@ -11,10 +11,12 @@ import {
 } from '@/modules/jobs';
 import { Button, FormHeader } from '@/shared/ui';
 
-// ADR-0013/ADR-0019: listagem pública com ISR de 30min. A revalidação on-demand
-// (`revalidatePath('/vagas')`) já é disparada por `transitionContent` quando uma
-// vaga entra/sai de ACTIVE (NextCacheInvalidation) — nada a cabear aqui.
-export const revalidate = 1800;
+// ADR-0013/ADR-0019: listagem pública com ISR de 10min (CLAUDE.md — Route Groups
+// `(public)/`; USP-054/EMP-3 alinha o TTL, que divergia como 1800/30min). A
+// revalidação on-demand (`revalidatePath('/vagas')`) já é disparada por
+// `transitionContent` quando uma vaga entra/sai de ACTIVE (NextCacheInvalidation)
+// — nada a cabear aqui; o ISR é só o backstop.
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Vagas | ASONSEG',
