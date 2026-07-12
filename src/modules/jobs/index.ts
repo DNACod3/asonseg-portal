@@ -130,6 +130,10 @@ export {
   type PersonApplicationRow,
 } from './queries/list-person-applications';
 export { resolveJobExpiryEmail } from './queries/resolve-job-expiry-email';
+export {
+  listLatestReturnReasons,
+  type LatestReturnReason,
+} from './queries/list-latest-return-reasons';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
