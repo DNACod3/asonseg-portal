@@ -78,6 +78,13 @@ export {
   type CreateReferralApplicationArgs,
   type CreateReferralApplicationResult,
 } from './actions/create-referral-application';
+// USP-053 (CAND-7) — participante de tx que encerra+marca candidaturas ativas
+// na cascata de revogação de JOB_APPLICATION (ENCERRAR+MARCAR).
+export {
+  endJobApplicationsForRevocation,
+  type EndJobApplicationsForRevocationContext,
+  type EndJobApplicationsForRevocationResult,
+} from './actions/end-job-applications-for-revocation';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
