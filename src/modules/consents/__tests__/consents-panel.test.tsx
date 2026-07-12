@@ -75,6 +75,13 @@ describe('consents/ConsentsPanel', () => {
     expect(screen.getByText('Conteúdo do termo X')).toBeInTheDocument();
   });
 
+  it('AUTH6-4: o termo aceito é renderizado via TermMarkdown — sem sintaxe Markdown crua', () => {
+    render(<ConsentsPanel items={[item({ termBody: '**Finalidade** do termo aceito.' })]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver termo aceito' }));
+    expect(screen.getByText('Finalidade').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*Finalidade\*\*/)).not.toBeInTheDocument();
+  });
+
   it('U43-STYLE-01: mapeia o status para a variante de Badge do Design System (AD-014)', () => {
     render(
       <ConsentsPanel
