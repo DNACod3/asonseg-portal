@@ -84,6 +84,14 @@ describe('CreateCompanyForm (USP-012, restyle Fase 2)', () => {
     ).toBeInTheDocument();
   });
 
+  it('AUTH6-4: renderiza o corpo do termo via TermMarkdown — sem sintaxe Markdown crua', () => {
+    render(
+      <CreateCompanyForm term={{ ...TERM, body: '**Finalidade** do termo empresarial.' }} />,
+    );
+    expect(screen.getByText('Finalidade').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*Finalidade\*\*/)).not.toBeInTheDocument();
+  });
+
   it('submeter sem marcar o consentimento NÃO chama createCompany', async () => {
     renderForm();
     fillValidData();

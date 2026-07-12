@@ -58,6 +58,17 @@ describe('USP-009 #46 — CandidateForm', () => {
     expect(screen.getByRole('button', { name: /salvar cadastro/i })).toBeDisabled();
   });
 
+  it('AUTH6-4: renderiza o corpo do termo via TermMarkdown — sem sintaxe Markdown crua', () => {
+    render(
+      <CandidateForm
+        {...baseProps}
+        term={{ ...baseProps.term, body: '**Finalidade** do termo de candidatura.' }}
+      />,
+    );
+    expect(screen.getByText('Finalidade').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*Finalidade\*\*/)).not.toBeInTheDocument();
+  });
+
   it('habilita o envio ao marcar o aceite', () => {
     render(<CandidateForm {...baseProps} />);
     fireEvent.click(screen.getByRole('checkbox'));

@@ -206,6 +206,17 @@ describe('USP-040 — CvUploadForm', () => {
       expect(screen.getByRole('button', { name: /enviar e extrair/i })).toBeDisabled();
     });
 
+    it('AUTH6-4: renderiza o corpo do termo via TermMarkdown — sem sintaxe Markdown crua', () => {
+      render(
+        <CvUploadForm
+          term={{ ...cvTerm, body: '**Finalidade** do termo de extração.' }}
+          alreadyGranted={false}
+        />,
+      );
+      expect(screen.getByText('Finalidade').tagName).toBe('STRONG');
+      expect(screen.queryByText(/\*\*Finalidade\*\*/)).not.toBeInTheDocument();
+    });
+
     it('PERF-MN-03: checkbox desmarcado + alreadyGranted=false → clicar não despacha uploadCv nem grantConsent', () => {
       render(<CvUploadForm term={cvTerm} alreadyGranted={false} />);
       selectFile();

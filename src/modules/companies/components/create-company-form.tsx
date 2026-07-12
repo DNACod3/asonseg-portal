@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
+import { Button, Input, Label, LgpdBox, Textarea, TermMarkdown } from '@/shared/ui';
 import { COMPANY_TYPE_OPTIONS } from '../domain/company-type';
 import {
   createCompanySchema,
@@ -196,12 +196,11 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
 
       {/* Termo de representação empresarial */}
       <LgpdBox title="Termo de representação empresarial">
-        <div
-          className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
+        <TermMarkdown
+          source={term.body}
+          className="mb-3 max-h-40 overflow-y-auto rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
           aria-label="Conteúdo do termo de representação empresarial"
-        >
-          {term.body}
-        </div>
+        />
         <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
           <input
             type="checkbox"

@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
+import { Button, Input, Label, LgpdBox, Textarea, TermMarkdown } from '@/shared/ui';
 // Import direto do módulo `'use server'` (não do barrel `@/modules/identity`):
 // este é um Client Component e o barrel reexporta código server-only
 // (`container.ts` via captchaVerifier, `supabase/server.ts` via session), que o
@@ -208,12 +208,11 @@ export function CandidateForm({
         {/* Termo de consentimento JOB_APPLICATION (CAD-05) — exigido na 1ª ativação. */}
         {!alreadyCandidate && (
           <LgpdBox title="Termo de uso para candidatura a vagas">
-            <div
-              className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
+            <TermMarkdown
+              source={term.body}
+              className="mb-3 max-h-40 overflow-y-auto rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
               aria-label="Conteúdo do termo de candidatura a vagas"
-            >
-              {term.body}
-            </div>
+            />
             <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
               <input
                 type="checkbox"
