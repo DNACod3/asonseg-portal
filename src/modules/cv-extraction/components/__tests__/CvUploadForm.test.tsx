@@ -37,6 +37,18 @@ function selectFile() {
   fireEvent.change(input, { target: { files: [pdfFile()] } });
 }
 
+/** Arquivo com `size` acima do limite de 5 MB (CVE-01) sem alocar bytes reais. */
+function oversizedFile(): File {
+  const file = pdfFile();
+  Object.defineProperty(file, 'size', { value: 5 * 1024 * 1024 + 1 });
+  return file;
+}
+
+function selectOversizedFile() {
+  const input = document.getElementById('cv-file') as HTMLInputElement;
+  fireEvent.change(input, { target: { files: [oversizedFile()] } });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -131,6 +143,35 @@ describe('USP-040 — CvUploadForm', () => {
     await waitFor(() => {
       expect(screen.getByText(/confirmados/i)).toBeInTheDocument();
     });
+  });
+
+  // CAND-5 / RF-05 / RF-MN-04: CV acima do limite é barrado no cliente, sem
+  // despachar a Server Action `uploadCv` (evita o erro de transporte 413).
+  it('RF-MN-04: CV > 5 MB não chama uploadCv e exibe mensagem PT-BR de tamanho', async () => {
+    render(<CvUploadForm />);
+    selectOversizedFile();
+    fireEvent.click(screen.getByRole('button', { name: /enviar e extrair/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'O arquivo excede o limite de 5 MB. Envie um currículo menor.',
+      );
+    });
+    expect(actions.uploadCv).not.toHaveBeenCalled();
+  });
+
+  it('CV dentro do limite (≤ 5 MB) chama uploadCv normalmente', async () => {
+    actions.uploadCv.mockResolvedValue({ ok: true, data: { uploaded: true } });
+    actions.extractCvFromUpload.mockResolvedValue({
+      ok: true,
+      data: { fromAi: false, fallback: true, extracted: null },
+    });
+
+    render(<CvUploadForm />);
+    selectFile();
+    fireEvent.click(screen.getByRole('button', { name: /enviar e extrair/i }));
+
+    await waitFor(() => expect(actions.uploadCv).toHaveBeenCalledOnce());
   });
 
   it('exibe o erro do servidor quando o upload falha', async () => {

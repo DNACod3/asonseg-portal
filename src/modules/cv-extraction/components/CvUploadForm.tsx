@@ -4,6 +4,11 @@ import { useRef, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, Label, Textarea } from '@/shared/ui';
+// `domain/mime.ts` é módulo-leaf puro (sem IO/Prisma) — mesma fonte de verdade
+// do limite (MAX_CV_BYTES) já usada pela Server Action `upload-cv.ts` (server).
+// Import relativo dentro do próprio módulo (não atravessa o barrel de outro
+// módulo, então não é o caso restrito por `no-restricted-imports`).
+import { isWithinCvSizeLimit } from '../domain/mime';
 import { uploadCv } from '../actions/upload-cv';
 import { extractCvFromUpload } from '../actions/extract-cv';
 import { confirmCvFields } from '../actions/confirm-cv-fields';
@@ -80,6 +85,13 @@ export function CvUploadForm({ onConfirmed }: CvUploadFormProps) {
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
       setServerError('Selecione um arquivo de CV (PDF, DOC ou DOCX).');
+      return;
+    }
+    // CAND-5 / RF-05 / RF-MN-04: barra CV acima do limite ANTES de despachar a
+    // action — evita o erro de transporte (HTTP 413/"Application error") que um
+    // arquivo grande causaria no upload.
+    if (!isWithinCvSizeLimit(file.size)) {
+      setServerError('O arquivo excede o limite de 5 MB. Envie um currículo menor.');
       return;
     }
     setServerError(null);
