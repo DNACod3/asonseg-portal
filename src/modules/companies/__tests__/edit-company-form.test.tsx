@@ -48,6 +48,23 @@ beforeEach(() => {
 });
 
 describe('EditCompanyForm (USP-015)', () => {
+  it('EMP055-05/EMP055-MN-02: renderiza os 5 radios de Tipo (incl. SA, LUCRO_PRESUMIDO, LUCRO_REAL)', () => {
+    renderForm();
+    const radios = screen.getAllByRole('radio');
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual([
+      'MEI',
+      'SIMPLES_NACIONAL',
+      'LUCRO_PRESUMIDO',
+      'LUCRO_REAL',
+      'SA',
+    ]);
+  });
+
+  it('EMP055-07: pré-seleciona o radio de defaultValues.type (SA) sem rebaixar ao renderizar', () => {
+    renderForm({ type: 'SA' });
+    expect(screen.getByRole('radio', { name: /sociedade anônima/i })).toBeChecked();
+  });
+
   it('mudança não-identitária (descrição) submete direto, sem diálogo', async () => {
     renderForm();
     fireEvent.change(screen.getByLabelText(/descrição/i), {

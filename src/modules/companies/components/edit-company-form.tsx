@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea } from '@/shared/ui';
 import { normalizeCnpj } from '../domain/cnpj';
+import { COMPANY_TYPE_OPTIONS } from '../domain/company-type';
 import { identityFieldsChanged } from '../domain/company-edit';
 import { editCompanySchema, type EditCompanyInput } from '../schemas/edit-company.schema';
 import { editarEmpresa } from '../actions/edit-company';
@@ -132,15 +133,16 @@ export function EditCompanyForm({ empresa }: EditCompanyFormProps) {
         {/* Tipo */}
         <div>
           <Label>Tipo</Label>
-          <div className="flex gap-4">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
-              <input type="radio" value="SIMPLES_NACIONAL" className="accent-primary" {...register('type')} />
-              CNPJ Regular (Simples Nacional, etc.)
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
-              <input type="radio" value="MEI" className="accent-primary" {...register('type')} />
-              MEI
-            </label>
+          <div className="flex flex-wrap gap-4">
+            {COMPANY_TYPE_OPTIONS.map((opt) => (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-center gap-2 text-sm text-fg"
+              >
+                <input type="radio" value={opt.value} className="accent-primary" {...register('type')} />
+                {opt.label}
+              </label>
+            ))}
           </div>
           {errors.type && (
             <p role="alert" className="mt-1 text-xs text-danger">
