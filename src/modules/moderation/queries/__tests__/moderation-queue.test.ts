@@ -1,6 +1,7 @@
-// Unit de `viewModerationQueue` (#123 / USP-017, estendido em USP-029) — une
-// vagas reais (`jobs`), serviços reais (`services`) e o store transitório
-// (`_moderation_fixture`), filtra/ordena e mapeia para a View Model, com Prisma
+// Unit de `viewModerationQueue` (#123 / USP-017, estendido em USP-029 e
+// USP-056/MOD-1) — une vagas reais (`jobs`), serviços reais (`services`), o
+// store transitório (`_moderation_fixture`) e perfis de candidato reais
+// (`candidate_profiles`), filtra/ordena e mapeia para a View Model, com Prisma
 // e o View Model de staff mockados (sem banco). O caminho com Postgres real
 // está em `./moderation-queue.int.test.ts`.
 
@@ -10,6 +11,7 @@ import { ContentStatus as PrismaContentStatus } from '@prisma/client';
 const jobState = vi.hoisted(() => ({ findMany: vi.fn() }));
 const serviceState = vi.hoisted(() => ({ findMany: vi.fn() }));
 const fixtureState = vi.hoisted(() => ({ findMany: vi.fn() }));
+const candidateProfileState = vi.hoisted(() => ({ findMany: vi.fn() }));
 const personsState = vi.hoisted(() => ({ viewStaffPersonNames: vi.fn() }));
 
 vi.mock('@/shared/lib/prisma', () => ({
@@ -17,6 +19,7 @@ vi.mock('@/shared/lib/prisma', () => ({
     job: { findMany: (...a: unknown[]) => jobState.findMany(...a) },
     service: { findMany: (...a: unknown[]) => serviceState.findMany(...a) },
     moderationFixtureContent: { findMany: (...a: unknown[]) => fixtureState.findMany(...a) },
+    candidateProfile: { findMany: (...a: unknown[]) => candidateProfileState.findMany(...a) },
   },
 }));
 vi.mock('@/modules/persons', () => ({
@@ -33,6 +36,7 @@ beforeEach(() => {
   jobState.findMany.mockResolvedValue([]);
   serviceState.findMany.mockResolvedValue([]);
   fixtureState.findMany.mockResolvedValue([]);
+  candidateProfileState.findMany.mockResolvedValue([]);
   personsState.viewStaffPersonNames.mockResolvedValue(new Map([[AUTHOR, 'Maria da Silva']]));
 });
 
@@ -173,5 +177,78 @@ describe('viewModerationQueue', () => {
 
     const out = await viewModerationQueue({ viewerPersonId: VIEWER });
     expect(out[0]?.authorName).toBeNull();
+  });
+
+  it('[MOD1-01/03] consulta candidateProfile com select explícito, orderBy asc e take (paginação — L-001)', async () => {
+    await viewModerationQueue({ viewerPersonId: VIEWER });
+
+    const cpArg = candidateProfileState.findMany.mock.calls[0]?.[0] as {
+      where: { publicationStatus: string; personId: { not: string } };
+      orderBy: { lastStatusChangeAt: string };
+      take: number;
+      select: Record<string, unknown>;
+    };
+    expect(cpArg.where.publicationStatus).toBe(PrismaContentStatus.IN_MODERATION);
+    expect(cpArg.where.personId).toEqual({ not: VIEWER }); // P-005 / USP056-MN-01
+    expect(cpArg.orderBy).toEqual({ lastStatusChangeAt: 'asc' });
+    expect(cpArg.take).toBeGreaterThan(0);
+    expect(Object.keys(cpArg.select).sort()).toEqual(
+      ['headline', 'lastStatusChangeAt', 'personId'].sort(),
+    );
+  });
+
+  it('[MOD1-01] perfil IN_MODERATION aparece como CANDIDATE_PROFILE com contentId=personId', async () => {
+    const at = new Date('2026-07-05T09:00:00Z');
+    candidateProfileState.findMany.mockResolvedValue([
+      { personId: AUTHOR, headline: 'Auxiliar administrativo', lastStatusChangeAt: at },
+    ]);
+
+    const out = await viewModerationQueue({ viewerPersonId: VIEWER });
+
+    expect(personsState.viewStaffPersonNames).toHaveBeenCalledWith([AUTHOR]);
+    expect(out).toEqual([
+      {
+        contentKind: 'CANDIDATE_PROFILE',
+        contentId: AUTHOR,
+        title: 'Auxiliar administrativo',
+        authorName: 'Maria da Silva',
+        submittedAt: at,
+        companyUnverified: undefined,
+        companyId: undefined,
+      },
+    ]);
+  });
+
+  it('[Edge] headline nulo vira título "Perfil de candidato"', async () => {
+    candidateProfileState.findMany.mockResolvedValue([
+      { personId: AUTHOR, headline: null, lastStatusChangeAt: new Date() },
+    ]);
+
+    const out = await viewModerationQueue({ viewerPersonId: VIEWER });
+    expect(out[0]?.title).toBe('Perfil de candidato');
+  });
+
+  it('une e ordena vagas + serviços + fixture + perfis de candidato por submittedAt (mais antigo primeiro)', async () => {
+    jobState.findMany.mockResolvedValue([
+      {
+        id: 'j1',
+        title: 'Vaga nova',
+        authorPersonId: AUTHOR,
+        lastStatusChangeAt: new Date('2026-06-04T09:00:00Z'),
+        company: { id: 'co-1', isVerified: true },
+      },
+    ]);
+    serviceState.findMany.mockResolvedValue([
+      { id: 's1', title: 'Serviço meio', authorPersonId: AUTHOR, lastStatusChangeAt: new Date('2026-06-02T09:00:00Z') },
+    ]);
+    fixtureState.findMany.mockResolvedValue([
+      { id: 'f1', kind: 'CV', title: 'CV antigo', authorPersonId: AUTHOR, submittedAt: new Date('2026-06-01T09:00:00Z') },
+    ]);
+    candidateProfileState.findMany.mockResolvedValue([
+      { personId: 'cp-1', headline: 'Perfil recente', lastStatusChangeAt: new Date('2026-06-03T09:00:00Z') },
+    ]);
+
+    const out = await viewModerationQueue({ viewerPersonId: VIEWER });
+    expect(out.map((o) => o.contentId)).toEqual(['f1', 's1', 'cp-1', 'j1']); // mais antigo primeiro
   });
 });
