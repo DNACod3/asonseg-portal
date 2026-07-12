@@ -197,3 +197,11 @@ export type {
 } from './views/view-person-for-social-assistant';
 export { ConsolidatedPersonPanel } from './components/consolidated-person-panel';
 export type { ConsolidatedPersonPanelProps } from './components/consolidated-person-panel';
+
+// USP-053 (CAND-7) — participante de tx que oculta o perfil de candidato na
+// cascata de revogação de JOB_APPLICATION (OCULTAR).
+export { hideCandidateProfileForRevocation } from './actions/hide-candidate-profile-for-revocation';
+export type {
+  HideCandidateProfileForRevocationContext,
+  HideCandidateProfileForRevocationResult,
+} from './actions/hide-candidate-profile-for-revocation';
