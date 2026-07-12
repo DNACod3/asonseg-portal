@@ -1,7 +1,7 @@
 'use server';
 
 import { headers } from 'next/headers';
-import type { Prisma } from '@prisma/client';
+import type { ContentStatus, Prisma } from '@prisma/client';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { requireActiveConsent } from '@/modules/consents';
 import { ok, fail, type ActionResult } from '@/shared/errors';
@@ -12,7 +12,8 @@ import { candidateProfileSchema, type CandidateProfileInput } from '../schemas/c
 
 export interface ActivateCandidateRoleResult {
   personId: string;
-  publicationStatus: 'DRAFT';
+  /** CAND-2 / PERF-02: status real persistido — lido do upsert, nunca hardcoded. */
+  publicationStatus: ContentStatus;
 }
 
 /**
@@ -67,7 +68,7 @@ export async function activateCandidateRole(
   const userAgent = hdrs.get('user-agent') ?? null;
 
   try {
-    await withAudit(
+    const publicationStatus = await withAudit(
       AuditEvent.CANDIDATE_ROLE_ACTIVATED,
       async (tx, audit) => {
         // Persiste o telefone na Pessoa (não no CandidateProfile — coluna vive em
@@ -93,7 +94,10 @@ export async function activateCandidateRole(
 
         // Idempotência: upsert por personId. No update, preserva o
         // publication_status atual (não rebaixa um perfil já em moderação/ativo).
-        await tx.candidateProfile.upsert({
+        // CAND-2 / PERF-02: lê o status real persistido (nunca hardcoded) via
+        // `select` no retorno do upsert — mesmo precedente de `grant-consent.ts`
+        // (captura do retorno do callback de `withAudit`).
+        const saved = await tx.candidateProfile.upsert({
           where: { personId: person.id },
           create: {
             personId: person.id,
@@ -108,17 +112,19 @@ export async function activateCandidateRole(
             // publicationStatus: DRAFT (default do schema)
           },
           update: updateData,
+          select: { publicationStatus: true },
         });
 
         audit.entityType = 'candidate_profile';
         audit.entityId = person.id;
-        audit.after = { publicationStatus: 'DRAFT', educationLevel: data.educationLevel };
+        audit.after = { publicationStatus: saved.publicationStatus, educationLevel: data.educationLevel };
+        return saved.publicationStatus;
       },
       { actorPersonId: person.id, ip, userAgent, context: { route: '/candidato' } },
     );
 
     log.info({ personId: person.id }, 'persons:candidate_role_activated');
-    return ok({ personId: person.id, publicationStatus: 'DRAFT' });
+    return ok({ personId: person.id, publicationStatus });
   } catch (err) {
     log.error({ err, personId: person.id }, 'persons:candidate_role_activation_failed');
     return fail('INTERNAL', 'Não foi possível salvar o cadastro. Tente novamente mais tarde.');

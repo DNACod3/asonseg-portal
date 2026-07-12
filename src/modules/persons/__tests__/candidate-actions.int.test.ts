@@ -152,6 +152,21 @@ skipIfNoDb('USP-009 #44 — cadastro de candidato (integração)', () => {
     expect(profile?.educationLevel).toBe('ENSINO_SUPERIOR');
   });
 
+  it('CAND-2 / PERF-02: perfil ACTIVE não é rebaixado e o retorno reflete o status real', async () => {
+    mockPerson = baseMockPerson(personId);
+    await prisma.candidateProfile.update({ where: { personId }, data: { publicationStatus: 'ACTIVE' } });
+
+    const res = await activateCandidateRole(baseInput());
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.publicationStatus).toBe('ACTIVE');
+    const profile = await prisma.candidateProfile.findUnique({ where: { personId } });
+    expect(profile?.publicationStatus).toBe('ACTIVE');
+
+    // Restaura DRAFT — as suítes seguintes (CAD-03) dependem do fluxo DRAFT → IN_MODERATION.
+    await prisma.candidateProfile.update({ where: { personId }, data: { publicationStatus: 'DRAFT' } });
+  });
+
   it('CAD-01 validação Zod: rejeita telefone inválido', async () => {
     mockPerson = baseMockPerson(personId);
     const res = await activateCandidateRole({ ...baseInput(), phone: '12' });

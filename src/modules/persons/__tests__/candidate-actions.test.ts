@@ -89,7 +89,10 @@ beforeEach(() => {
   consentState.active = new Set(['PORTAL_ACCESS', 'JOB_APPLICATION']);
   auditState.events = [];
   auditState.recorder = null;
-  txState.upsert.mockReset().mockResolvedValue({});
+  // CAND-2 / PERF-02: a action agora lê `saved.publicationStatus` do retorno do
+  // upsert — o mock precisa devolver o status real (o valor default do ramo
+  // create é DRAFT); PERF-MN-02 sobrescreve por teste com `mockResolvedValueOnce`.
+  txState.upsert.mockReset().mockResolvedValue({ publicationStatus: 'DRAFT' });
   txState.personUpdate.mockReset().mockResolvedValue({});
   txState.throwOnAudit = false;
   moderationState.transition.mockReset();
@@ -159,6 +162,14 @@ describe('persons/activateCandidateRole', () => {
       educationLevel: 'ENSINO_MEDIO',
       primaryAreaOfInterestId: AREA_ID,
     });
+  });
+
+  it('PERF-MN-02: perfil ACTIVE retorna publicationStatus real (ACTIVE), não hardcoded DRAFT', async () => {
+    txState.upsert.mockResolvedValueOnce({ publicationStatus: 'ACTIVE' });
+    const res = await activateCandidateRole(validInput());
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.publicationStatus).toBe('ACTIVE');
+    expect(auditState.recorder?.after).toMatchObject({ publicationStatus: 'ACTIVE' });
   });
 
   it('Zod: telefone inválido → VALIDATION, sem auditoria', async () => {
