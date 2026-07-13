@@ -22,10 +22,15 @@ export interface EndJobApplicationsForRevocationResult {
  * recebe o `tx` do chamador (padrão `createReferralApplication`).
  *
  * Reusa a mecânica de cancelamento da USP-026 (`cancel-application.ts`):
- * guarda otimista `updateMany({ where: { id, cancelledAt: null } })` por
- * candidatura — a mesma defesa que resolve a concorrência com um cancelamento
- * avulso da mesma linha (USP053-E3/MN-01): exatamente um dos dois preenche
- * `cancelledAt` e audita; o outro conta `count===0` e é ignorado.
+ * guarda otimista `WHERE cancelledAt IS NULL` — a mesma defesa que resolve a
+ * concorrência com um cancelamento avulso da mesma linha (USP053-E3/MN-01):
+ * exatamente um dos dois preenche `cancelledAt`; o outro casa 0 linhas para
+ * ela e não a audita. Desde a remediação Fase 8 (perf — `/pr-review`), a
+ * guarda roda num único `updateMany` em lote (não mais 1 por candidatura) —
+ * o Postgres avalia o `WHERE` por linha dentro do mesmo `UPDATE`, então a
+ * garantia de concorrência por linha é idêntica; só o número de round-trips
+ * sequenciais cai de `2N` para `2 + N` (as N linhas afetadas ainda precisam
+ * de 1 insert de auditoria cada — append-only, não dá para agregar).
  *
  * **ENCERRAR** = `cancelledAt` preenchido (sai do pipeline ativo do
  * empregador, sem apagar a linha — USP053-MN-03). **MARCAR** (A-1, sem coluna
@@ -35,44 +40,54 @@ export interface EndJobApplicationsForRevocationResult {
  * Escopo estritamente por `candidatePersonId=ctx.personId` (USP053-MN-05) —
  * todas as vagas do titular, nenhuma de outra Pessoa (USP053-E4).
  */
+/** Teto defensivo do re-select pós-batch — nenhum titular real chega perto disso; só formaliza a paginação obrigatória (CLAUDE.md). */
+const MAX_ENDED_APPLICATIONS = 10_000;
+
 export async function endJobApplicationsForRevocation(
   tx: Prisma.TransactionClient,
   ctx: EndJobApplicationsForRevocationContext,
 ): Promise<EndJobApplicationsForRevocationResult> {
-  const active = await tx.application.findMany({
+  const cancelledAt = new Date();
+
+  // 1 UPDATE em lote (era 1 `findMany` + N `updateMany` sequenciais) — a guarda
+  // otimista por linha (`cancelledAt: null`) é avaliada pelo Postgres dentro do
+  // próprio `UPDATE`, então uma corrida com cancelamento avulso da MESMA linha
+  // (USP053-E3) continua resolvida corretamente: linhas já canceladas por fora
+  // não casam o `WHERE` e não são tocadas por este `updateMany`.
+  await tx.application.updateMany({
     where: { candidatePersonId: ctx.personId, cancelledAt: null },
-    select: { id: true },
+    data: { cancelledAt },
   });
 
-  const cancelledAt = new Date();
-  const endedApplicationIds: string[] = [];
+  // Re-seleciona exatamente as linhas que ESTE `updateMany` afetou — o mesmo
+  // `cancelledAt` (gerado uma única vez acima) marca o lote desta chamada,
+  // nunca reaproveitado por outra revogação/cancelamento.
+  const ended = await tx.application.findMany({
+    where: { candidatePersonId: ctx.personId, cancelledAt },
+    select: { id: true },
+    take: MAX_ENDED_APPLICATIONS,
+  });
+  const endedApplicationIds = ended.map(({ id }) => id);
 
-  for (const { id } of active) {
-    // Guarda otimista idêntica à USP-026: se um cancelamento avulso concorrente
-    // já venceu, `count` vem 0 e esta linha é ignorada (sem duplo evento).
-    const res = await tx.application.updateMany({
-      where: { id, cancelledAt: null },
-      data: { cancelledAt },
-    });
-    if (res.count === 1) {
-      endedApplicationIds.push(id);
-      await recordAuditEvent(
-        tx,
-        AuditEvent.APPLICATION_CANCELLED,
-        {
-          entityType: 'APPLICATION',
-          entityId: id,
-          before: { cancelledAt: null },
-          after: {
-            cancelledAt: cancelledAt.toISOString(),
-            via: 'consent_revoke',
-            reason: 'retirada por revogação de consentimento JOB_APPLICATION',
-          },
-          justification: ctx.justification,
+  // Os inserts de auditoria continuam 1 por linha (append-only) — é o único
+  // jeito de manter o rastro correto por candidatura; só o UPDATE foi agregado.
+  for (const id of endedApplicationIds) {
+    await recordAuditEvent(
+      tx,
+      AuditEvent.APPLICATION_CANCELLED,
+      {
+        entityType: 'APPLICATION',
+        entityId: id,
+        before: { cancelledAt: null },
+        after: {
+          cancelledAt: cancelledAt.toISOString(),
+          via: 'consent_revoke',
+          reason: 'retirada por revogação de consentimento JOB_APPLICATION',
         },
-        { actorPersonId: ctx.actorPersonId, ip: ctx.ip, userAgent: ctx.userAgent },
-      );
-    }
+        justification: ctx.justification,
+      },
+      { actorPersonId: ctx.actorPersonId, ip: ctx.ip, userAgent: ctx.userAgent },
+    );
   }
 
   return { endedCount: endedApplicationIds.length, endedApplicationIds };
