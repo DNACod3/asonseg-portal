@@ -221,6 +221,14 @@ skipIfNoDb('revokeConsent — cascata JOB_APPLICATION (integração, USP-053/CAN
     expect(after.ok).toBe(true);
     if (after.ok) expect(after.data.items.map((i) => i.candidatePersonId)).not.toContain(personId);
 
+    // Remediação Fase 8: OCULTAR agora passa por `transitionContent` (dentro da
+    // MESMA tx de `CONSENT_REVOKED`, via `tx` externo) e grava seu próprio evento
+    // auditável — não só o `profileHidden` solto verificado abaixo.
+    const profilePausedAudit = await prisma.auditLog.findFirst({
+      where: { action: 'CANDIDATE_PROFILE_PAUSED', entityType: 'CANDIDATE_PROFILE', entityId: personId },
+    });
+    expect(profilePausedAudit).toMatchObject({ after: { status: 'PAUSED' } });
+
     // Papel cascateado + resumo agregado no after do evento primário (USP053-03/A-7).
     const grant = await prisma.personRoleGrant.findFirst({ where: { personId, role: 'CANDIDATE' } });
     expect(grant?.status).toBe('REVOKED');

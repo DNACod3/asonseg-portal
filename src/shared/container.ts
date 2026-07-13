@@ -174,7 +174,11 @@ import { hideCandidateProfileForRevocation } from '@/modules/persons/actions/hid
 container.register(REVOCATION_EFFECTS_TOKEN, () => ({
   async applyJobApplicationCascade(tx, ctx) {
     const ended = await endJobApplicationsForRevocation(tx, ctx);
-    const hidden = await hideCandidateProfileForRevocation(tx, { personId: ctx.personId });
+    // Mesmo shape de `ctx` do participante irmão acima (`RevocationEffectsContext`
+    // === `HideCandidateProfileForRevocationContext`) — `actorPersonId`/`ip`/
+    // `userAgent`/`justification` agora chegam ao `transitionContent()` por baixo
+    // (remediação Fase 8: FSM audita a transição em vez do `updateMany` cru).
+    const hidden = await hideCandidateProfileForRevocation(tx, ctx);
     return {
       applicationsEnded: ended.endedCount,
       endedApplicationIds: ended.endedApplicationIds,

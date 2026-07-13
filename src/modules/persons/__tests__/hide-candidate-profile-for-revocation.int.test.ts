@@ -25,6 +25,23 @@ const { searchCandidates } = await import('../queries/search-candidates');
 
 const skipIfNoDb = describe.skipIf(!process.env.DATABASE_URL);
 
+/** Ctx completo — mesmo shape de `RevocationEffectsContext` (jobs/consents). */
+function ctxFor(personId: string): {
+  personId: string;
+  actorPersonId: string;
+  ip: string | null;
+  userAgent: string | null;
+  justification: string;
+} {
+  return {
+    personId,
+    actorPersonId: personId,
+    ip: '10.0.0.9',
+    userAgent: 'vitest/int',
+    justification: 'Revogação de consentimento solicitada pelo titular.',
+  };
+}
+
 const responsible: CurrentPerson = {
   id: 'viewer-hide-cascade',
   supabaseUserId: '00000000-0000-0000-0000-0000000000dd',
@@ -101,7 +118,7 @@ skipIfNoDb('hideCandidateProfileForRevocation — integração', () => {
     if (before.ok) expect(before.data.items.map((i) => i.candidatePersonId)).toContain(activePersonId);
 
     const result = await prisma.$transaction(async (tx) =>
-      hideCandidateProfileForRevocation(tx, { personId: activePersonId }),
+      hideCandidateProfileForRevocation(tx, ctxFor(activePersonId)),
     );
     expect(result).toEqual({ hidden: true });
 
@@ -117,11 +134,27 @@ skipIfNoDb('hideCandidateProfileForRevocation — integração', () => {
     const after = await searchCandidates({}, responsible);
     expect(after.ok).toBe(true);
     if (after.ok) expect(after.data.items.map((i) => i.candidatePersonId)).not.toContain(activePersonId);
+
+    // Remediação Fase 8 (achado de segurança do /pr-review): a transição agora
+    // grava seu PRÓPRIO evento de auditoria (antes só existia um `profileHidden`
+    // solto dentro do `CONSENT_REVOKED`) — investigável por
+    // `entityType='CANDIDATE_PROFILE' AND entityId=<personId>`.
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: 'CANDIDATE_PROFILE_PAUSED', entityType: 'CANDIDATE_PROFILE', entityId: activePersonId },
+      select: { before: true, after: true, actorPersonId: true, ip: true, userAgent: true },
+    });
+    expect(audit).toMatchObject({
+      before: { status: 'ACTIVE' },
+      after: { status: 'PAUSED' },
+      actorPersonId: activePersonId,
+      ip: '10.0.0.9',
+      userAgent: 'vitest/int',
+    });
   });
 
   it('USP053-E2: perfil não-ACTIVE (DRAFT) é no-op — hidden:false, status inalterado', async () => {
     const result = await prisma.$transaction(async (tx) =>
-      hideCandidateProfileForRevocation(tx, { personId: draftPersonId }),
+      hideCandidateProfileForRevocation(tx, ctxFor(draftPersonId)),
     );
     expect(result).toEqual({ hidden: false });
 
@@ -134,7 +167,7 @@ skipIfNoDb('hideCandidateProfileForRevocation — integração', () => {
 
   it('USP053-E2: titular sem CandidateProfile é no-op — hidden:false, sem erro', async () => {
     const result = await prisma.$transaction(async (tx) =>
-      hideCandidateProfileForRevocation(tx, { personId: noProfilePersonId }),
+      hideCandidateProfileForRevocation(tx, ctxFor(noProfilePersonId)),
     );
     expect(result).toEqual({ hidden: false });
 
@@ -144,7 +177,7 @@ skipIfNoDb('hideCandidateProfileForRevocation — integração', () => {
 
   it('USP053-MN-05: oculta só o titular — perfil ACTIVE de outra Pessoa segue intocado', async () => {
     const result = await prisma.$transaction(async (tx) =>
-      hideCandidateProfileForRevocation(tx, { personId: draftPersonId }),
+      hideCandidateProfileForRevocation(tx, ctxFor(draftPersonId)),
     );
     expect(result).toEqual({ hidden: false });
 
