@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import crypto from 'node:crypto';
 
 /**
@@ -68,6 +68,20 @@ skipIfNoDb('grantDelegatedPermission — integração', () => {
   beforeEach(async () => {
     coordinatorId = await seedPerson(['COORDINATOR']);
     volunteerId = await seedPerson(['VOLUNTEER']);
+  });
+
+  // HYG-10/HYG-11: este arquivo não tinha teardown algum — cada teste deixava
+  // 2 Pessoas `Pessoa-XXXX` órfãs, vazando para `listEligibleVolunteers()`.
+  // Deleta os grants/roleGrants antes da Pessoa (FK) e assevera a remoção.
+  afterEach(async () => {
+    await prisma.delegatedPermission.deleteMany({
+      where: { personId: { in: [coordinatorId, volunteerId] } },
+    });
+    await prisma.personRoleGrant.deleteMany({
+      where: { personId: { in: [coordinatorId, volunteerId] } },
+    });
+    await prisma.person.deleteMany({ where: { id: { in: [coordinatorId, volunteerId] } } });
+    expect(await prisma.person.count({ where: { id: { in: [coordinatorId, volunteerId] } } })).toBe(0);
   });
 
   it('concede permissão e aplica imediatamente', async () => {
@@ -168,6 +182,18 @@ skipIfNoDb('revokeDelegatedPermission — integração', () => {
   beforeEach(async () => {
     coordinatorId = await seedPerson(['COORDINATOR']);
     volunteerId = await seedPerson(['VOLUNTEER']);
+  });
+
+  // HYG-10/HYG-11: idem — sem teardown, cada teste deixava 2 Pessoas órfãs.
+  afterEach(async () => {
+    await prisma.delegatedPermission.deleteMany({
+      where: { personId: { in: [coordinatorId, volunteerId] } },
+    });
+    await prisma.personRoleGrant.deleteMany({
+      where: { personId: { in: [coordinatorId, volunteerId] } },
+    });
+    await prisma.person.deleteMany({ where: { id: { in: [coordinatorId, volunteerId] } } });
+    expect(await prisma.person.count({ where: { id: { in: [coordinatorId, volunteerId] } } })).toBe(0);
   });
 
   it('revoga permissão e preenche revokedAt', async () => {
