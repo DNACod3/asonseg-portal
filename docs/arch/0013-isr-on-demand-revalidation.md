@@ -205,3 +205,36 @@ Funções como `cookies()`, `headers()`, `searchParams` (dinâmico via prop) tor
 - QP-004, D-012 (resolvidos)
 - Next.js App Router cache docs (revisar versão antes da Fase 0)
 - Lentes do arquiteto: Performance, Fail-Fast & Blast Radius, Custo
+
+## Atualização — 2026-07-13 (AD-026 / USP-054 / EMP-3, Fase 8 remediação UAT)
+
+`/vagas` (listagem, `(public)/vagas/page.tsx`) e `/vagas/[id]` (detalhe) tiveram
+`export const revalidate` reduzido de **1800s → 600s**, divergindo do valor
+documentado na seção Decisão acima ("Páginas de listagem e detalhe... 1800").
+Registrado como decisão consciente (`AD-026` em `.specs/project/STATE.md`, ver
+histórico de decisões), não como drift — esta seção formaliza a decisão no ADR
+técnico oficial, que o `/pr-review` da PR #291 apontou corretamente como
+desatualizado.
+
+**Motivo:** EMP-3 corrigiu um bug onde `transitionContent` não revalidava o
+cache ao mover uma vaga **para fora** de `ACTIVE` (pausar/arquivar/inativar) —
+com TTL de 1800s, uma vaga pausada podia continuar visível na busca pública
+por até 30 min após a decisão. Reduzir o piso de ISR para 600s (o mesmo "ISR
+10min" já usado pela home, USP-041/T6) encurta essa janela de exposição para o
+pior caso em que a invalidação on-demand (`revalidatePath`) falhe — mesmo
+padrão de defesa em profundidade já descrito na seção "Riscos e Mitigações"
+(Risco 1) deste ADR, só que agora aplicado também a `/vagas`, não só à home.
+
+**`/servicos`/`/servicos/[id]`/`/prestadores/[id]` permanecem em 1800s** —
+decisão consciente, não drift: o mesmo bug de EMP-3 (falta de revalidação ao
+sair de `ACTIVE`) não foi reportado para o fluxo de serviços nesta rodada de
+UAT/remediação. `transitionContent` é kind-aware (`eventTypeFor`) e o efeito
+colateral de cache (`CACHE_INVALIDATION_TOKEN`) já roda para qualquer
+`ContentKind`, então o mesmo ajuste de TTL pode ser replicado para `SERVICE`
+no dia em que o bug equivalente for confirmado lá — não há razão arquitetural
+para a assimetria além de "ainda não investigado", registrada aqui para não
+virar drift silencioso.
+
+`docs/arch/technical-design.md` não precisou de atualização correspondente —
+o único ponto ali relevante à política de ISR já aponta para este ADR, sem
+hardcodar o valor 1800/600.
