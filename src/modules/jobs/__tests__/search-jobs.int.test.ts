@@ -227,6 +227,13 @@ skipIfNoDb('searchJobs — integração', () => {
   afterAll(async () => {
     await cleanup();
     await prisma.person.deleteMany({ where: { id: authorId } });
+    // HYG-09/HYG-11: remove a taxonomia própria deste arquivo (nunca a canônica do
+    // seed) — evita poluir os dropdowns públicos (PUB-6). Jobs já foram removidos
+    // acima (cleanup()), então não há FK pendente.
+    await prisma.jobArea.deleteMany({ where: { name: AREA_NAME } });
+    await prisma.region.deleteMany({ where: { name: { in: [REGION_A, REGION_B] } } });
+    expect(await prisma.jobArea.count({ where: { name: AREA_NAME } })).toBe(0);
+    expect(await prisma.region.count({ where: { name: { in: [REGION_A, REGION_B] } } })).toBe(0);
   });
 
   it('@e-001 @p-003 @p-005 só lista ACTIVE + não-expirada + Empresa verificada', async () => {
