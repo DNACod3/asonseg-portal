@@ -106,6 +106,10 @@ skipIfNoDb('pauseJob / unpauseJob — integração (USP-023)', () => {
         title: 'Vaga Pause Int',
         status,
         validUntil: futureDate(30),
+        // HYG-01: espelha a invariante de produção (publishedAt na 1ª ativação, schema.prisma:501).
+        // PAUSED também recebe (a vaga já foi ativada antes de pausar) para que o ramo
+        // despausa→ACTIVE ordene no topo da página 1 de forma determinística sob volume.
+        ...(status === 'ACTIVE' || status === 'PAUSED' ? { publishedAt: new Date() } : {}),
       },
       select: { id: true },
     });
