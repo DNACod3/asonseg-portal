@@ -194,4 +194,55 @@ describe('shared/env parseEnv', () => {
       ).not.toThrow();
     });
   });
+
+  // USP-060 (HYG-04/HYG-MN-04) — harness de e-mail dev, mesmo molde de CV_EXTRACTOR_FAKE.
+  describe('EMAIL_DEV_SMTP (USP-060 / harness de e-mail dev)', () => {
+    it('tem default false e defaults de host/porta do Mailpit local', () => {
+      const noFlag = { ...validEnv };
+      delete (noFlag as Record<string, unknown>).EMAIL_DEV_SMTP;
+      const parsed = parseEnv(noFlag);
+      expect(parsed.EMAIL_DEV_SMTP).toBe(false);
+      expect(parsed.EMAIL_DEV_SMTP_HOST).toBe('127.0.0.1');
+      expect(parsed.EMAIL_DEV_SMTP_PORT).toBe(55325);
+    });
+
+    it('aceita string "true"/"1" como booleano (mesmo parser fail-loud)', () => {
+      expect(parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true' }).EMAIL_DEV_SMTP).toBe(true);
+      expect(parseEnv({ ...validEnv, EMAIL_DEV_SMTP: '1' }).EMAIL_DEV_SMTP).toBe(true);
+    });
+
+    it('lança citando o campo para valor não reconhecido (fail-loud, não resolve false)', () => {
+      expect(() => parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'maybe' })).toThrow(/EMAIL_DEV_SMTP/);
+    });
+
+    it('EMAIL_DEV_SMTP=true é aceito fora de um deploy Vercel real (dev/CI/E2E)', () => {
+      expect(() => parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true' })).not.toThrow();
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true', VERCEL_ENV: 'development' }),
+      ).not.toThrow();
+    });
+
+    it('HYG-MN-04 (negativo): EMAIL_DEV_SMTP=true lança num deploy Vercel real (production/preview)', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true', VERCEL_ENV: 'production' }),
+      ).toThrow(/EMAIL_DEV_SMTP/);
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true', VERCEL_ENV: 'preview' }),
+      ).toThrow(/EMAIL_DEV_SMTP/);
+      // false no mesmo deploy real continua válido (regressão dos guards irmãos).
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'false', VERCEL_ENV: 'production' }),
+      ).not.toThrow();
+    });
+
+    it('aceita EMAIL_DEV_SMTP_HOST/PORT customizados', () => {
+      const parsed = parseEnv({
+        ...validEnv,
+        EMAIL_DEV_SMTP_HOST: '192.168.0.5',
+        EMAIL_DEV_SMTP_PORT: '2525',
+      });
+      expect(parsed.EMAIL_DEV_SMTP_HOST).toBe('192.168.0.5');
+      expect(parsed.EMAIL_DEV_SMTP_PORT).toBe(2525);
+    });
+  });
 });

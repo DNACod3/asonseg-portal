@@ -86,6 +86,16 @@ const envSchema = z.object({
   // `RATE_LIMIT_DISABLED`, ver `superRefine` abaixo). Mesmo parser fail-loud
   // (USP-050 · PUB-1a) — mesma frouxidão de idioma, mesmo guard Vercel.
   CV_EXTRACTOR_FAKE: z.preprocess(parseBooleanFlag, z.boolean()).default(false),
+
+  // Harness de e-mail dev (USP-060 / AUTH-9 / HYG-04): liga o `DevSmtpEmailSender`
+  // (entrega ao Mailpit local) em vez do `ResendEmailSender`. Mesmo molde de
+  // `CV_EXTRACTOR_FAKE` — parser fail-loud, fenced por `VERCEL_ENV` no
+  // `superRefine` abaixo (nunca pode vazar para um deploy real, HYG-MN-04).
+  EMAIL_DEV_SMTP: z.preprocess(parseBooleanFlag, z.boolean()).default(false),
+  // Host/porta do Mailpit local (Supabase CLI, `supabase/config.toml`). Só
+  // usados quando EMAIL_DEV_SMTP=true; defaults cobrem o setup local padrão.
+  EMAIL_DEV_SMTP_HOST: z.string().min(1).default('127.0.0.1'),
+  EMAIL_DEV_SMTP_PORT: z.coerce.number().int().positive().default(55325),
 });
 
 /**
@@ -119,6 +129,18 @@ const runtimeEnvSchema = envSchema.superRefine((env, ctx) => {
       message:
         'CV_EXTRACTOR_FAKE não pode ser `true` num deploy Vercel (production/preview) — ' +
         'USP-040. Use apenas em desenvolvimento/E2E.',
+    });
+  }
+  // Mesmo guard fail-closed para o harness de e-mail dev (USP-060 / HYG-MN-04):
+  // o adapter SMTP dev nunca pode ser resolvido num deploy real — e-mail de
+  // produção segue via Resend (ADR-0012/USP-044), nunca pro Mailpit.
+  if (isVercelDeploy && env.EMAIL_DEV_SMTP) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['EMAIL_DEV_SMTP'],
+      message:
+        'EMAIL_DEV_SMTP não pode ser `true` num deploy Vercel (production/preview) — ' +
+        'HYG-MN-04. Use apenas em desenvolvimento local.',
     });
   }
 });
