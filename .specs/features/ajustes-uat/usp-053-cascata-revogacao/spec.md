@@ -189,7 +189,6 @@ declarada** no domínio, hoje inerte. Sem isso, a revogação é enganosa (papel
       `revoke-consent` e `search-candidates` continuam verdes.
 - [x] **Zero migração**; nenhuma dependência nova; nenhum efeito vaza para outra Pessoa ou outra finalidade.
 
-**Nota de execução (2026-07-12):** Execute concluído (T1-T5, 5 commits atômicos). O Verifier
-independente **não foi executado nesta rodada** por instrução explícita do orquestrador
-(sub-agent Implementer autorizado a rodar sem o Verifier). `validation.md` não foi gerado —
-pendente de uma rodada de verificação futura, se solicitada.
+**Nota de execução (2026-07-12):** Execute concluído (T1-T5, 5 commits atômicos). Verifier
+independente executado — `validation.md` PASS (Overall: Ready; 5/5 ACs, 6/6 must-nots, 5/5
+mutações mortas pelo sensor; gate typecheck/lint/build/unit/integração todos verdes).
