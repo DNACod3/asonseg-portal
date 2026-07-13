@@ -27,7 +27,7 @@
 
 ## Handoff
 
-**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). Concluídas: USP-049..059 (PASS). Próxima e ÚLTIMA unidade: **USP-060 — Higiene de dev/seed** (`.specs/features/ajustes-uat/usp-060-higiene-dev/`).
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). **Fase 8 — Remediação do UAT 100% concluída** (USP-049..060, 12/12 PASS, todas via Planner→Implementer→Verifier). Suite de integração determinística (3 execuções consecutivas verdes, incl. pós-reset). Próximo: abrir o PR único da branch `feat/fase-8-remediacao-uat`, rodar /pr-review, resolver o CR e mergear em master.
 
 ---
 

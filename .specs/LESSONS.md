@@ -114,6 +114,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: EMP055-04 / .specs/features/ajustes-uat/usp-055-empresas/validation.md (companies)
 - last seen: 2026-07-12T19:32:31Z
 
+### L-018 — A devDependency imported dynamically inside a function body can still be bundled into a webpack chunk and traced into most serverless-function bundles by Next.js at build time — verify with a grep over .next/**/*.nft.json for the package name, not just a green production build, before calling a dependency 'out of the production path'.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `build/bundling` · harmful: 0
+- features: usp-060-higiene-dev
+- evidence: validation.md#HYG-04/HYG-08 AC5 (.next/server/chunks/5112.js traced into 46/56 .nft.json) (build/bundling)
+- last seen: 2026-07-13T01:48:41Z
+
+### L-019 — An acceptance criterion describing a manual/local end-to-end harness flow (enqueue + trigger + observe in an external tool) needs a live re-drive as evidence during validation, not an inference from unit tests covering only its component pieces.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `validation-method` · harmful: 0
+- features: usp-060-higiene-dev
+- evidence: validation.md#HYG-06 AC3 (cron-drain-locally, not re-driven live) (validation-method)
+- last seen: 2026-07-13T01:48:41Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

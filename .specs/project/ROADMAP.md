@@ -170,7 +170,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 - [x] USP-057 — E-mails de decisão de moderação (NOT-03/04/05) via outbox na tx de transitionContent; substituir stub · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-057-emails-moderacao/ · deps: USP-056 · gate: — · achados: REL-1, MOD-4
 - [x] USP-058 — Relatórios legíveis: nome de categoria, rótulos PT-BR, filtros de status/categoria no form · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-058-relatorios/ · deps: — · gate: — · achados: REL-2, REL-3, REL-5
 - [x] USP-059 — Casca e conteúdo: not-found PT-BR, favicon, /termos e /privacidade (aviso "em elaboração"), Markdown dos termos renderizado, rótulos PT-BR na visão consolidada, alinhamento do literal do badge (docs) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-059-casca-conteudo/ · deps: — · gate: — · achados: PUB-3, PUB-4, AUTH-2, AUTH-6, SOC-4, SOC-6
-- [ ] USP-060 — Higiene de dev/seed: cleanup de fixtures de int-tests (taxonomia/pessoas), senha de seed válida, harness de e-mail local (adapter SMTP dev + CRON_SECRET local) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-060-higiene-dev/ · deps: — · gate: — · achados: PUB-6, SVC-3, AUTH-8, AUTH-9, REL-4
+- [x] USP-060 — Higiene de dev/seed: cleanup de fixtures de int-tests (taxonomia/pessoas), senha de seed válida, harness de e-mail local (adapter SMTP dev + CRON_SECRET local) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-060-higiene-dev/ · deps: — · gate: — · achados: PUB-6, SVC-3, AUTH-8, AUTH-9, REL-4
 
 ---
 
