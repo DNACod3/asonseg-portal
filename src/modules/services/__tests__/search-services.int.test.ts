@@ -173,6 +173,10 @@ skipIfNoDb('searchServices — integração', () => {
     await cleanup();
     await prisma.person.deleteMany({ where: { id: { in: [activeAuthorId, inactiveAuthorId] } } });
     await prisma.serviceCategory.deleteMany({ where: { name: CATEGORY_NAME } });
+    // HYG-09/HYG-11: remove as Regions próprias deste arquivo (a categoria já era
+    // limpa) — evita poluir o select de região dos dropdowns públicos (SVC-3).
+    await prisma.region.deleteMany({ where: { name: { in: [REGION_A, REGION_B] } } });
+    expect(await prisma.region.count({ where: { name: { in: [REGION_A, REGION_B] } } })).toBe(0);
   });
 
   it('AC-030-1/SVC030-MN-01: só lista ACTIVE de prestador ativo', async () => {

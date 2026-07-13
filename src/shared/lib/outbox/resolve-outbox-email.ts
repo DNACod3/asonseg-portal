@@ -13,6 +13,9 @@ const KNOWN_TEMPLATES: ReadonlySet<EmailMessage['template']> = new Set([
   'service-interest-notification',
   'referral-notification',
   'job-expiry',
+  'moderation-approved',
+  'moderation-returned',
+  'moderation-rejected',
 ]);
 
 export interface ResolveOutboxEmailDeps {

@@ -1,24 +1,13 @@
 import { z } from 'zod';
-import { isValidCpf } from '@/modules/identity';
+import { classifyIdentifier } from '../domain/responsible-identifier';
+import type { ResponsibleIdentifier } from '../domain/responsible-identifier';
 
-/**
- * Identificador de busca da Pessoa a adicionar: CPF (somente dígitos) ou e-mail.
- * Discrimina por presença de "@". Retorna o valor normalizado para a consulta
- * (CPF só dígitos; e-mail lowercase+trim) ou `null` se não for CPF nem e-mail válido.
- */
-export type ResponsibleIdentifier =
-  | { kind: 'cpf'; value: string }
-  | { kind: 'email'; value: string };
-
-export function classifyIdentifier(raw: string): ResponsibleIdentifier | null {
-  const trimmed = raw.trim();
-  if (trimmed.includes('@')) {
-    const email = trimmed.toLowerCase();
-    return z.string().email().safeParse(email).success ? { kind: 'email', value: email } : null;
-  }
-  const digits = trimmed.replace(/\D/g, '');
-  return isValidCpf(digits) ? { kind: 'cpf', value: digits } : null;
-}
+// Relocado (USP-055 / EMP-8) para `domain/responsible-identifier.ts` — client-safe,
+// sem importar o barrel `@/modules/identity` (hazard AD-019). Re-exportado aqui para
+// back-compat: o barrel `companies/index.ts` e os testes que importam deste schema
+// seguem válidos sem alteração.
+export { classifyIdentifier };
+export type { ResponsibleIdentifier };
 
 export const addResponsibleSchema = z.object({
   empresaId: z.string().uuid('Empresa inválida.'),

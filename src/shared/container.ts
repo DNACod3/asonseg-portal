@@ -77,10 +77,17 @@ import { AUTH_ATTEMPTS_REPO_TOKEN } from '@/modules/identity/ports/authAttemptsR
 import { PrismaAuthAttemptsRepo } from '@/modules/identity/adapters/authAttemptsRepo';
 container.register(AUTH_ATTEMPTS_REPO_TOKEN, () => new PrismaAuthAttemptsRepo());
 
-// E-mail transacional (IDN-12 / USP-005): porta EmailSender → adapter Resend.
+// E-mail transacional (IDN-12 / USP-005): porta EmailSender → adapter Resend
+// em produção; `DevSmtpEmailSender` (Mailpit local) só sob `env.EMAIL_DEV_SMTP`
+// (USP-060 / HYG-05) — mesmo seam do CV extractor abaixo, guardado por
+// `VERCEL_ENV` em `shared/env.ts` (HYG-MN-04 — nunca ativo em deploy real).
+import { env } from '@/shared/env';
 import { EMAIL_SENDER_TOKEN } from '@/shared/lib/email/email-sender.port';
 import { ResendEmailSender } from '@/shared/lib/email/resend-email-sender';
-container.register(EMAIL_SENDER_TOKEN, () => new ResendEmailSender());
+import { DevSmtpEmailSender } from '@/shared/lib/email/dev-smtp-email-sender';
+container.register(EMAIL_SENDER_TOKEN, () =>
+  env.EMAIL_DEV_SMTP ? new DevSmtpEmailSender() : new ResendEmailSender(),
+);
 
 // Dispatcher assíncrono do Outbox (USP-044): hidratador do payload leve
 // {kind:'JOB_EXPIRY_D3'} → EmailMessage. `shared` não importa `jobs`
@@ -102,9 +109,10 @@ container.register(COMPANY_RESPONSIBILITY_TOKEN, () => new PrismaCompanyResponsi
 
 // Moderação (USP-016 / ADR-0011): ports da máquina de estados `transitionContent`.
 // ContentStatusRepository → adapter sobre `_moderation_fixture` (1º tipo a aterrissar,
-// GAP-8). Notification é stub no-op (GAP-3 → USP-044); CompanyVerify já é o adapter
-// real (USP-017) e cache é o adapter real do Next (ADR-T-0013). Imports profundos para não carregar
-// `transition-content` (que importa este container) durante a inicialização — evita ciclo.
+// GAP-8). Notification enfileira e-mail de decisão no Outbox (GAP-3 → USP-057);
+// CompanyVerify já é o adapter real (USP-017) e cache é o adapter real do Next
+// (ADR-T-0013). Imports profundos para não carregar `transition-content` (que
+// importa este container) durante a inicialização — evita ciclo.
 /* eslint-disable no-restricted-imports */
 import { CONTENT_STATUS_REPOSITORY_TOKEN } from '@/modules/moderation/ports/content-status.port';
 import { MODERATION_NOTIFICATION_TOKEN } from '@/modules/moderation/ports/moderation-notification.port';
@@ -113,7 +121,7 @@ import { COMPANY_VERIFY_HOOK_TOKEN } from '@/modules/moderation/ports/company-ve
 import { PrismaModerationContentRepository } from '@/modules/moderation/adapters/prisma-moderation-content-repository';
 import { DispatchingContentStatusRepository } from '@/modules/moderation/adapters/dispatching-content-status-repository';
 import { ContentKind } from '@/modules/moderation/domain/content-status';
-import { StubModerationNotification } from '@/modules/moderation/adapters/stub-moderation-notification';
+import { OutboxModerationNotification } from '@/modules/moderation/adapters/outbox-moderation-notification';
 import { NextCacheInvalidation } from '@/modules/moderation/adapters/next-cache-invalidation';
 import { PrismaCompanyVerifyHook } from '@/modules/moderation/adapters/prisma-company-verify-hook';
 import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
@@ -135,7 +143,7 @@ container.register(
       new PrismaModerationContentRepository(),
     ),
 );
-container.register(MODERATION_NOTIFICATION_TOKEN, () => new StubModerationNotification());
+container.register(MODERATION_NOTIFICATION_TOKEN, () => new OutboxModerationNotification());
 container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
 container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new PrismaCompanyVerifyHook());
 
@@ -148,7 +156,33 @@ import { CV_EXTRACTOR_TOKEN } from '@/modules/cv-extraction/ports/cv-extractor.p
 import { AnthropicCVExtractor } from '@/modules/cv-extraction/adapters/anthropic-cv-extractor';
 // eslint-disable-next-line no-restricted-imports
 import { FakeCVExtractor } from '@/modules/cv-extraction/adapters/fake-cv-extractor';
-import { env } from '@/shared/env';
 container.register(CV_EXTRACTOR_TOKEN, () =>
   env.CV_EXTRACTOR_FAKE ? new FakeCVExtractor() : new AnthropicCVExtractor(),
 );
+
+// Cascata de artefatos da revogação de JOB_APPLICATION (USP-053 / CAND-7 /
+// A-5): porta definida em `consents`, composta pelos participantes de tx dos
+// módulos donos do dado (`jobs`, `persons`). Imports profundos aqui pelo mesmo
+// motivo do `COMPANY_RESPONSIBILITY_TOKEN` acima — evitar dependência
+// circular (`jobs`/`persons` já importam `consents` pelos barrels).
+// eslint-disable-next-line no-restricted-imports
+import { REVOCATION_EFFECTS_TOKEN } from '@/modules/consents/ports/revocation-effects';
+// eslint-disable-next-line no-restricted-imports
+import { endJobApplicationsForRevocation } from '@/modules/jobs/actions/end-job-applications-for-revocation';
+// eslint-disable-next-line no-restricted-imports
+import { hideCandidateProfileForRevocation } from '@/modules/persons/actions/hide-candidate-profile-for-revocation';
+container.register(REVOCATION_EFFECTS_TOKEN, () => ({
+  async applyJobApplicationCascade(tx, ctx) {
+    const ended = await endJobApplicationsForRevocation(tx, ctx);
+    // Mesmo shape de `ctx` do participante irmão acima (`RevocationEffectsContext`
+    // === `HideCandidateProfileForRevocationContext`) — `actorPersonId`/`ip`/
+    // `userAgent`/`justification` agora chegam ao `transitionContent()` por baixo
+    // (remediação Fase 8: FSM audita a transição em vez do `updateMany` cru).
+    const hidden = await hideCandidateProfileForRevocation(tx, ctx);
+    return {
+      applicationsEnded: ended.endedCount,
+      endedApplicationIds: ended.endedApplicationIds,
+      profileHidden: hidden.hidden,
+    };
+  },
+}));

@@ -1,6 +1,16 @@
 // Barrel do módulo `persons`.
 // Todos os imports externos devem passar por este arquivo (nunca deep paths).
 
+// Máscara de CPF do titular para exibição (USP-049 / PERFIL-01).
+export { maskCpf } from './domain/cpf-mask';
+
+// Rótulos PT-BR de PersonStatus (USP-059 / SOC-4).
+export { PERSON_STATUS_LABELS } from './domain/person-status-labels';
+
+// View Model do próprio titular (viewer=self) para /perfil (USP-049 / AUTH-4).
+export { viewPersonForSelf } from './views/view-person-for-self';
+export type { SelfProfileView } from './views/view-person-for-self';
+
 // ── Inativar Pessoa (USP-007 / IDN-15, IDN-16) ────────────────────────────────
 export { inactivatePerson } from './actions/inactivate-person';
 export type { InactivatePersonResult } from './actions/inactivate-person';
@@ -190,3 +200,11 @@ export type {
 } from './views/view-person-for-social-assistant';
 export { ConsolidatedPersonPanel } from './components/consolidated-person-panel';
 export type { ConsolidatedPersonPanelProps } from './components/consolidated-person-panel';
+
+// USP-053 (CAND-7) — participante de tx que oculta o perfil de candidato na
+// cascata de revogação de JOB_APPLICATION (OCULTAR).
+export { hideCandidateProfileForRevocation } from './actions/hide-candidate-profile-for-revocation';
+export type {
+  HideCandidateProfileForRevocationContext,
+  HideCandidateProfileForRevocationResult,
+} from './actions/hide-candidate-profile-for-revocation';

@@ -58,6 +58,17 @@ describe('USP-009 #46 — CandidateForm', () => {
     expect(screen.getByRole('button', { name: /salvar cadastro/i })).toBeDisabled();
   });
 
+  it('AUTH6-4: renderiza o corpo do termo via TermMarkdown — sem sintaxe Markdown crua', () => {
+    render(
+      <CandidateForm
+        {...baseProps}
+        term={{ ...baseProps.term, body: '**Finalidade** do termo de candidatura.' }}
+      />,
+    );
+    expect(screen.getByText('Finalidade').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*Finalidade\*\*/)).not.toBeInTheDocument();
+  });
+
   it('habilita o envio ao marcar o aceite', () => {
     render(<CandidateForm {...baseProps} />);
     fireEvent.click(screen.getByRole('checkbox'));
@@ -95,5 +106,41 @@ describe('USP-009 #46 — CandidateForm', () => {
     render(<CandidateForm {...baseProps} alreadyCandidate initialStatus="IN_MODERATION" />);
     expect(screen.queryByText(/TERMO: candidatura/)).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/em moderação/i);
+  });
+
+  it('PERF-MN-02 (UI): perfil ACTIVE não oferece "Enviar para moderação" e mostra aviso de perfil ativo', () => {
+    render(<CandidateForm {...baseProps} alreadyCandidate initialStatus="ACTIVE" />);
+    expect(screen.queryByRole('button', { name: /enviar para moderação/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/ativo/i);
+  });
+
+  it('PERF-03b: status sem ação definida (AWAITING_ADJUSTMENTS) não renderiza caixa de rascunho nem de moderação', () => {
+    render(<CandidateForm {...baseProps} alreadyCandidate initialStatus="AWAITING_ADJUSTMENTS" />);
+    expect(screen.queryByRole('button', { name: /enviar para moderação/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('PERF-04: com defaultValues, os campos abrem pré-preenchidos', () => {
+    render(
+      <CandidateForm
+        {...baseProps}
+        alreadyCandidate
+        initialStatus="DRAFT"
+        defaultValues={{
+          educationLevel: 'ENSINO_MEDIO',
+          primaryAreaOfInterestId: '00000000-0000-0000-0000-000000000002',
+          phone: '11988887777',
+          headline: 'Aux. administrativo',
+          experienceText: '3 anos de experiência',
+        }}
+      />,
+    );
+    expect(screen.getByLabelText(/escolaridade/i)).toHaveValue('ENSINO_MEDIO');
+    expect(screen.getByLabelText(/área de interesse principal/i)).toHaveValue(
+      '00000000-0000-0000-0000-000000000002',
+    );
+    expect(screen.getByLabelText(/telefone/i)).toHaveValue('11988887777');
+    expect(screen.getByLabelText(/resumo profissional/i)).toHaveValue('Aux. administrativo');
+    expect(screen.getByLabelText(/experiência/i)).toHaveValue('3 anos de experiência');
   });
 });

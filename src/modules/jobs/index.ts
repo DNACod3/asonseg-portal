@@ -38,8 +38,14 @@ export type {
   SubmitJobData,
   EditJobInput,
   EditJobData,
+  UpdateJobDraftInput,
+  UpdateJobDraftData,
 } from './schemas/publish-job.schema';
-export { editJobSchema } from './schemas/publish-job.schema';
+export {
+  editJobSchema,
+  updateJobDraftSchema,
+  updateJobDraftFieldsSchema,
+} from './schemas/publish-job.schema';
 export {
   jobIdSchema,
   pauseJobSchema,
@@ -65,6 +71,7 @@ export { unpauseJob, type UnpauseJobResult } from './actions/unpause-job';
 export { archiveJob, type ArchiveJobResult } from './actions/archive-job';
 export { extendJobValidity, type ExtendJobValidityResult } from './actions/extend-job-validity';
 export { editJob, type EditJobResult } from './actions/edit-job';
+export { updateJobDraft, type UpdateJobDraftResult } from './actions/update-job-draft';
 export { runJobExpiration, type RunJobExpirationResult } from './actions/run-job-expiration';
 export {
   enqueueExpiryReminder,
@@ -78,6 +85,13 @@ export {
   type CreateReferralApplicationArgs,
   type CreateReferralApplicationResult,
 } from './actions/create-referral-application';
+// USP-053 (CAND-7) — participante de tx que encerra+marca candidaturas ativas
+// na cascata de revogação de JOB_APPLICATION (ENCERRAR+MARCAR).
+export {
+  endJobApplicationsForRevocation,
+  type EndJobApplicationsForRevocationContext,
+  type EndJobApplicationsForRevocationResult,
+} from './actions/end-job-applications-for-revocation';
 
 // ── Server (server-only helpers, ADR-0030) ──────────────────────────────────────
 export { requireActiveResponsible } from './server/require-active-responsible';
@@ -120,6 +134,10 @@ export {
   type PersonApplicationRow,
 } from './queries/list-person-applications';
 export { resolveJobExpiryEmail } from './queries/resolve-job-expiry-email';
+export {
+  listLatestReturnReasons,
+  type LatestReturnReason,
+} from './queries/list-latest-return-reasons';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';

@@ -33,9 +33,12 @@ export interface SecurityHeadersOptions {
  */
 const cspCache = new Map<string, string>();
 
-/** Monta o valor da `Content-Security-Policy` (memoizado por origem). */
+/** Monta o valor da `Content-Security-Policy` (memoizado por origem + ambiente). */
 function buildCsp(supabaseOrigin?: string): string {
-  const cacheKey = supabaseOrigin ?? '';
+  // ORQ-2 / RF-02 / RF-MN-02: 'unsafe-eval' só em dev (hidratação do React em
+  // `npm run dev` exige eval; em produção/test a CSP não pode enfraquecer).
+  const isDev = process.env.NODE_ENV === 'development';
+  const cacheKey = `${supabaseOrigin ?? ''}|${isDev}`;
   const cached = cspCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
@@ -46,13 +49,16 @@ function buildCsp(supabaseOrigin?: string): string {
     connectSrc.push(supabaseOrigin.replace(/^https:/, 'wss:'));
   }
 
+  const scriptSrc = ["'self'", "'unsafe-inline'", TURNSTILE_ORIGIN];
+  if (isDev) scriptSrc.push("'unsafe-eval'");
+
   const directives: Record<string, string[]> = {
     'default-src': ["'self'"],
     'base-uri': ["'self'"],
     'form-action': ["'self'"],
     'frame-ancestors': ["'none'"],
     'object-src': ["'none'"],
-    'script-src': ["'self'", "'unsafe-inline'", TURNSTILE_ORIGIN],
+    'script-src': scriptSrc,
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:'],
     'font-src': ["'self'"],

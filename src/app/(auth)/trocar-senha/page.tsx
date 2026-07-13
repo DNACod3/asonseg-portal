@@ -1,4 +1,4 @@
-import { ChangePasswordForm } from '@/modules/identity';
+import { ChangePasswordForm, getCurrentPerson } from '@/modules/identity';
 import { FormCard, FormHeader, StepIcon } from '@/shared/ui';
 
 export const metadata = {
@@ -22,14 +22,20 @@ const lockIcon = (
 
 // Refactor Fase 1 (AD-014, USP-004 delta): restilizado com StepIcon + FormHeader
 // + FormCard, seguindo o padrão do login/page.tsx e cadastro/page.tsx.
-export default function TrocarSenhaPage() {
+//
+// AUTH-7 / RF-06 / RF-MN-05: a página NÃO confina fora do 1º acesso (ADR-0030
+// mantém `/trocar-senha` acessível) — só a descrição passa a ser condicional a
+// `primeiroAcesso`, para não afirmar "primeiro acesso" enganosamente quando não é.
+export default async function TrocarSenhaPage() {
+  const person = await getCurrentPerson();
+  const description = person?.primeiroAcesso
+    ? 'Este é seu primeiro acesso. Por segurança, escolha uma nova senha para continuar.'
+    : 'Por segurança, escolha uma nova senha para continuar.';
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <StepIcon variant="blue">{lockIcon}</StepIcon>
-      <FormHeader
-        title="Defina sua nova senha"
-        description="Este é seu primeiro acesso. Por segurança, escolha uma nova senha para continuar."
-      />
+      <FormHeader title="Defina sua nova senha" description={description} />
 
       <FormCard>
         <ChangePasswordForm />

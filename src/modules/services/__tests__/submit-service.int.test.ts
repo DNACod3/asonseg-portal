@@ -177,6 +177,10 @@ skipIfNoDb('submitServiceForModeration / createServiceDraft — integração', (
       where: { id: { in: [providerId, noRoleId, noConsentId, notResponsibleId] } },
     });
     await prisma.serviceCategory.deleteMany({ where: { name: CATEGORY_NAME } });
+    // HYG-09/HYG-11: remove a Region própria deste arquivo (a categoria já era
+    // limpa) — evita poluir o select de região dos dropdowns públicos (SVC-3).
+    await prisma.region.deleteMany({ where: { name: 'Centro Int Submit Service' } });
+    expect(await prisma.region.count({ where: { name: 'Centro Int Submit Service' } })).toBe(0);
   });
 
   it('AC-029-1/AC-029-2: PF (sem companyId) → IN_MODERATION vinculado ao autor', async () => {

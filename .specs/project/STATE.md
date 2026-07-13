@@ -27,11 +27,15 @@
 
 ## Handoff
 
-**Sem unidade de loop em andamento.** Fase 7 concluída (USP-046/047/048 `[x]`, AD-025) — MVP feature-complete **e** com fachada pública pronta. Todas as fases executáveis do ROADMAP (1–7) estão `[x]`. **Próximo marco = Lançamento** (UAT com sponsor + documentação operacional + treinamento + cutover) — é um marco **humano/operacional, NÃO despachado pelo loop** `spec-driven-execution`. Pendências de go-live (não de dev): formalização escrita do DPO (B-001 já decidido em AD-024) + assinatura do conteúdo das checklists/modelo de aceite (B-003/B-004). Pendente desta rodada: **abrir/mergear o PR único** da branch `feat/fase-7-fachada-publica`.
+**Fase 8 — Remediação do UAT em andamento** (branch `feat/fase-8-remediacao-uat`, 1 PR único, pipeline Planner→Implementer→Verifier por USP). **Fase 8 — Remediação do UAT 100% concluída** (USP-049..060, 12/12 PASS, todas via Planner→Implementer→Verifier). Suite de integração determinística (3 execuções consecutivas verdes, incl. pós-reset). Próximo: abrir o PR único da branch `feat/fase-8-remediacao-uat`, rodar /pr-review, resolver o CR e mergear em master.
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-026: ISR das páginas de vagas 1800s→600s (USP-054/EMP-3) — 2026-07-12
+
+**Decision:** Alinhar `export const revalidate` de `(public)/vagas/page.tsx` e `/vagas/[id]/page.tsx` a **600s**, o "ISR 10min" documentado em CLAUDE.md/ADR-0013 — supersede o literal `1800` que estava no código. Correção acoplada ao EMP-3 (revalidação ao sair de ACTIVE): sem isso, uma vaga pausada/arquivada só sumiria da busca pública após a janela de TTL, agora reduzida e coerente com a doc. Sem impacto de arquitetura.
 
 ### AD-025: Fase 7 — Fachada Pública (Casca + Home + Navegação integrada), rodada única em 1 PR — PASS 2026-07-10
 
@@ -285,6 +289,7 @@ _(nenhuma registrada ainda)_
 - [ ] Triagem de moderação assistida por LLM (reduzir carga de moderação humana — risco RP-004) — Captured during: bootstrap, mitigação V2
 - [ ] Kanban de status de candidatura — Captured during: bootstrap (fora do MVP)
 - [ ] Busca semântica/FTS de vagas e serviços — Captured during: bootstrap (MVP usa match exato)
+- [ ] E2E Playwright autenticado (sessão Supabase real) para login→hub (USP-049) e para o bypass adversarial de rate limit via `<Link>` real (USP-050) — pedido pelo `/pr-review` da PR #291 (Fase 8), decisão consciente de **não** adicionar nesta remediação: mantém o padrão L-007/pirâmide de testes já seguido por **todo** `e2e/*.spec.ts` que toca rota autenticada (`login.spec.ts`, `ativar-papel.spec.ts`, `consentimentos.spec.ts`, `candidato.spec.ts`, `prestador.spec.ts` — todos verificam só o gate "sem sessão → /login", nunca uma sessão Supabase real via browser) — precedente extenso, não um caso isolado. Login válido e lockout já são autoritativos em `login.int.test.ts`; o próprio hub (USP-049) tem cobertura RTL (`page.test.tsx`) + `curl`/build no `validation.md`. Existe caminho técnico viável (seed CI já roda `SEED_DEMO=1 npx prisma db seed` antes do `test:e2e`, com contas login-áveis reais em `docs/operacao/contas-de-teste-seed.md`), mas introduzir o primeiro login via browser real do repo é escopo maior que "achado de review" — fica como ideia registrada para uma US própria (ex.: endurecer o padrão de teste de sessão), não um retrabalho silencioso desta PR. Captured during: Fase 8 remediação de review, PR #291.
 
 ---
 

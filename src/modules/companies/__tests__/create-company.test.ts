@@ -15,6 +15,9 @@ const state = vi.hoisted(() => ({
   existingCnpj: false,
   termHash: 'e72b433324098c03e7800f4e71b64605bf7153b914e24f869e74e944835e1200',
   withAuditShouldThrow: null as Error | null,
+  // MOD-2: simula a releitura do consent COMPANY_REPRESENTATION ativo na tx.
+  activeRepresentationConsent: false,
+  consentCreateCallCount: 0,
 }));
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -52,7 +55,15 @@ vi.mock('@/modules/audit', () => ({
         })),
       },
       personCompanyGrant: { create: vi.fn(async () => ({})) },
-      consent: { create: vi.fn(async () => ({})) },
+      consent: {
+        findFirst: vi.fn(async () =>
+          state.activeRepresentationConsent ? { id: 'existing-consent-uuid' } : null,
+        ),
+        create: vi.fn(async () => {
+          state.consentCreateCallCount += 1;
+          return {};
+        }),
+      },
     };
     const audit: Record<string, unknown> = {};
     return fn(tx, audit);
@@ -103,6 +114,8 @@ beforeEach(() => {
   state.existingCnpj = false;
   state.termHash = HASH;
   state.withAuditShouldThrow = null;
+  state.activeRepresentationConsent = false;
+  state.consentCreateCallCount = 0;
 });
 
 // ── Testes ───────────────────────────────────────────────────────────────────
@@ -113,6 +126,16 @@ describe('createCompany', () => {
     if (!result.ok) return;
     expect(result.data.companyId).toBe('company-uuid');
     expect(result.data.cnpj).toBe('11222333000181');
+    // Sem consent ativo prévio: cria o consent (comportamento atual preservado — EMP055-02).
+    expect(state.consentCreateCallCount).toBe(1);
+  });
+
+  it('MOD-2 (EMP055-01/EMP055-MN-01): Pessoa já com consent COMPANY_REPRESENTATION ativo reusa — não cria 2º consent', async () => {
+    state.activeRepresentationConsent = true;
+    const result = await createCompany(VALID_INPUT);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(state.consentCreateCallCount).toBe(0);
   });
 
   it('VALIDATION: CNPJ inválido', async () => {

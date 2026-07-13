@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** Lançamento (UAT + cutover)
-**Status:** Fase 7 — Fachada Pública **100% concluída** (3 USPs, 1 PR único, AD-025). O portal agora "abre como o protótipo": casca de navegação global (header/nav/footer no grupo `(public)`), home/landing fiel a `docs/prototipo/index.html` com indicadores reais da USP-041 embutidos, e navegação integrada (CTAs/nav/busca → rotas reais `/vagas`, `/servicos`, cadastros + destaques ACTIVE anonimizados). **MVP feature-complete E com fachada pronta.** Próxima etapa: **Lançamento** (UAT + cutover; gate humano B-001 já resolvido em AD-024, resta formalização escrita do DPO + gates de conteúdo B-003/B-004 antes do go-live).
+**Status:** UAT completo de execução realizado em **2026-07-11** (8 testadores autônomos, todos os perfis e fluxos das Fases 1–7, build de produção local; dossiê em `.specs/features/ajustes-uat/uat-findings-2026-07-11.md`). Resultado: núcleo sólido (moderação/FSM, PII/anonimização, LGPD, auditoria, USP-017 e2e), porém **1 P0 + 14 P1** de fluxo/UX — destaque: pós-login cai em 404 (`/inicio` nunca foi criado). Criada a **Fase 8 — Remediação do UAT** (12 unidades executáveis, sem mudança de arquitetura) e a **Fase 9 — Itens de avaliação humana** (não despachável pelo loop). Lançamento (UAT com sponsor + cutover) fica gated pela Fase 8.
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa) e `USP-046`…`USP-048` (fachada pública — Fase 7), todas **extras ao PRD/board** — mapeados a features versionadas em `.specs/features/`.
 
@@ -150,11 +150,51 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ---
 
+## Fase 8 — Remediação do UAT (correções de fluxo, sem mudança de arquitetura) (1-2 sem)
+
+**Goal:** Todos os achados executáveis do UAT de 2026-07-11 corrigidos: nenhum fluxo termina em 404/beco sem saída, formulários confiáveis pré/pós-hidratação, cache público coerente com o ciclo de vida, moderação cobrindo CV, cascata LGPD aplicada e relatórios legíveis.
+**Target:** Dossiê `.specs/features/ajustes-uat/uat-findings-2026-07-11.md` — coluna "Fase 8" 100% fechada; smoke pós-fase: login→hub→fluxo por papel sem 404 em nenhum perfil do seed.
+
+> **Fonte da verdade das unidades:** cada USP abaixo referencia os IDs de achado do dossiê (tabela Fase 8), que ancoram cada correção em AC/spec/PRD/protótipo. **Premissas:** não alterar arquitetura nem premissas técnicas estabelecidas; não inventar regras — na dúvida, a spec/AC citada no dossiê manda. Unidades são net-new (USP-049…USP-060, fora do PRD/board, como USP-045…048).
+
+### Unidades
+
+- [x] USP-049 — Pós-login: rota /inicio (hub por papel), redirects corrigidos, /perfil real mínimo, logout · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-049-pos-login-hub/ · deps: — · gate: — · achados: ORQ-1, AUTH-1, AUTH-3, AUTH-4
+- [x] USP-050 — Rate limiting: parse de flag robusto, buckets por mutação, exclusão de prefetch, página 429 PT-BR · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-050-rate-limiting/ · deps: — · gate: — · achados: PUB-1, PUB-2, SOC-1
+- [x] USP-051 — Robustez de formulários: fallback GET do login, CSP dev, RangeError de data, noValidate, bodySizeLimit CV, texto /trocar-senha · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-051-robustez-forms/ · deps: — · gate: — · achados: ORQ-2, ORQ-3, EMP-1, EMP-6, CAND-5, AUTH-7
+- [x] USP-052 — Perfil do candidato consistente: sem perda de dados no save, status real, defaultValues, gate do termo CV_AI_EXTRACTION · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-052-perfil-candidato/ · deps: — · gate: — · achados: CAND-1, CAND-2, CAND-3, CAND-6
+- [x] USP-053 — Cascata de revogação JOB_APPLICATION conforme política do domínio (encerrar candidaturas + ocultar da busca) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-053-cascata-revogacao/ · deps: — · gate: — · achados: CAND-7
+- [x] USP-054 — Ciclo de vida da vaga no painel: ações p/ DRAFT/AWAITING_ADJUSTMENTS, motivo visível + reenvio, revalidação de cache saindo de ACTIVE, data sem -1 dia · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-054-ciclo-vida-vaga/ · deps: — · gate: — · achados: EMP-2, MOD-3, EMP-3, MOD-5
+- [x] USP-055 — Empresas: cadastro por pessoa já representante (consent reuse), radios de tipo completos, mensagem de CPF específica · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-055-empresas/ · deps: — · gate: — · achados: MOD-2, EMP-4, EMP-8
+- [x] USP-056 — Moderação: CV na fila (adapter CANDIDATE_PROFILE), heurística de justificativa, ações por permissão, confirmação em sugestões · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-056-moderacao/ · deps: — · gate: — · achados: MOD-1, MOD-6, MOD-7, MOD-8
+- [x] USP-057 — E-mails de decisão de moderação (NOT-03/04/05) via outbox na tx de transitionContent; substituir stub · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-057-emails-moderacao/ · deps: USP-056 · gate: — · achados: REL-1, MOD-4
+- [x] USP-058 — Relatórios legíveis: nome de categoria, rótulos PT-BR, filtros de status/categoria no form · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-058-relatorios/ · deps: — · gate: — · achados: REL-2, REL-3, REL-5
+- [x] USP-059 — Casca e conteúdo: not-found PT-BR, favicon, /termos e /privacidade (aviso "em elaboração"), Markdown dos termos renderizado, rótulos PT-BR na visão consolidada, alinhamento do literal do badge (docs) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-059-casca-conteudo/ · deps: — · gate: — · achados: PUB-3, PUB-4, AUTH-2, AUTH-6, SOC-4, SOC-6
+- [x] USP-060 — Higiene de dev/seed: cleanup de fixtures de int-tests (taxonomia/pessoas), senha de seed válida, harness de e-mail local (adapter SMTP dev + CRON_SECRET local) · epic: ajustes-uat · dir: .specs/features/ajustes-uat/usp-060-higiene-dev/ · deps: — · gate: — · achados: PUB-6, SVC-3, AUTH-8, AUTH-9, REL-4
+
+---
+
+## Fase 9 — Itens do UAT para avaliação humana (NÃO despachável pelo loop)
+
+> **Gate humano.** Cada item exige decisão de dono/PO/DPO ou reconciliação de specs antes de virar unidade executável. Detalhes e evidências na tabela "Fase 9" do dossiê `.specs/features/ajustes-uat/uat-findings-2026-07-11.md`. Nenhum item está no formato de linha-USP de propósito (o loop não deve pegá-los).
+
+- H-1 — Indicador da home (E-001 literal) × lista pública com gate `isVerified`: qual conta vale?
+- H-2 — Footer "(em breve)" × CTAs reais da home: reconciliar A-07 (USP-046) com NAV-04 (USP-048).
+- H-3 — App-shell autenticado completo + busca/lista de Pessoas para AS (Épico 9 navegável) — envolve nota de privacidade ADR-0014 (PO+DPO).
+- H-4 — Header público refletir sessão × casca estática ISR (CASCA-MN-01).
+- H-5 — Edição de conteúdo/perfil ACTIVE exige re-moderação? (nenhuma spec cobre edição pós-aprovação).
+- H-6 — Papel Cliente self-service em /perfil/papeis × USP-011 "sem UI de cadastro de cliente": reconciliar specs.
+- H-7 — Detalhe de vaga inativada: 200 "Vaga encerrada" × null/404 da spec (sem vazamento; confirmar e alinhar).
+- H-8 — Ampliação do seed de validação (mais coordenadores; usuário `primeiroAcesso=true`).
+
+---
+
 ## Lançamento (1 sem)
 
 **Goal:** Sistema validado e em produção.
 
 - UAT com sponsor; documentação operacional; treinamento de moderadores e AS; cutover.
+- **Pré-requisito:** Fase 8 concluída; itens da Fase 9 decididos ou aceitos como estão pelo sponsor.
 
 ---
 

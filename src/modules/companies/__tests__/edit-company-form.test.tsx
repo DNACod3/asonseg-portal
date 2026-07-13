@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { EditCompanyFormProps } from '../components/edit-company-form';
 
 /**
  * Testes de UI do formulário de edição de Empresa (USP-015 / #142). Cobre:
@@ -21,10 +22,10 @@ vi.mock('next/navigation', () => ({
 
 const { EditCompanyForm } = await import('../components/edit-company-form');
 
-const EMPRESA = {
+const EMPRESA: EditCompanyFormProps['empresa'] = {
   id: '11111111-1111-4111-8111-111111111111',
   cnpj: '11222333000181',
-  type: 'SIMPLES_NACIONAL' as const,
+  type: 'SIMPLES_NACIONAL',
   razaoSocial: 'Padaria Aurora Alimentos Ltda',
   nomeFantasia: 'Padaria Aurora',
   setor: 'Alimentação',
@@ -48,6 +49,23 @@ beforeEach(() => {
 });
 
 describe('EditCompanyForm (USP-015)', () => {
+  it('EMP055-05/EMP055-MN-02: renderiza os 5 radios de Tipo (incl. SA, LUCRO_PRESUMIDO, LUCRO_REAL)', () => {
+    renderForm();
+    const radios = screen.getAllByRole('radio');
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual([
+      'MEI',
+      'SIMPLES_NACIONAL',
+      'LUCRO_PRESUMIDO',
+      'LUCRO_REAL',
+      'SA',
+    ]);
+  });
+
+  it('EMP055-07: pré-seleciona o radio de defaultValues.type (SA) sem rebaixar ao renderizar', () => {
+    renderForm({ type: 'SA' });
+    expect(screen.getByRole('radio', { name: /sociedade anônima/i })).toBeChecked();
+  });
+
   it('mudança não-identitária (descrição) submete direto, sem diálogo', async () => {
     renderForm();
     fireEvent.change(screen.getByLabelText(/descrição/i), {

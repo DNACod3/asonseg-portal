@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
+import { Button, Input, Label, LgpdBox, Textarea, TermMarkdown } from '@/shared/ui';
 // Import direto do módulo `'use server'` (não do barrel `@/modules/identity`):
 // este é um Client Component e o barrel reexporta código server-only
 // (`container.ts` via captchaVerifier, `supabase/server.ts` via session), que o
@@ -33,6 +33,8 @@ export interface CandidateFormProps {
   alreadyCandidate: boolean;
   /** Status atual do perfil, se já existir (para refletir o fluxo rascunho → moderação). */
   initialStatus: string | null;
+  /** CAND-3: valores do perfil existente, para abrir o formulário pré-preenchido (edição não-às-cegas). */
+  defaultValues?: Partial<CandidateProfileInput>;
 }
 
 /**
@@ -50,7 +52,13 @@ export interface CandidateFormProps {
  * com as primitivas (`Input`/`Label`/`Textarea`/`Button`/`LgpdBox`) e tokens — fluxo
  * (RHF/Zod/gate do consentimento/actions/`transitionContent`) preservado sem alteração.
  */
-export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus }: CandidateFormProps) {
+export function CandidateForm({
+  jobAreas,
+  term,
+  alreadyCandidate,
+  initialStatus,
+  defaultValues,
+}: CandidateFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -63,6 +71,7 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
     formState: { errors },
   } = useForm<CandidateProfileInput>({
     resolver: zodResolver(candidateProfileSchema),
+    defaultValues,
   });
 
   function onSubmit(data: CandidateProfileInput) {
@@ -111,6 +120,11 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
 
   const isDraft = status === 'DRAFT';
   const inModeration = status === 'IN_MODERATION';
+  // CAND-2 / PERF-03 / PERF-03b: reflete o status real sem oferecer transição
+  // inválida. ACTIVE ganha um aviso informativo (não-acionável); os demais
+  // status (REJECTED/AWAITING_ADJUSTMENTS/PAUSED/EXPIRED/ARCHIVED/INACTIVATED)
+  // não renderizam caixa alguma — superfície neutra, sem decidir re-moderação (H-5).
+  const isActive = status === 'ACTIVE';
 
   return (
     <div className="flex max-w-lg flex-col gap-6">
@@ -118,7 +132,17 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
         {/* Escolaridade */}
         <div>
           <Label htmlFor="educationLevel">Escolaridade</Label>
-          <select id="educationLevel" className={selectClass} defaultValue="" {...register('educationLevel')}>
+          {/* SPEC_DEVIATION: mantém defaultValue explícito (não apenas via RHF)
+              porque, sem seleção, o <select> nativo auto-seleciona a 1ª option
+              HABILITADA (não a "" desabilitada) — sem isto, "submit vazio"
+              passaria com um enum válido por acidente, quebrando o teste de
+              validação Zod preservado (A-11). */}
+          <select
+            id="educationLevel"
+            className={selectClass}
+            defaultValue={defaultValues?.educationLevel ?? ''}
+            {...register('educationLevel')}
+          >
             <option value="" disabled>
               Selecione…
             </option>
@@ -137,7 +161,7 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
           <select
             id="primaryAreaOfInterestId"
             className={selectClass}
-            defaultValue=""
+            defaultValue={defaultValues?.primaryAreaOfInterestId ?? ''}
             {...register('primaryAreaOfInterestId')}
           >
             <option value="" disabled>
@@ -184,12 +208,11 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
         {/* Termo de consentimento JOB_APPLICATION (CAD-05) — exigido na 1ª ativação. */}
         {!alreadyCandidate && (
           <LgpdBox title="Termo de uso para candidatura a vagas">
-            <div
-              className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
+            <TermMarkdown
+              source={term.body}
+              className="mb-3 max-h-40 overflow-y-auto rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
               aria-label="Conteúdo do termo de candidatura a vagas"
-            >
-              {term.body}
-            </div>
+            />
             <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
               <input
                 type="checkbox"
@@ -244,6 +267,15 @@ export function CandidateForm({ jobAreas, term, alreadyCandidate, initialStatus 
           className="rounded-md border border-primary bg-[color-mix(in_srgb,var(--color-primary)_10%,transparent)] px-4 py-3 text-sm text-primary"
         >
           Seu perfil está <strong>em moderação</strong>. Você será avisado quando for aprovado.
+        </div>
+      )}
+
+      {isActive && (
+        <div
+          role="status"
+          className="rounded-md border border-primary bg-[color-mix(in_srgb,var(--color-primary)_10%,transparent)] px-4 py-3 text-sm text-primary"
+        >
+          Seu perfil está <strong>ativo</strong> e visível nas buscas de empresas.
         </div>
       )}
     </div>

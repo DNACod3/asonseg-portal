@@ -690,7 +690,7 @@ sequenceDiagram
     SA->>DB: COMMIT
     SA->>R: e-mail informativo à Pessoa P
     SA-->>UI: ok
-    Note over UI: empresa vê candidatura com badge "Encaminhado pela ASONSEG"
+    Note over UI: empresa vê candidatura com badge "Candidato encaminhado pela ASONSEG"
 ```
 
 ### 3.6 Upload + extração de CV via LLM (USP-040)

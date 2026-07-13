@@ -76,7 +76,8 @@ const FILES: FileGuard[] = [
     path: 'src/app/(public)/vagas/page.tsx',
     requiredPrimitives: [/<FormHeader\b/, /<Button\b/],
     // Preservação (U21-MN-02/03): revalidate ISR + searchJobs(filters, viewer) intocados.
-    requiredPatterns: [/export const revalidate = 1800/, /searchJobs\(filters, viewer\)/],
+    // USP-054/EMP-3: TTL realinhado de 1800 (30min) para 600 (10min, CLAUDE.md/ISR).
+    requiredPatterns: [/export const revalidate = 600/, /searchJobs\(filters, viewer\)/],
   },
 ];
 

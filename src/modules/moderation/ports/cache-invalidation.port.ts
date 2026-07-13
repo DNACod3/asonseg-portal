@@ -5,6 +5,8 @@ import type { ContentKind, ContentStatus } from '../domain/content-status';
 export interface CacheInvalidationTarget {
   contentKind: ContentKind;
   contentId: string;
+  /** Status de origem da transição (USP-054/EMP-3 — necessário p/ detectar saída de `ACTIVE`). */
+  from: ContentStatus;
   to: ContentStatus;
 }
 

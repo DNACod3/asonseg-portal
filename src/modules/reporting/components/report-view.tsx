@@ -18,6 +18,12 @@ export interface ReportViewFilters {
   regionId?: string;
 }
 
+/** Uma opção de `<select>` de filtro (USP-058/REL-5 — status/categoria/região). */
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
 export interface ReportViewProps {
   reportType: ReportType;
   title: string;
@@ -31,6 +37,16 @@ export interface ReportViewProps {
   outcomeRates?: { successRate: number | null; noResultRate: number | null };
   /** Vindo do gate da rota — só `true` para o relatório social visto por AS/BOARD (T10 scope=full). */
   containsPII: boolean;
+  /**
+   * Opções do `<select name="status">` (USP-058/REL-5 — só R1/Vagas honra
+   * status). Ausente ⇒ nenhum select de status é renderizado (gating —
+   * USP058-08/MN-04, evita controle inerte).
+   */
+  statusOptions?: FilterOption[];
+  /** Opções do `<select name="categoryId">` (só R3/Serviços honra categoria). */
+  categoryOptions?: FilterOption[];
+  /** Opções do `<select name="regionId">` (só R6/Social honra região). */
+  regionOptions?: FilterOption[];
 }
 
 function formatCell(value: unknown): string {
@@ -69,6 +85,9 @@ export function ReportView({
   filters,
   outcomeRates,
   containsPII,
+  statusOptions,
+  categoryOptions,
+  regionOptions,
 }: ReportViewProps) {
   const [isPending, startTransition] = useTransition();
   const [acknowledgePII, setAcknowledgePII] = useState(false);
@@ -115,6 +134,60 @@ export function ReportView({
             className="rounded-md border border-border bg-background px-2 py-1 text-sm"
           />
         </div>
+        {statusOptions ? (
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="status">Status</Label>
+            <select
+              id="status"
+              name="status"
+              defaultValue={filters.status ?? ''}
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+            >
+              <option value="">Todos</option>
+              {statusOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        {categoryOptions ? (
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="categoryId">Categoria</Label>
+            <select
+              id="categoryId"
+              name="categoryId"
+              defaultValue={filters.categoryId ?? ''}
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+            >
+              <option value="">Todas</option>
+              {categoryOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        {regionOptions ? (
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="regionId">Região</Label>
+            <select
+              id="regionId"
+              name="regionId"
+              defaultValue={filters.regionId ?? ''}
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+            >
+              <option value="">Todas</option>
+              {regionOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         <Button type="submit" variant="secondary">
           Filtrar
         </Button>

@@ -62,6 +62,17 @@ describe('USP-010 #116 — ProviderForm', () => {
     expect(screen.getByRole('button', { name: /ativar papel de prestador/i })).toBeEnabled();
   });
 
+  it('AUTH6-4: renderiza o corpo do termo via TermMarkdown — sem sintaxe Markdown crua', () => {
+    render(
+      <ProviderForm
+        {...baseProps}
+        term={{ ...baseProps.term, body: '**Finalidade** do termo de oferta.' }}
+      />,
+    );
+    expect(screen.getByText('Finalidade').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*Finalidade\*\*/)).not.toBeInTheDocument();
+  });
+
   it('E-002/ADR-0031: NÃO possui campo de CNPJ e a CTA de MEI navega ao fluxo USP-012 (/empresa)', () => {
     render(<ProviderForm {...baseProps} />);
     expect(screen.queryByLabelText(/cnpj/i)).not.toBeInTheDocument();

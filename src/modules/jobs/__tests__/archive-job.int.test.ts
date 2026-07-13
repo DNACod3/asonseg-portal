@@ -109,6 +109,9 @@ skipIfNoDb('archiveJob — integração (USP-023)', () => {
         title: 'Vaga Archive Int',
         status,
         validUntil: futureDate(30),
+        // HYG-01: espelha a invariante de produção (publishedAt na 1ª ativação, schema.prisma:501)
+        // para que a vaga ACTIVE ordene no topo da página 1 mesmo sob volume acumulado.
+        ...(status === 'ACTIVE' ? { publishedAt: new Date() } : {}),
       },
       select: { id: true },
     });

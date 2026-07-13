@@ -111,19 +111,27 @@ export const publishJobSchema = z
         message: 'O salário máximo não pode ser menor que o mínimo.',
       });
     }
-    const status = validadeStatus(new Date(data.validUntil), new Date());
-    if (status === 'passado') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['validUntil'],
-        message: 'A data de validade deve ser futura.',
-      });
-    } else if (status === 'excede_teto') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['validUntil'],
-        message: `A validade não pode ultrapassar ${MAX_VALIDADE_DIAS} dias.`,
-      });
+    // EMP-1 / RF-03 / RF-MN-03: `validUntil` vazia/inválida já falha no campo-level
+    // (`validUntilStr` acima); aqui só chamamos `validadeStatus` quando a data é
+    // parseável — evita que `formatInTimeZone` (dentro de `validadeStatus`) lance
+    // `RangeError` sobre `Invalid Date`, o que abortava a renderização dos erros
+    // do RHF e deixava "Enviar para moderação" com aparência de botão morto.
+    const parsedValidUntil = new Date(data.validUntil);
+    if (!Number.isNaN(parsedValidUntil.getTime())) {
+      const status = validadeStatus(parsedValidUntil, new Date());
+      if (status === 'passado') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: 'A data de validade deve ser futura.',
+        });
+      } else if (status === 'excede_teto') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['validUntil'],
+          message: `A validade não pode ultrapassar ${MAX_VALIDADE_DIAS} dias.`,
+        });
+      }
     }
   });
 
@@ -187,6 +195,75 @@ export const editJobSchema = z.object({
   salaryVisible,
 });
 
+/** Faixa coerente + validade futura/teto (AD-5, E-004/E-005) — reusado por `publishJobSchema` e `updateJobDraftSchema`. */
+function refineSalaryAndValidUntil(
+  data: { salaryMin?: number; salaryMax?: number; validUntil: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (typeof data.salaryMin === 'number' && typeof data.salaryMax === 'number' && data.salaryMax < data.salaryMin) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['salaryMax'],
+      message: 'O salário máximo não pode ser menor que o mínimo.',
+    });
+  }
+  const parsedValidUntil = new Date(data.validUntil);
+  if (!Number.isNaN(parsedValidUntil.getTime())) {
+    const status = validadeStatus(parsedValidUntil, new Date());
+    if (status === 'passado') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['validUntil'], message: 'A data de validade deve ser futura.' });
+    } else if (status === 'excede_teto') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validUntil'],
+        message: `A validade não pode ultrapassar ${MAX_VALIDADE_DIAS} dias.`,
+      });
+    }
+  }
+}
+
+/**
+ * Campos informativos de um rascunho/devolvida (USP-054 / EMP-2 / A-1), sem `jobId` —
+ * shape compartilhado entre o schema de Server Action (`updateJobDraftSchema`, abaixo)
+ * e o formulário cliente (`JobEditForm mode="draft-edit"`, que precisa de um schema
+ * **sem** `jobId` para `zodResolver`; `.omit()` não está disponível depois de
+ * `.superRefine()` — daí a extração do shape em vez de derivar por `.omit()`).
+ */
+const updateJobDraftFields = {
+  title,
+  areaId,
+  description,
+  requirements,
+  workRegime,
+  location,
+  benefits,
+  salary,
+  contractType,
+  regionId,
+  educationLevelRequired,
+  salaryMin: salaryAmount,
+  salaryMax: salaryAmount,
+  salaryVisible,
+  validUntil: validUntilStr,
+};
+
+/** Variante **sem** `jobId` do schema de rascunho — usada pelo `zodResolver` do formulário cliente. */
+export const updateJobDraftFieldsSchema = z.object(updateJobDraftFields).superRefine(refineSalaryAndValidUntil);
+
+/**
+ * Schema de **edição de rascunho/devolvida** (USP-054 / EMP-2 / A-1). Salva os campos
+ * informativos de uma vaga `DRAFT`/`AWAITING_ADJUSTMENTS` **sem** transicionar (a
+ * transição é ação separada — `submitJobForModeration`). Deriva de `publishJobSchema`
+ * (mesma completude/validação do submit, já que o próximo passo natural é submeter):
+ * **exclui** `companyId` (imutável, resolvido a partir da vaga carregada) e **inclui**
+ * `validUntil` (D-1 — evita um beco de validade: um rascunho com validade vencida
+ * precisa poder ser corrigido por este fluxo, diferente de `editJobSchema` que exclui
+ * `validUntil` porque `extendJobValidity` já cobre a vaga `ACTIVE`).
+ */
+export const updateJobDraftSchema = z
+  .object({ jobId: z.string().uuid('Vaga inválida.'), ...updateJobDraftFields })
+  .superRefine(refineSalaryAndValidUntil);
+
 export type PublishJobInput = z.input<typeof publishJobSchema>;
 export type PublishJobData = z.output<typeof publishJobSchema>;
 export type DraftJobInput = z.input<typeof draftJobSchema>;
@@ -195,3 +272,5 @@ export type SubmitJobInput = z.input<typeof submitJobSchema>;
 export type SubmitJobData = z.output<typeof submitJobSchema>;
 export type EditJobInput = z.input<typeof editJobSchema>;
 export type EditJobData = z.output<typeof editJobSchema>;
+export type UpdateJobDraftInput = z.input<typeof updateJobDraftSchema>;
+export type UpdateJobDraftData = z.output<typeof updateJobDraftSchema>;

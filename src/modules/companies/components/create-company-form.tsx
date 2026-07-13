@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, LgpdBox, Textarea } from '@/shared/ui';
+import { Button, Input, Label, LgpdBox, Textarea, TermMarkdown } from '@/shared/ui';
+import { COMPANY_TYPE_OPTIONS } from '../domain/company-type';
 import {
   createCompanySchema,
   type CreateCompanyInput,
@@ -88,15 +89,16 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
       {/* Tipo */}
       <div>
         <Label>Tipo</Label>
-        <div className="flex gap-4">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
-            <input type="radio" value="SIMPLES_NACIONAL" className="accent-primary" {...register('type')} />
-            CNPJ Regular (Simples Nacional, etc.)
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
-            <input type="radio" value="MEI" className="accent-primary" {...register('type')} />
-            MEI
-          </label>
+        <div className="flex flex-wrap gap-4">
+          {COMPANY_TYPE_OPTIONS.map((opt) => (
+            <label
+              key={opt.value}
+              className="flex cursor-pointer items-center gap-2 text-sm text-fg"
+            >
+              <input type="radio" value={opt.value} className="accent-primary" {...register('type')} />
+              {opt.label}
+            </label>
+          ))}
         </div>
         {errors.type && (
           <p role="alert" className="mt-1 text-xs text-danger">
@@ -194,12 +196,11 @@ export function CreateCompanyForm({ term }: CreateCompanyFormProps) {
 
       {/* Termo de representação empresarial */}
       <LgpdBox title="Termo de representação empresarial">
-        <div
-          className="mb-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
+        <TermMarkdown
+          source={term.body}
+          className="mb-3 max-h-40 overflow-y-auto rounded-sm border border-border bg-surface p-2 text-xs text-fg-muted"
           aria-label="Conteúdo do termo de representação empresarial"
-        >
-          {term.body}
-        </div>
+        />
         <label className="flex cursor-pointer items-start gap-2 text-sm text-fg">
           <input
             type="checkbox"

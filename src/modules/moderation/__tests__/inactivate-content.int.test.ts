@@ -183,7 +183,11 @@ skipIfNoDb('inactivateContent — integração (USP-018 / T4)', () => {
 
     expect(res.ok).toBe(true);
     expect(notifySpy).toHaveBeenCalledTimes(1);
-    expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({ to: 'INACTIVATED', justification: MOTIVO }));
+    // USP-057: sendModerationDecision(tx, notice) — tx é o 1º argumento.
+    expect(notifySpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ to: 'INACTIVATED', justification: MOTIVO }),
+    );
     const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
     expect(job?.status).toBe('INACTIVATED'); // soft-fail: não reverte
   });

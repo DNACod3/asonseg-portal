@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { formatSaoPaulo } from '@/shared/lib/time';
 import { Badge, Card } from '@/shared/ui';
+import { ALL_ROLE_LABELS } from '@/modules/identity';
+import { labelContentStatus } from '@/modules/reporting';
+import { COMPANY_GRANT_STATUS_LABELS } from '@/modules/companies';
 import { INCOME_BRACKET_LABELS, HOUSING_SITUATION_LABELS } from '../domain/socioeconomic-record';
+import { PERSON_STATUS_LABELS } from '../domain/person-status-labels';
 import type { ConsolidatedPersonView } from '../views/view-person-for-social-assistant';
 
 export interface ConsolidatedPersonPanelProps {
@@ -35,13 +39,15 @@ export function ConsolidatedPersonPanel({ view }: Readonly<ConsolidatedPersonPan
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold text-fg">{person.fullName}</h1>
-          <Badge variant={person.status === 'ATIVO' ? 'green' : 'gray'}>{person.status}</Badge>
+          <Badge variant={person.status === 'ATIVO' ? 'green' : 'gray'}>
+            {PERSON_STATUS_LABELS[person.status] ?? person.status}
+          </Badge>
         </div>
         {person.roles.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {person.roles.map((role) => (
               <Badge key={role} variant="blue">
-                {role}
+                {ALL_ROLE_LABELS[role] ?? role}
               </Badge>
             ))}
           </div>
@@ -171,7 +177,7 @@ export function ConsolidatedPersonPanel({ view }: Readonly<ConsolidatedPersonPan
             {view.servicesOffered.map((service) => (
               <Card key={service.id} className="flex flex-wrap items-center gap-2">
                 <p className="font-medium text-fg">{service.title}</p>
-                <Badge variant="gray">{service.status}</Badge>
+                <Badge variant="gray">{labelContentStatus(service.status)}</Badge>
               </Card>
             ))}
           </div>
@@ -215,7 +221,9 @@ export function ConsolidatedPersonPanel({ view }: Readonly<ConsolidatedPersonPan
             {view.companyGrants.map((grant) => (
               <Card key={grant.grantId} className="flex flex-wrap items-center gap-2">
                 <p className="font-medium text-fg">{grant.companyName}</p>
-                <Badge variant={grant.status === 'ACTIVE' ? 'green' : 'orange'}>{grant.status}</Badge>
+                <Badge variant={grant.status === 'ACTIVE' ? 'green' : 'orange'}>
+                  {COMPANY_GRANT_STATUS_LABELS[grant.status] ?? grant.status}
+                </Badge>
               </Card>
             ))}
           </div>

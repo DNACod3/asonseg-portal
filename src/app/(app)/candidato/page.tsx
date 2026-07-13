@@ -1,6 +1,6 @@
 import { requireActivePerson } from '@/modules/identity';
-import { loadTerm, stripTermFrontMatter, TermLoaderError } from '@/modules/consents';
-import { CandidateForm } from '@/modules/persons';
+import { loadTerm, requireActiveConsent, stripTermFrontMatter, TermLoaderError } from '@/modules/consents';
+import { CandidateForm, type EducationLevel } from '@/modules/persons';
 import { CvUploadForm } from '@/modules/cv-extraction';
 import { prisma } from '@/shared/lib/prisma';
 import { FormCard, FormHeader, FormSectionTitle, StepIcon } from '@/shared/ui';
@@ -44,7 +44,13 @@ export default async function CandidatoPage() {
     }),
     prisma.candidateProfile.findUnique({
       where: { personId: person.id },
-      select: { publicationStatus: true },
+      select: {
+        publicationStatus: true,
+        educationLevel: true,
+        primaryAreaOfInterestId: true,
+        headline: true,
+        experienceText: true,
+      },
     }),
   ]);
 
@@ -59,6 +65,34 @@ export default async function CandidatoPage() {
   } catch (err) {
     if (!(err instanceof TermLoaderError)) throw err;
   }
+
+  // CAND-3: perfil existente pré-preenche o formulário (edição não-às-cegas).
+  // educationLevel vem do banco como string livre (coluna sem enum nativo —
+  // domínio validado na fronteira Zod); undefined quando ausente/fora do
+  // domínio, para não forçar um valor inválido no <select> (o formulário
+  // trata a ausência como "não selecionado", igual ao candidato novo).
+  const defaultValues = {
+    educationLevel: profile?.educationLevel as EducationLevel | undefined,
+    primaryAreaOfInterestId: profile?.primaryAreaOfInterestId ?? '',
+    phone: person.phone ?? '',
+    headline: profile?.headline ?? '',
+    experienceText: profile?.experienceText ?? '',
+  };
+
+  // CAND-6: termo + consentimento CV_AI_EXTRACTION, para o CvUploadForm conceder
+  // o aceite antes do upload (mesmo padrão do termo JOB_APPLICATION acima).
+  let cvTerm: { version: string; contentHash: string; body: string } | null = null;
+  try {
+    const loadedCvTerm = await loadTerm('CV_AI_EXTRACTION');
+    cvTerm = {
+      version: loadedCvTerm.version,
+      contentHash: loadedCvTerm.hash,
+      body: stripTermFrontMatter(loadedCvTerm.content),
+    };
+  } catch (err) {
+    if (!(err instanceof TermLoaderError)) throw err;
+  }
+  const alreadyGrantedCv = (await requireActiveConsent(person.id, 'CV_AI_EXTRACTION')).active;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
@@ -75,6 +109,7 @@ export default async function CandidatoPage() {
             term={term}
             alreadyCandidate={person.roles.includes('CANDIDATE')}
             initialStatus={profile?.publicationStatus ?? null}
+            defaultValues={defaultValues}
           />
         </FormCard>
       ) : (
@@ -91,7 +126,7 @@ export default async function CandidatoPage() {
       {profile && (
         <FormCard className="mt-6">
           <FormSectionTitle>Extrair dados do currículo (opcional)</FormSectionTitle>
-          <CvUploadForm />
+          <CvUploadForm term={cvTerm} alreadyGranted={alreadyGrantedCv} />
         </FormCard>
       )}
     </main>

@@ -27,17 +27,20 @@ interface QueueRow {
  * têm model real. Vagas são lidas de `jobs` com join à Empresa (`companyUnverified`
  * dispara o painel de verificação — exclusivo de vagas). Serviços são lidos de
  * `services` **sem** `companyUnverified`/`companyId` (verificação de Empresa não se
- * aplica a serviços — USP-029 design §2). Os demais tipos (`CV`/`CANDIDATE_PROFILE`)
- * ainda usam o store transitório `_moderation_fixture` até suas USPs. As 3 fontes
- * são unidas, ordenadas por `submittedAt` e cortadas no limite da página — o
- * contrato do view model permanece.
+ * aplica a serviços — USP-029 design §2). `CANDIDATE_PROFILE` (USP-056/MOD-1) lê
+ * `candidate_profiles.publication_status` direto (mesmo padrão de `job`/`service`
+ * — 1º conteúdo real fora da `_moderation_fixture`). `CV` segue usando o store
+ * transitório `_moderation_fixture` (vazio em prod — o CV vive dentro do
+ * `CandidateProfile`, sem entidade própria). As 4 fontes são unidas, ordenadas
+ * por `submittedAt` e cortadas no limite da página — o contrato do view model
+ * permanece.
  */
 export async function viewModerationQueue({
   viewerPersonId,
 }: {
   viewerPersonId: string;
 }): Promise<ModerationQueueItem[]> {
-  const [jobRows, serviceRows, fixtureRows] = await Promise.all([
+  const [jobRows, serviceRows, fixtureRows, candidateProfileRows] = await Promise.all([
     prisma.job.findMany({
       where: {
         status: PrismaContentStatus.IN_MODERATION,
@@ -76,6 +79,15 @@ export async function viewModerationQueue({
       orderBy: { submittedAt: 'asc' },
       take: QUEUE_PAGE_SIZE,
     }),
+    prisma.candidateProfile.findMany({
+      where: {
+        publicationStatus: PrismaContentStatus.IN_MODERATION,
+        personId: { not: viewerPersonId }, // P-005 / USP056-MN-01 — autor ≠ moderador
+      },
+      select: { personId: true, headline: true, lastStatusChangeAt: true },
+      orderBy: { lastStatusChangeAt: 'asc' }, // E-001 — mais antigo primeiro
+      take: QUEUE_PAGE_SIZE,
+    }),
   ]);
 
   const jobItems: QueueRow[] = jobRows.map((j) => ({
@@ -107,8 +119,16 @@ export async function viewModerationQueue({
     submittedAt: r.submittedAt,
   }));
 
+  const candidateProfileItems: QueueRow[] = candidateProfileRows.map((c) => ({
+    contentKind: ContentKind.CANDIDATE_PROFILE,
+    contentId: c.personId,
+    title: c.headline ?? 'Perfil de candidato', // MOD-1 — fallback quando não preenchido
+    authorPersonId: c.personId, // perfil é auto-submetido pelo titular
+    submittedAt: c.lastStatusChangeAt,
+  }));
+
   // Une as fontes, ordena (mais antigo primeiro) e respeita o limite da página.
-  const rows = [...jobItems, ...serviceItems, ...fixtureItems]
+  const rows = [...jobItems, ...serviceItems, ...fixtureItems, ...candidateProfileItems]
     .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
     .slice(0, QUEUE_PAGE_SIZE);
 

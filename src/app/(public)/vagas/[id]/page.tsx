@@ -12,10 +12,10 @@ import {
 } from '@/modules/jobs';
 import { Button, Card } from '@/shared/ui';
 
-// ADR-0013/ADR-0019: detalhe público com ISR (alinhado a `/vagas` = 30min, L-002). A
-// revalidação fina de `/vagas/[id]` é débito (design §5) — a janela curta de ISR cobre
-// L-002; transitionContent já revalida `/vagas` quando a vaga entra/sai de ACTIVE.
-export const revalidate = 1800;
+// ADR-0013/ADR-0019: detalhe público com ISR (alinhado a `/vagas` = 10min, CLAUDE.md;
+// USP-054/EMP-3). `transitionContent` já revalida `/vagas/[id]` on-demand quando a
+// vaga entra/sai de ACTIVE (NextCacheInvalidation) — o ISR de 600s é só o backstop.
+export const revalidate = 600;
 
 /** Comprimento máximo da meta description (boa prática SEO — evita truncamento do buscador). */
 const META_DESCRIPTION_MAX = 160;

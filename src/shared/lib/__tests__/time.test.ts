@@ -5,6 +5,7 @@ import {
   utcToSaoPaulo,
   formatSaoPaulo,
   formatDate,
+  formatDateOnly,
 } from '@/shared/lib/time';
 
 describe('shared/lib/time', () => {
@@ -64,5 +65,30 @@ describe('shared/lib/time', () => {
   it('formata um objeto Date puro sem fuso (ramo Date)', () => {
     // Date construído com campos locais; sob TZ=UTC reflete o dia esperado.
     expect(formatDate(new Date(2026, 2, 9))).toBe('09/03/2026');
+  });
+
+  describe('formatDateOnly (USP-054/MOD-5)', () => {
+    it('formata @db.Date de meia-noite UTC sem deslocar o dia', () => {
+      // Leitura típica do Prisma p/ coluna `date` (ex.: Job.validUntil).
+      expect(formatDateOnly(new Date('2026-08-01T00:00:00.000Z'))).toBe('01/08/2026');
+    });
+
+    it('cobre a janela 00:00–03:00 UTC que expõe o −1 dia sob America/Sao_Paulo (UTC-3)', () => {
+      // Se convertido para America/Sao_Paulo, 01:30 UTC de 01/08 viraria 31/07 22:30 —
+      // formatDateOnly (UTC fixo) preserva a data-calendário armazenada.
+      expect(formatDateOnly(new Date('2026-08-01T01:30:00.000Z'))).toBe('01/08/2026');
+      expect(formatDateOnly(new Date('2026-08-01T02:59:00.000Z'))).toBe('01/08/2026');
+    });
+
+    it('aceita formato customizado (fmt)', () => {
+      expect(formatDateOnly(new Date('2026-08-01T00:00:00.000Z'), 'yyyy-MM-dd')).toBe('2026-08-01');
+    });
+
+    it('não é o mesmo que formatSaoPaulo para meia-noite UTC (evidencia o bug do −1 dia)', () => {
+      // formatSaoPaulo (fuso de SP) desloca para o dia anterior às 21h; formatDateOnly não.
+      const midnightUtc = new Date('2026-08-01T00:00:00.000Z');
+      expect(formatDateOnly(midnightUtc)).toBe('01/08/2026');
+      expect(formatSaoPaulo(midnightUtc, 'dd/MM/yyyy')).toBe('31/07/2026');
+    });
   });
 });

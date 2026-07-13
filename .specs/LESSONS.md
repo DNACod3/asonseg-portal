@@ -96,6 +96,36 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: CASCA-15 (spec.md) — seam className?/actions? sem teste RTL de merge (src/app/(public)/_components/**)
 - last seen: 2026-07-10T23:12:59Z
 
+### L-015 — Next.js middleware unit tests that build NextRequest directly with RSC-protocol headers (next-router-prefetch, rsc) baked in do not prove production behavior — verify prefetch/RSC signal detection in middleware.ts against a real 'next start' server (curl + real browser), since these headers can fail to reach request.headers in the live request pipeline even though unit tests pass.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `src/middleware.ts,src/shared/lib/rateLimitResponse.ts` · harmful: 0
+- features: usp-050-rate-limiting
+- evidence: PREF-01/RL-MN-01 (src/middleware.ts,src/shared/lib/rateLimitResponse.ts)
+- last seen: 2026-07-12T13:45:34Z
+
+### L-016 — When a rate-limit/security bypass keys off a single client-controlled HTTP header (e.g. Next.js's Next-Url), adversarially test with a plain curl request forging just that header before accepting the fix — an unauthenticated signal used to exempt traffic from a limiter is trivially exploitable unless corroborated with a second, harder-to-forge signal or bounded by a non-zero ceiling instead of a hard bypass.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `src/middleware.ts,src/shared/lib/rateLimitResponse.ts` · harmful: 0
+- features: usp-050-rate-limiting
+- evidence: live-scenario-b-prime (Next-Url spoof) (src/middleware.ts,src/shared/lib/rateLimitResponse.ts)
+- last seen: 2026-07-12T14:23:25Z
+
+### L-017 — When a spec's concurrency guarantee is framed as a pre-existing DB constraint acting as a backstop, don't mark the AC fully verified without a dedicated concurrent-write test — flag it as a spec-precision gap instead of silently trusting the index.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `companies` · harmful: 0
+- features: ajustes-uat/usp-055-empresas
+- evidence: EMP055-04 / .specs/features/ajustes-uat/usp-055-empresas/validation.md (companies)
+- last seen: 2026-07-12T19:32:31Z
+
+### L-018 — A devDependency imported dynamically inside a function body can still be bundled into a webpack chunk and traced into most serverless-function bundles by Next.js at build time — verify with a grep over .next/**/*.nft.json for the package name, not just a green production build, before calling a dependency 'out of the production path'.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `build/bundling` · harmful: 0
+- features: usp-060-higiene-dev
+- evidence: validation.md#HYG-04/HYG-08 AC5 (.next/server/chunks/5112.js traced into 46/56 .nft.json) (build/bundling)
+- last seen: 2026-07-13T01:48:41Z
+
+### L-019 — An acceptance criterion describing a manual/local end-to-end harness flow (enqueue + trigger + observe in an external tool) needs a live re-drive as evidence during validation, not an inference from unit tests covering only its component pieces.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `validation-method` · harmful: 0
+- features: usp-060-higiene-dev
+- evidence: validation.md#HYG-06 AC3 (cron-drain-locally, not re-driven live) (validation-method)
+- last seen: 2026-07-13T01:48:41Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

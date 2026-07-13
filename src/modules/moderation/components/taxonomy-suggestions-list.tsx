@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import type { TaxonomyKind } from '../domain/taxonomy-suggestion';
 import { approveTaxonomySuggestion, rejectTaxonomySuggestion } from '../actions/resolve-taxonomy-suggestion';
-import { Badge, Button, Card } from '@/shared/ui';
+import { Badge, Button, Card, Label, Textarea } from '@/shared/ui';
 
 /** Item da fila já formatado pelo Server Component (data em fuso de SP). */
 export interface TaxonomySuggestionRow {
@@ -20,14 +20,21 @@ const KIND_LABELS: Record<TaxonomyKind, string> = {
 };
 
 /**
- * Fila de sugestões de taxonomia pendentes (USP-019 / SUGG-06). Cada item
- * pode ser aprovado (promove ao catálogo) ou rejeitado (remove — decisão
- * humana, sem motivo obrigatório). O resultado da Server Action remove o item
- * da lista e mostra confirmação; erros aparecem inline por item.
+ * Fila de sugestões de taxonomia pendentes (USP-019 / SUGG-06). Cada item pode
+ * ser aprovado (promove ao catálogo — segue **1 clique**, sem motivo) ou
+ * rejeitado (remove). Rejeitar exige uma etapa de confirmação inline com
+ * motivo **opcional** (≤ 280 caracteres → `audit_log.justification` — SUGG-04
+ * / USP-056 MOD-8): "Rejeitar" só abre a etapa; nada é chamado até "Confirmar
+ * rejeição". "Cancelar" fecha a etapa sem disparar a action, mantendo o item
+ * na fila. Padrão inline-expandível de `PublishedContentManager` (sem overlay
+ * de diálogo — DS-MN-05). O resultado da Server Action remove o item da lista
+ * e mostra confirmação; erros aparecem inline por item.
  */
 export function TaxonomySuggestionsList({ items }: { items: TaxonomySuggestionRow[] }) {
   const [rows, setRows] = useState(items);
   const [doneCount, setDoneCount] = useState(0);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [reasonText, setReasonText] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,6 +42,7 @@ export function TaxonomySuggestionsList({ items }: { items: TaxonomySuggestionRo
   function resolve(id: string) {
     setRows((prev) => prev.filter((r) => r.id !== id));
     setDoneCount((n) => n + 1);
+    if (rejectingId === id) closeReject();
   }
 
   function run(row: TaxonomySuggestionRow, action: () => ReturnType<typeof approveTaxonomySuggestion>) {
@@ -52,8 +60,25 @@ export function TaxonomySuggestionsList({ items }: { items: TaxonomySuggestionRo
     run(row, () => approveTaxonomySuggestion({ kind: row.kind, id: row.id }));
   }
 
-  function onReject(row: TaxonomySuggestionRow) {
-    run(row, () => rejectTaxonomySuggestion({ kind: row.kind, id: row.id }));
+  // MOD8-01/USP056-MN-05 — abre a confirmação; NÃO chama a action ainda.
+  function openReject(id: string) {
+    setErrors((prev) => ({ ...prev, [id]: '' }));
+    setRejectingId(id);
+    setReasonText('');
+  }
+
+  // MOD8-03 — fecha sem chamar a action; o item permanece na fila.
+  function closeReject() {
+    setRejectingId(null);
+    setReasonText('');
+  }
+
+  // MOD8-02 — reason omitido quando vazio (trim), incluído só quando preenchido.
+  function onConfirmReject(row: TaxonomySuggestionRow) {
+    const reason = reasonText.trim();
+    run(row, () =>
+      rejectTaxonomySuggestion({ kind: row.kind, id: row.id, ...(reason ? { reason } : {}) }),
+    );
   }
 
   if (rows.length === 0) {
@@ -71,6 +96,7 @@ export function TaxonomySuggestionsList({ items }: { items: TaxonomySuggestionRo
       {rows.map((row) => {
         const rowPending = isPending && pendingId === row.id;
         const error = errors[row.id];
+        const rejectOpen = rejectingId === row.id;
         return (
           <li key={row.id}>
             <Card className="flex flex-col gap-3 p-5">
@@ -84,26 +110,62 @@ export function TaxonomySuggestionsList({ items }: { items: TaxonomySuggestionRo
                 <span className="text-xs text-fg-muted">Em {row.createdAtLabel}</span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => onApprove(row)}
-                  disabled={rowPending}
-                >
-                  {rowPending ? 'Processando…' : 'Aprovar'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  onClick={() => onReject(row)}
-                  disabled={rowPending}
-                >
-                  Rejeitar
-                </Button>
-              </div>
+              {rejectOpen ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`reject-reason-${row.id}`} className="text-xs font-medium text-fg-muted">
+                    Motivo (opcional) enviado à auditoria
+                  </Label>
+                  <Textarea
+                    id={`reject-reason-${row.id}`}
+                    rows={3}
+                    maxLength={280}
+                    value={reasonText}
+                    onChange={(e) => setReasonText(e.target.value)}
+                    placeholder="Descreva, se quiser, por que esta sugestão está sendo rejeitada."
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => onConfirmReject(row)}
+                      disabled={rowPending}
+                    >
+                      {rowPending ? 'Rejeitando…' : 'Confirmar rejeição'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={closeReject}
+                      disabled={rowPending}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => onApprove(row)}
+                    disabled={rowPending}
+                  >
+                    {rowPending ? 'Processando…' : 'Aprovar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => openReject(row.id)}
+                    disabled={rowPending}
+                  >
+                    Rejeitar
+                  </Button>
+                </div>
+              )}
 
               {error && (
                 <p role="alert" className="text-sm text-danger">

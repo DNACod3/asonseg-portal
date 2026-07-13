@@ -52,6 +52,14 @@ export type { AuthAttemptsRepo, AttemptKey } from './ports/authAttemptsRepo';
 export { requireActivePerson, getCurrentPerson } from './server/session';
 export type { CurrentPerson } from './server/session';
 
+// ── Hub pós-login `/inicio` (USP-049 / ORQ-1) ─────────────────────────────────
+export { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } from './domain/hub-links';
+export type { HubAccess, HubLink, HubLinkGroup } from './domain/hub-links';
+
+// ── Logout (USP-049 / AUTH-3) ──────────────────────────────────────────────────
+export { signOutAction } from './actions/signOut';
+export { SignOutForm } from './components/SignOutForm';
+
 // ── Cadastro assistido pela AS (USP-002) ──────────────────────────────────────
 export { registerPersonByAssistant } from './actions/register-person-by-assistant';
 export type { RegisterByAssistantResult } from './actions/register-person-by-assistant';
@@ -113,8 +121,15 @@ export {
   PROFILE_FIELD_META,
   ROLE_NEXT_STEP,
   missingProfileFields,
+  REGISTRATION_NEXT_STEP,
+  registrationNextStep,
+  POST_AUTH_FALLBACK,
 } from './domain/role-activation';
 export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
+// Rótulos PT-BR de TODOS os papéis (USP-049 / PERFIL-01) — ver SPEC_DEVIATION
+// em domain/roles.ts sobre o nome `ALL_ROLE_LABELS` (evita colisão com o
+// `ROLE_LABELS` acima, escopado a PublicRole).
+export { ALL_ROLE_LABELS } from './domain/roles';
 export { ActivateRoleForm } from './components/activate-role-form';
 export type { ActivatableRoleOption } from './components/activate-role-form';
 export { buildActivatableOptions } from './server/build-activatable-options';

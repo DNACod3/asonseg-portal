@@ -125,6 +125,30 @@ describe('publishJobSchema — validade (E-004 / E-005)', () => {
       expect(parsed.error.issues.some((i) => i.path.includes('validUntil'))).toBe(true);
     }
   });
+
+  // EMP-1 / RF-03 / RF-MN-03: validade vazia/inválida não pode lançar RangeError
+  // (formatInTimeZone sobre Invalid Date) — o superRefine deve guardar a data
+  // antes de chamar validadeStatus.
+  it('RF-MN-03: validade vazia não lança e retorna success:false com issue em validUntil', () => {
+    expect(() => publishJobSchema.safeParse(validPublishInput({ validUntil: '' }))).not.toThrow();
+    const parsed = publishJobSchema.safeParse(validPublishInput({ validUntil: '' }));
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      const issue = parsed.error.issues.find((i) => i.path.includes('validUntil'));
+      expect(issue?.message).toBe('Data de validade é obrigatória.');
+    }
+  });
+
+  it('RF-MN-03: validade não parseável (2020-13-40) não lança e retorna success:false', () => {
+    expect(() =>
+      publishJobSchema.safeParse(validPublishInput({ validUntil: '2020-13-40' })),
+    ).not.toThrow();
+    const parsed = publishJobSchema.safeParse(validPublishInput({ validUntil: '2020-13-40' }));
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues.some((i) => i.path.includes('validUntil'))).toBe(true);
+    }
+  });
 });
 
 describe('draftJobSchema — campos de busca opcionais no rascunho (AC-020-4)', () => {

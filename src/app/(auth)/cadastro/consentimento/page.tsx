@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { acceptRoleConsent } from '@/modules/identity';
+import { acceptRoleConsent, POST_AUTH_FALLBACK } from '@/modules/identity';
 import { verifyConsentToken } from '@/shared/lib/consentToken';
 import type { PublicRole } from '@/modules/identity';
 import { Button, FormHeader, LgpdBox, StepIcon } from '@/shared/ui';
@@ -87,7 +87,9 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
   // Captura após os guards para que a closure async preserve o tipo string.
   const verifiedPersonId = personId;
   const verifiedSig = sig;
-  const redirectTo = safeRedirect(next ? decodeURIComponent(next) : undefined, '/app/perfil');
+  // USP-049 (REDIR-02/03): fallback é o hub `/inicio` — não mais o antigo
+  // destino com o prefixo do route group autenticado (nunca virava URL).
+  const redirectTo = safeRedirect(next ? decodeURIComponent(next) : undefined, POST_AUTH_FALLBACK);
 
   async function acceptConsent() {
     'use server';
@@ -130,7 +132,7 @@ export default async function ConsentimentoPage({ searchParams }: Props) {
           Aceitar e ativar meu papel de {ROLE_LABEL[typedRole]}
         </Button>
         <Button asChild variant="outline" size="lg" className="w-full">
-          <a href="/app/perfil">Aceitar depois</a>
+          <a href={POST_AUTH_FALLBACK}>Aceitar depois</a>
         </Button>
       </form>
 

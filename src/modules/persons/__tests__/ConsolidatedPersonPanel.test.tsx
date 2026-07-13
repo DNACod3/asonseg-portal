@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { ContentStatus } from '@/modules/moderation';
 import { ConsolidatedPersonPanel } from '../components/consolidated-person-panel';
 import type { ConsolidatedPersonView } from '../views/view-person-for-social-assistant';
@@ -36,8 +36,8 @@ describe('ConsolidatedPersonPanel', () => {
   it('renderiza identidade + papéis ativos', () => {
     render(<ConsolidatedPersonPanel view={view()} />);
     expect(screen.getByText('Maria Consolidado')).toBeInTheDocument();
-    expect(screen.getByText('CANDIDATE')).toBeInTheDocument();
-    expect(screen.getByText('ATIVO')).toBeInTheDocument();
+    expect(screen.getByText('Candidato(a)')).toBeInTheDocument();
+    expect(screen.getByText('Ativa')).toBeInTheDocument();
   });
 
   it('estados vazios: exibe mensagem "nenhum registro" para cada dimensão sem dados', () => {
@@ -102,7 +102,11 @@ describe('ConsolidatedPersonPanel', () => {
     );
     expect(screen.getByText('Vaga Consolidado')).toBeInTheDocument();
     expect(screen.getByText('Empresa Consolidado')).toBeInTheDocument();
-    expect(screen.getByText('Ativa')).toBeInTheDocument();
+    // Escopado ao card da candidatura: "Ativa" também é o rótulo PT-BR do
+    // status da Pessoa (SOC4-2), que colide como texto com o badge de
+    // candidatura ativa/histórica nesta mesma fixture (BASE_VIEW status=ATIVO).
+    const applicationCard = screen.getByText('Vaga Consolidado').closest('.rounded-md') as HTMLElement;
+    expect(within(applicationCard).getByText('Ativa')).toBeInTheDocument();
     expect(screen.getByText('Via encaminhamento')).toBeInTheDocument();
   });
 
@@ -191,8 +195,56 @@ describe('ConsolidatedPersonPanel', () => {
         })}
       />,
     );
-    expect(screen.getByText('INATIVO')).toBeInTheDocument();
+    expect(screen.getByText('Inativa')).toBeInTheDocument();
     expect(screen.getByText('Sem papéis ativos.')).toBeInTheDocument();
     expect(screen.getByText(/Sem contato há 6 meses/)).toBeInTheDocument();
+  });
+
+  it('CASCA59-MN-05: papéis, status de pessoa, serviço e vínculo saem em PT-BR — nenhum enum cru', () => {
+    render(
+      <ConsolidatedPersonPanel
+        view={view({
+          person: {
+            id: 'person-1',
+            fullName: 'Maria Consolidado',
+            status: 'ATIVO',
+            roles: ['CANDIDATE'],
+            inactivatedAt: null,
+            inactivationReason: null,
+          },
+          servicesOffered: [
+            {
+              id: 'svc-1',
+              title: 'Serviço MN-05',
+              status: ContentStatus.ACTIVE,
+              publishedAt: new Date(),
+              lastStatusChangeAt: new Date(),
+            },
+          ],
+          companyGrants: [
+            {
+              grantId: 'grant-1',
+              companyId: 'company-1',
+              companyName: 'Empresa MN-05',
+              grantType: 'RESPONSIBLE',
+              status: 'PENDING',
+              grantedAt: new Date('2026-07-01T10:00:00Z'),
+              acceptedAt: null,
+            },
+          ],
+        })}
+      />,
+    );
+
+    // Rótulos PT-BR presentes.
+    expect(screen.getByText('Candidato(a)')).toBeInTheDocument();
+    expect(screen.getByText('Ativa')).toBeInTheDocument();
+    expect(screen.getByText('Ativo')).toBeInTheDocument(); // labelContentStatus(ACTIVE)
+    expect(screen.getByText('Pendente')).toBeInTheDocument(); // grant PENDING
+
+    // Nenhum token de enum cru.
+    for (const rawToken of ['CANDIDATE', 'ATIVO', 'ACTIVE', 'PENDING']) {
+      expect(screen.queryByText(rawToken)).not.toBeInTheDocument();
+    }
   });
 });

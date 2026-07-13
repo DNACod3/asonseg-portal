@@ -1,4 +1,13 @@
-import { AuditEvent, type AuditEventName, withAudit } from '@/modules/audit';
+import {
+  AuditEvent,
+  type AuditContext,
+  type AuditEventName,
+  type AuditFn,
+  type AuditRecorder,
+  type AuditTx,
+  recordAuditEvent,
+  withAudit,
+} from '@/modules/audit';
 import { revalidateHomeIndicators } from '@/modules/reporting';
 import { container } from '@/shared/container';
 import { fail, ok, type ActionResult } from '@/shared/errors';
@@ -21,6 +30,19 @@ export interface TransitionContentInput {
   justification?: string;
   /** Ator no plano de domínio (Pessoa) — registrado na auditoria (AC5 / L-003). */
   actorPersonId: string;
+  /** IP/User-Agent de origem — propagados ao `audit_log` quando fornecidos (paridade com `withAudit`). */
+  ip?: string | null;
+  userAgent?: string | null;
+  /**
+   * Transação já aberta pelo chamador (ex.: cascata de revogação de consentimento
+   * — USP-053/CAND-7 "OCULTAR"). Quando fornecida, `transitionContent` participa
+   * dela via {@link recordAuditEvent} em vez de abrir a própria com `withAudit` —
+   * mesmo padrão de threading de `tx` externo já aplicado ao
+   * `ModerationNotificationPort.sendModerationDecision(tx, …)` (USP-057) um nível
+   * abaixo. Callers de moderação normal (sem `tx`) continuam abrindo a própria
+   * transação — comportamento inalterado (retrocompatível).
+   */
+  tx?: AuditTx;
 }
 
 export interface TransitionContentData {
@@ -77,60 +99,84 @@ export async function transitionContent(
     return fail('INTERNAL', 'Não foi possível registrar a decisão.');
   }
 
-  // 4–5. Aplicar em transação com auditoria + side effects.
-  try {
-    const data = await withAudit(
-      event,
-      async (tx, audit) => {
-        const applied = await repo.updateStatus(tx, contentKind, contentId, from, to);
-        if (!applied) {
-          // Status já mudou (decisão concorrente) — aborta a transação (R3).
-          throw new TransitionConflictError();
-        }
+  // 4–5. Aplicar em transação com auditoria + side effects. Extraído para
+  // `AuditFn` nomeado (em vez de literal inline) porque os dois caminhos abaixo
+  // (tx própria via `withAudit` / tx externa via `recordAuditEvent`) reusam o
+  // mesmo callback — só a forma de abrir/participar da transação muda.
+  const applyTransition: AuditFn<TransitionContentData> = async (tx, audit) => {
+    const applied = await repo.updateStatus(tx, contentKind, contentId, from, to);
+    if (!applied) {
+      // Status já mudou (decisão concorrente) — aborta a transação (R3).
+      throw new TransitionConflictError();
+    }
 
-        audit.entityType = contentKind;
-        audit.entityId = contentId;
-        audit.before = { status: from };
-        audit.after = { status: to };
-        audit.justification = justification ?? null;
+    audit.entityType = contentKind;
+    audit.entityId = contentId;
+    audit.before = { status: from };
+    audit.after = { status: to };
+    audit.justification = justification ?? null;
 
-        // Side effects soft-fail: falha não aborta a transição (R2).
-        await runSoftFail('notification', () =>
-          container.resolve(MODERATION_NOTIFICATION_TOKEN).sendModerationDecision({
-            contentKind,
-            contentId,
-            from,
-            to,
-            justification,
-            actorPersonId: input.actorPersonId,
-          }),
-        );
-        await runSoftFail('cache', () =>
-          container.resolve(CACHE_INVALIDATION_TOKEN).revalidateForContent({ contentKind, contentId, to }),
-        );
-
-        // Hook de Empresa (USP-017) — writes transacionais acoplados à decisão
-        // (ADR-0024): verificação na 1ª vaga aprovada / contador na rejeição.
-        if (to === ContentStatus.ACTIVE) {
-          await container.resolve(COMPANY_VERIFY_HOOK_TOKEN).onContentActivated(tx, {
-            contentKind,
-            contentId,
-            from,
-            actorPersonId: input.actorPersonId,
-          });
-        } else if (to === ContentStatus.REJECTED) {
-          await container.resolve(COMPANY_VERIFY_HOOK_TOKEN).onContentRejected(tx, {
-            contentKind,
-            contentId,
-            from,
-            actorPersonId: input.actorPersonId,
-          });
-        }
-
-        return { from, to };
-      },
-      { actorPersonId: input.actorPersonId, context: { contentKind, contentId } },
+    // Side effects soft-fail: falha não aborta a transição (R2). `tx`
+    // threaded ao port (USP-057) — enqueue eager na mesma transação
+    // (AD-007/P-007), espelhando o hook de Empresa abaixo.
+    await runSoftFail('notification', () =>
+      container.resolve(MODERATION_NOTIFICATION_TOKEN).sendModerationDecision(tx, {
+        contentKind,
+        contentId,
+        from,
+        to,
+        justification,
+        actorPersonId: input.actorPersonId,
+      }),
     );
+    await runSoftFail('cache', () =>
+      container
+        .resolve(CACHE_INVALIDATION_TOKEN)
+        .revalidateForContent({ contentKind, contentId, from, to }),
+    );
+
+    // Hook de Empresa (USP-017) — writes transacionais acoplados à decisão
+    // (ADR-0024): verificação na 1ª vaga aprovada / contador na rejeição.
+    if (to === ContentStatus.ACTIVE) {
+      await container.resolve(COMPANY_VERIFY_HOOK_TOKEN).onContentActivated(tx, {
+        contentKind,
+        contentId,
+        from,
+        actorPersonId: input.actorPersonId,
+      });
+    } else if (to === ContentStatus.REJECTED) {
+      await container.resolve(COMPANY_VERIFY_HOOK_TOKEN).onContentRejected(tx, {
+        contentKind,
+        contentId,
+        from,
+        actorPersonId: input.actorPersonId,
+      });
+    }
+
+    return { from, to };
+  };
+
+  const auditCtx: AuditContext = {
+    actorPersonId: input.actorPersonId,
+    ip: input.ip,
+    userAgent: input.userAgent,
+    context: { contentKind, contentId },
+  };
+
+  try {
+    // `tx` externo (USP-053/CAND-7 remediação de review — "OCULTAR" via FSM em
+    // vez de `updateMany` cru): participa da transação já aberta pelo chamador
+    // via `recordAuditEvent`, em vez de `withAudit` abrir a própria (que
+    // rejeitaria — Prisma não aninha `$transaction`). Sem `tx`, comportamento
+    // idêntico ao anterior (própria transação via `withAudit`).
+    const data = input.tx
+      ? await (async (tx: AuditTx) => {
+          const audit: AuditRecorder = {};
+          const result = await applyTransition(tx, audit);
+          await recordAuditEvent(tx, event, audit, auditCtx);
+          return result;
+        })(input.tx)
+      : await withAudit(event, applyTransition, auditCtx);
 
     // USP-041/T6 (E-002/D-005): revalidação da home fora da tx —
     // `revalidatePath` não é transacional. Só quando a transição pode mover
@@ -192,6 +238,10 @@ function eventTypeFor(
       if (trigger !== 'AUTHOR_ACTION') return null;
       if (contentKind === ContentKind.JOB) return AuditEvent.JOB_PAUSED;
       if (contentKind === ContentKind.SERVICE) return AuditEvent.SERVICE_PAUSED;
+      // USP-053/CAND-7 (remediação Fase 8): "OCULTAR" passou a usar a FSM em vez
+      // de um `updateMany` direto — precisa de evento próprio para ser auditável
+      // (antes caía no `return null` genérico → INTERNAL, kind nunca chamava aqui).
+      if (contentKind === ContentKind.CANDIDATE_PROFILE) return AuditEvent.CANDIDATE_PROFILE_PAUSED;
       return null;
     case ContentStatus.ARCHIVED:
       if (trigger !== 'AUTHOR_ACTION') return null;

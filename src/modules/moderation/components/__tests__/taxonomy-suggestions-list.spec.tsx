@@ -70,9 +70,38 @@ describe('TaxonomySuggestionsList', () => {
     await waitFor(() => expect(screen.getByText(/sugestão\(ões\) processada\(s\)/i)).toBeInTheDocument());
   });
 
-  it('clicar "Rejeitar" invoca rejectTaxonomySuggestion({kind,id}) e remove o item', async () => {
+  it('[USP056-MN-05] clicar "Rejeitar" abre a confirmação e NÃO chama a action em 1 clique', () => {
     render(<TaxonomySuggestionsList items={[serviceRow]} />);
-    fireEvent.click(screen.getByRole('button', { name: /rejeitar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^rejeitar$/i }));
+
+    expect(resolve.rejectTaxonomySuggestion).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /confirmar rejeição/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/descreva, se quiser/i)).toBeInTheDocument();
+  });
+
+  it('[MOD8-02] Confirmar com motivo chama rejectTaxonomySuggestion({kind,id,reason}) e remove o item', async () => {
+    render(<TaxonomySuggestionsList items={[serviceRow]} />);
+    fireEvent.click(screen.getByRole('button', { name: /^rejeitar$/i }));
+    fireEvent.change(screen.getByPlaceholderText(/descreva, se quiser/i), {
+      target: { value: 'Duplicata de categoria já existente' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /confirmar rejeição/i }));
+
+    await waitFor(() =>
+      expect(resolve.rejectTaxonomySuggestion).toHaveBeenCalledWith({
+        kind: 'SERVICE_CATEGORY',
+        id: 'svc-1',
+        reason: 'Duplicata de categoria já existente',
+      }),
+    );
+    await waitFor(() => expect(screen.getByText(/sugestão\(ões\) processada\(s\)/i)).toBeInTheDocument());
+  });
+
+  it('[MOD8-02] Confirmar sem motivo chama rejectTaxonomySuggestion sem reason (opcional)', async () => {
+    render(<TaxonomySuggestionsList items={[serviceRow]} />);
+    fireEvent.click(screen.getByRole('button', { name: /^rejeitar$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirmar rejeição/i }));
 
     await waitFor(() =>
       expect(resolve.rejectTaxonomySuggestion).toHaveBeenCalledWith({
@@ -80,7 +109,20 @@ describe('TaxonomySuggestionsList', () => {
         id: 'svc-1',
       }),
     );
+    const call = resolve.rejectTaxonomySuggestion.mock.calls[0]?.[0];
+    expect(call).not.toHaveProperty('reason');
   });
+
+  it('[MOD8-03] Cancelar fecha a confirmação sem chamar a action; item permanece na fila', () => {
+    render(<TaxonomySuggestionsList items={[serviceRow]} />);
+    fireEvent.click(screen.getByRole('button', { name: /^rejeitar$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+    expect(resolve.rejectTaxonomySuggestion).not.toHaveBeenCalled();
+    expect(screen.getByText('Costura')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^rejeitar$/i })).toBeInTheDocument();
+  });
+
 
   it('erro da Server Action: mostra o alerta e mantém o item na fila', async () => {
     resolve.approveTaxonomySuggestion.mockResolvedValue({ ok: false, error: { message: 'Já foi resolvida' } });

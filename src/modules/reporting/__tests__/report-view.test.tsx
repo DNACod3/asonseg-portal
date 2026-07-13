@@ -183,3 +183,96 @@ describe('ReportView — MN-04 (successRate nunca aparece sem noResultRate)', ()
     expect(block).toHaveTextContent('Sem resultado registrado: —');
   });
 });
+
+describe('ReportView — selects de status/categoria/região (USP-058/REL-5, USP058-05..10/MN-04)', () => {
+  it('USP058-05: statusOptions presente → <select name="status"> com as opções + "Todos", pré-selecionado por filters.status', () => {
+    render(
+      <ReportView
+        {...baseProps}
+        filters={{ status: 'ACTIVE' }}
+        statusOptions={[
+          { value: 'ACTIVE', label: 'Ativo' },
+          { value: 'PAUSED', label: 'Pausado' },
+        ]}
+      />,
+    );
+    const select = screen.getByLabelText('Status') as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe('ACTIVE');
+    expect(screen.getByRole('option', { name: 'Todos' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Ativo' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Pausado' })).toBeInTheDocument();
+  });
+
+  it('USP058-06: categoryOptions presente → <select name="categoryId"> com as categorias + "Todas", pré-selecionado por filters.categoryId', () => {
+    render(
+      <ReportView
+        {...baseProps}
+        filters={{ categoryId: 'cat-2' }}
+        categoryOptions={[
+          { value: 'cat-1', label: 'Elétrica' },
+          { value: 'cat-2', label: 'Jardinagem' },
+        ]}
+      />,
+    );
+    const select = screen.getByLabelText('Categoria') as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe('cat-2');
+    expect(screen.getByRole('option', { name: 'Todas' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Jardinagem' })).toBeInTheDocument();
+  });
+
+  it('USP058-07: regionOptions presente → <select name="regionId"> com as regiões + "Todas", pré-selecionado por filters.regionId', () => {
+    render(
+      <ReportView
+        {...baseProps}
+        filters={{ regionId: 'reg-1' }}
+        regionOptions={[{ value: 'reg-1', label: 'Centro' }]}
+      />,
+    );
+    const select = screen.getByLabelText('Região') as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe('reg-1');
+  });
+
+  it('USP058-08/MN-04: sem nenhuma prop de opções → nenhum select de status/categoria/região é renderizado (sem controle inerte)', () => {
+    render(<ReportView {...baseProps} />);
+    expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Categoria')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Região')).not.toBeInTheDocument();
+  });
+
+  it('MN-04: apenas statusOptions presente (ex. R1/Vagas) → só o select de status aparece, categoria/região ausentes', () => {
+    render(<ReportView {...baseProps} statusOptions={[{ value: 'ACTIVE', label: 'Ativo' }]} />);
+    expect(screen.getByLabelText('Status')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Categoria')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Região')).not.toBeInTheDocument();
+  });
+
+  it('USP058-10: inputs from/to e a chamada de exportReport permanecem intactos com selects presentes', async () => {
+    actionState.exportReport.mockResolvedValue({
+      ok: true,
+      data: { format: 'CSV', filename: 'x.csv', mimeType: 'text/csv', content: 'a' },
+    });
+    render(
+      <ReportView
+        {...baseProps}
+        filters={{ from: '2026-01-01', to: '2026-01-31', status: 'ACTIVE' }}
+        statusOptions={[{ value: 'ACTIVE', label: 'Ativo' }]}
+      />,
+    );
+
+    expect(screen.getByLabelText('De')).toHaveValue('2026-01-01');
+    expect(screen.getByLabelText('Até')).toHaveValue('2026-01-31');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    await waitFor(() =>
+      expect(actionState.exportReport).toHaveBeenCalledWith({
+        reportType: 'jobs',
+        filters: { from: '2026-01-01', to: '2026-01-31', status: 'ACTIVE' },
+        format: 'CSV',
+        acknowledgePII: false,
+      }),
+    );
+  });
+});

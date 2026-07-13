@@ -1,6 +1,12 @@
 import { notFound } from 'next/navigation';
 import { requireActivePerson } from '@/modules/identity';
-import { listCompanyJobs, viewCompanyJobRow, CompanyJobList, requireActiveResponsible } from '@/modules/jobs';
+import {
+  listCompanyJobs,
+  listLatestReturnReasons,
+  viewCompanyJobRow,
+  CompanyJobList,
+  requireActiveResponsible,
+} from '@/modules/jobs';
 import { prisma } from '@/shared/lib/prisma';
 import { FormHeader } from '@/shared/ui';
 
@@ -36,7 +42,13 @@ export default async function GestaoVagasPage({
   }
 
   const rawRows = await listCompanyJobs(empresaId);
-  const rows = rawRows.map(viewCompanyJobRow);
+  // USP-054/MOD-3: motivo da última devolução, só para as vagas AWAITING_ADJUSTMENTS
+  // (owner-scoped — os jobIds vêm só de listCompanyJobs(empresaId), MN-03).
+  const awaitingIds = rawRows.filter((r) => r.status === 'AWAITING_ADJUSTMENTS').map((r) => r.id);
+  const reasons = awaitingIds.length > 0 ? await listLatestReturnReasons(awaitingIds) : new Map();
+  // `.map(viewCompanyJobRow)` passaria o índice do array no 2º parâmetro (footgun de
+  // `Array.prototype.map` — USP-054/T4); chamada explícita evita o bug.
+  const rows = rawRows.map((row) => viewCompanyJobRow(row, reasons.get(row.id)?.reason ?? null));
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">

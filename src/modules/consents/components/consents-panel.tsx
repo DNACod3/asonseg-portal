@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, type BadgeProps } from '@/shared/ui';
+import { Badge, Button, TermMarkdown, type BadgeProps } from '@/shared/ui';
 import { formatSaoPaulo } from '@/shared/lib/time';
 import { revokeConsent } from '../actions/revoke-consent';
 import type { OwnConsentView } from '../views/own-consents.view';
@@ -128,9 +128,10 @@ function ConsentCard({ item, revocable }: { item: ConsentsPanelItem; revocable: 
       </div>
 
       {showTerm && (
-        <div className="mt-3 max-h-80 overflow-auto rounded-lg bg-background p-4 text-xs leading-relaxed whitespace-pre-wrap text-fg">
-          {item.termBody}
-        </div>
+        <TermMarkdown
+          source={item.termBody}
+          className="mt-3 max-h-80 overflow-auto rounded-lg bg-background p-4 text-xs leading-relaxed text-fg"
+        />
       )}
 
       {confirming && (

@@ -40,6 +40,15 @@ function fillValidFields() {
 }
 
 describe('identity/LoginForm', () => {
+  // RF-MN-01 (ORQ-3): sem GET fallback — o navegador nunca deve poder submeter
+  // e-mail/senha como query string. `method="post"` garante que um submit nativo
+  // (JS lento/pré-hidratação) usa o corpo da requisição, nunca a URL.
+  it('RF-MN-01: o <form> declara method="post" (sem fallback GET)', () => {
+    const { container } = render(<LoginForm siteKey="site-key" />);
+    const form = container.querySelector('form');
+    expect(form).toHaveAttribute('method', 'post');
+  });
+
   it('caminho feliz: sem CAPTCHA_REQUIRED, o widget Turnstile nunca é renderizado', () => {
     render(<LoginForm siteKey="site-key" />);
     expect(screen.queryByRole('button', { name: 'resolver-captcha' })).toBeNull();

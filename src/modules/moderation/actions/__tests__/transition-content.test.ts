@@ -24,6 +24,11 @@ const auditState = vi.hoisted(() => ({
   audit: undefined as Record<string, unknown> | undefined,
 }));
 
+// `recordAuditEvent(tx, event, audit, ctx)` — caminho de `tx` externo (USP-053
+// remediação Fase 8): espiona sem gravar de verdade (a fake `tx` do teste não
+// tem `auditLog`), pra distinguir do caminho `withAudit` (que abre a própria).
+const recordAuditEventSpy = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
 vi.mock('@/modules/audit', async (orig) => {
   const actual = await orig<typeof import('@/modules/audit')>();
   return {
@@ -41,10 +46,11 @@ vi.mock('@/modules/audit', async (orig) => {
         return cb({}, audit);
       },
     ),
+    recordAuditEvent: recordAuditEventSpy,
   };
 });
 
-import { AuditEvent } from '@/modules/audit';
+import { AuditEvent, withAudit, type AuditTx } from '@/modules/audit';
 import { container } from '@/shared/container';
 import {
   transitionContent,
@@ -73,6 +79,8 @@ const rejectHook = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   homeRevalidateSpy.mockClear();
+  recordAuditEventSpy.mockClear();
+  recordAuditEventSpy.mockResolvedValue(undefined);
   auditState.event = undefined;
   auditState.ctx = undefined;
   auditState.audit = undefined;
@@ -318,6 +326,84 @@ describe('transitionContent — ramos de recusa (sem efeitos)', () => {
     });
     expect(res).toMatchObject({ ok: false, error: { code: 'INTERNAL' } });
     expect(repo.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('USP-053/CAND-7 (remediação Fase 8): CANDIDATE_PROFILE ACTIVE→PAUSED (AUTHOR_ACTION) mapeia CANDIDATE_PROFILE_PAUSED — antes caía em INTERNAL', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    const res = await transitionContent({
+      contentKind: ContentKind.CANDIDATE_PROFILE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+    });
+    expect(res.ok).toBe(true);
+    expect(auditState.event).toBe(AuditEvent.CANDIDATE_PROFILE_PAUSED);
+    expect(repo.updateStatus).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('transitionContent — tx externo (threading, USP-053/CAND-7 remediação Fase 8)', () => {
+  const EXTERNAL_TX = { marker: 'external-tx-fixture' };
+
+  it('com `tx` fornecido: participa dela via `recordAuditEvent`, NÃO abre `withAudit` própria', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    const res = await transitionContent({
+      contentKind: ContentKind.CANDIDATE_PROFILE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+      ip: '10.0.0.9',
+      userAgent: 'vitest/int',
+      tx: EXTERNAL_TX as unknown as AuditTx,
+    });
+
+    expect(res).toMatchObject({ ok: true, data: { from: ContentStatus.ACTIVE, to: ContentStatus.PAUSED } });
+    // `withAudit` (mock) NUNCA chamado — a tx externa não abre a própria.
+    expect(withAudit).not.toHaveBeenCalled();
+    // `repo.updateStatus` recebeu a MESMA referência de tx passada pelo chamador.
+    expect(repo.updateStatus).toHaveBeenCalledWith(
+      EXTERNAL_TX,
+      ContentKind.CANDIDATE_PROFILE,
+      CONTENT_ID,
+      ContentStatus.ACTIVE,
+      ContentStatus.PAUSED,
+    );
+    expect(recordAuditEventSpy).toHaveBeenCalledTimes(1);
+    expect(recordAuditEventSpy).toHaveBeenCalledWith(
+      EXTERNAL_TX,
+      AuditEvent.CANDIDATE_PROFILE_PAUSED,
+      expect.objectContaining({
+        entityType: ContentKind.CANDIDATE_PROFILE,
+        entityId: CONTENT_ID,
+        before: { status: ContentStatus.ACTIVE },
+        after: { status: ContentStatus.PAUSED },
+      }),
+      expect.objectContaining({ actorPersonId: ACTOR, ip: '10.0.0.9', userAgent: 'vitest/int' }),
+    );
+    // Side effect de cache/notificação ainda dispara (thread do mesmo `tx`); hook de Empresa não (só ACTIVE/REJECTED).
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(cache).toHaveBeenCalledTimes(1);
+    expect(hook).not.toHaveBeenCalled();
+  });
+
+  it('R3 com `tx` externo: conflito (updateStatus casa 0 linhas) → INVALID_TRANSITION, sem gravar auditoria', async () => {
+    repo.loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    repo.updateStatus.mockResolvedValue(false);
+
+    const res = await transitionContent({
+      contentKind: ContentKind.CANDIDATE_PROFILE,
+      contentId: CONTENT_ID,
+      to: ContentStatus.PAUSED,
+      trigger: 'AUTHOR_ACTION',
+      actorPersonId: ACTOR,
+      tx: EXTERNAL_TX as unknown as AuditTx,
+    });
+
+    expect(res).toMatchObject({ ok: false, error: { code: 'INVALID_TRANSITION' } });
+    expect(recordAuditEventSpy).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 });
 

@@ -37,6 +37,9 @@ export type { HomeIndicatorsProps } from './components/home-indicators';
 
 export { revalidateHomeIndicators } from './server/revalidate-home';
 
+// ── Relatórios legíveis (USP-058 — rótulos PT-BR + resolução de categoria) ──
+export { CONTENT_STATUS_LABELS, MANIFESTATIONS_STATUS_LABEL, labelContentStatus } from './domain/report-labels';
+
 // ── Relatórios operacionais (USP-042) ─────────────────────────────────────
 export {
   canViewOperationalReports,
@@ -109,4 +112,4 @@ export { exportReport } from './actions/export-report';
 export type { ExportPayload } from './actions/export-report';
 
 export { ReportView } from './components/report-view';
-export type { ReportViewProps, ReportViewColumn, ReportViewFilters } from './components/report-view';
+export type { ReportViewProps, ReportViewColumn, ReportViewFilters, FilterOption } from './components/report-view';

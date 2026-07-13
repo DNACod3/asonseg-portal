@@ -126,4 +126,123 @@ describe('shared/env parseEnv', () => {
       parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'false', VERCEL_ENV: 'production' }),
     ).not.toThrow();
   });
+
+  // USP-050 (PUB-1a) — parse robusto via parseBooleanFlag: grafias usuais,
+  // fail-loud para valor desconhecido (RL-MN-04), guard Vercel intacto (RL-MN-05).
+  describe('RATE_LIMIT_DISABLED / CV_EXTRACTOR_FAKE — parse robusto (USP-050)', () => {
+    it('RATE_LIMIT_DISABLED aceita "1"/"true"/"on" (case-insensitive) → true (FLAG-01)', () => {
+      expect(parseEnv({ ...validEnv, RATE_LIMIT_DISABLED: '1' }).RATE_LIMIT_DISABLED).toBe(true);
+      expect(parseEnv({ ...validEnv, RATE_LIMIT_DISABLED: 'true' }).RATE_LIMIT_DISABLED).toBe(true);
+      expect(parseEnv({ ...validEnv, RATE_LIMIT_DISABLED: 'ON' }).RATE_LIMIT_DISABLED).toBe(true);
+    });
+
+    it('RATE_LIMIT_DISABLED aceita "0"/""/ausente → false (FLAG-02)', () => {
+      expect(parseEnv({ ...validEnv, RATE_LIMIT_DISABLED: '0' }).RATE_LIMIT_DISABLED).toBe(false);
+      expect(parseEnv({ ...validEnv, RATE_LIMIT_DISABLED: '' }).RATE_LIMIT_DISABLED).toBe(false);
+      const semFlag = { ...validEnv };
+      delete (semFlag as Record<string, unknown>).RATE_LIMIT_DISABLED;
+      expect(parseEnv(semFlag).RATE_LIMIT_DISABLED).toBe(false);
+    });
+
+    it('RL-MN-04 (negativo): RATE_LIMIT_DISABLED="maybe" lança citando o campo, NÃO resolve false (FLAG-03)', () => {
+      expect(() => parseEnv({ ...validEnv, RATE_LIMIT_DISABLED: 'maybe' })).toThrow(
+        /RATE_LIMIT_DISABLED/,
+      );
+    });
+
+    it('RL-MN-04 (negativo): CV_EXTRACTOR_FAKE="maybe" lança citando o campo, NÃO resolve false (FLAG-04)', () => {
+      expect(() => parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'maybe' })).toThrow(
+        /CV_EXTRACTOR_FAKE/,
+      );
+    });
+
+    it('CV_EXTRACTOR_FAKE aceita "1"/"on" (mesmo parser) → true (FLAG-04)', () => {
+      expect(parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: '1' }).CV_EXTRACTOR_FAKE).toBe(true);
+      expect(parseEnv({ ...validEnv, CV_EXTRACTOR_FAKE: 'on' }).CV_EXTRACTOR_FAKE).toBe(true);
+    });
+
+    it('AUTH_LOGIN_ENABLED permanece com semântica própria (!== "false"), não usa o novo parser (FLAG-04)', () => {
+      // "1" não é reconhecido pela semântica antiga de AUTH_LOGIN_ENABLED (!== 'false' → true),
+      // então continua resolvendo true (comportamento pré-existente, não o parser novo).
+      expect(parseEnv({ ...validEnv, AUTH_LOGIN_ENABLED: '1' }).AUTH_LOGIN_ENABLED).toBe(true);
+      expect(parseEnv({ ...validEnv, AUTH_LOGIN_ENABLED: 'maybe' }).AUTH_LOGIN_ENABLED).toBe(true);
+      expect(parseEnv({ ...validEnv, AUTH_LOGIN_ENABLED: 'false' }).AUTH_LOGIN_ENABLED).toBe(false);
+    });
+
+    it('RL-MN-05 (negativo): VERCEL_ENV=production + RATE_LIMIT_DISABLED="1" lança (VERCEL-01)', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, VERCEL_ENV: 'production', RATE_LIMIT_DISABLED: '1' }),
+      ).toThrow(/RATE_LIMIT_DISABLED/);
+    });
+
+    it('RL-MN-05: sem VERCEL_ENV + NODE_ENV=production + RATE_LIMIT_DISABLED="true" NÃO lança (VERCEL-02, caminho CI/E2E)', () => {
+      const semVercel = { ...validEnv };
+      delete (semVercel as Record<string, unknown>).VERCEL_ENV;
+      expect(() =>
+        parseEnv({ ...semVercel, NODE_ENV: 'production', RATE_LIMIT_DISABLED: 'true' }),
+      ).not.toThrow();
+    });
+
+    it('RL-MN-05: mesmo par de guard para CV_EXTRACTOR_FAKE (deploy real lança; CI/E2E sem VERCEL_ENV não lança)', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, VERCEL_ENV: 'production', CV_EXTRACTOR_FAKE: '1' }),
+      ).toThrow(/CV_EXTRACTOR_FAKE/);
+      const semVercel = { ...validEnv };
+      delete (semVercel as Record<string, unknown>).VERCEL_ENV;
+      expect(() =>
+        parseEnv({ ...semVercel, NODE_ENV: 'production', CV_EXTRACTOR_FAKE: 'true' }),
+      ).not.toThrow();
+    });
+  });
+
+  // USP-060 (HYG-04/HYG-MN-04) — harness de e-mail dev, mesmo molde de CV_EXTRACTOR_FAKE.
+  describe('EMAIL_DEV_SMTP (USP-060 / harness de e-mail dev)', () => {
+    it('tem default false e defaults de host/porta do Mailpit local', () => {
+      const noFlag = { ...validEnv };
+      delete (noFlag as Record<string, unknown>).EMAIL_DEV_SMTP;
+      const parsed = parseEnv(noFlag);
+      expect(parsed.EMAIL_DEV_SMTP).toBe(false);
+      expect(parsed.EMAIL_DEV_SMTP_HOST).toBe('127.0.0.1');
+      expect(parsed.EMAIL_DEV_SMTP_PORT).toBe(55325);
+    });
+
+    it('aceita string "true"/"1" como booleano (mesmo parser fail-loud)', () => {
+      expect(parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true' }).EMAIL_DEV_SMTP).toBe(true);
+      expect(parseEnv({ ...validEnv, EMAIL_DEV_SMTP: '1' }).EMAIL_DEV_SMTP).toBe(true);
+    });
+
+    it('lança citando o campo para valor não reconhecido (fail-loud, não resolve false)', () => {
+      expect(() => parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'maybe' })).toThrow(/EMAIL_DEV_SMTP/);
+    });
+
+    it('EMAIL_DEV_SMTP=true é aceito fora de um deploy Vercel real (dev/CI/E2E)', () => {
+      expect(() => parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true' })).not.toThrow();
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true', VERCEL_ENV: 'development' }),
+      ).not.toThrow();
+    });
+
+    it('HYG-MN-04 (negativo): EMAIL_DEV_SMTP=true lança num deploy Vercel real (production/preview)', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true', VERCEL_ENV: 'production' }),
+      ).toThrow(/EMAIL_DEV_SMTP/);
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'true', VERCEL_ENV: 'preview' }),
+      ).toThrow(/EMAIL_DEV_SMTP/);
+      // false no mesmo deploy real continua válido (regressão dos guards irmãos).
+      expect(() =>
+        parseEnv({ ...validEnv, EMAIL_DEV_SMTP: 'false', VERCEL_ENV: 'production' }),
+      ).not.toThrow();
+    });
+
+    it('aceita EMAIL_DEV_SMTP_HOST/PORT customizados', () => {
+      const parsed = parseEnv({
+        ...validEnv,
+        EMAIL_DEV_SMTP_HOST: '192.168.0.5',
+        EMAIL_DEV_SMTP_PORT: '2525',
+      });
+      expect(parsed.EMAIL_DEV_SMTP_HOST).toBe('192.168.0.5');
+      expect(parsed.EMAIL_DEV_SMTP_PORT).toBe(2525);
+    });
+  });
 });

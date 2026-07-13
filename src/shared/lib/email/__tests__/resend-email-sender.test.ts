@@ -6,6 +6,7 @@ import { renderPasswordResetEmail } from '../templates/password-reset';
 import { renderCredentialClaimWelcomeEmail } from '../templates/credential-claim-welcome';
 import { renderResponsibleLinkPendingEmail } from '../templates/responsible-link-pending';
 import { renderResponsibleRemovedEmail } from '../templates/responsible-removed';
+import { renderModerationApprovedEmail } from '../templates/moderation-approved';
 
 /**
  * Testes da infra de e-mail (USP-005 / #69): adapter Resend com client mockado
@@ -105,6 +106,26 @@ describe('ResendEmailSender', () => {
     expect(payload.text).toContain('Padaria do Zé Ltda');
   });
 
+  it('@usp057-mn-05 envia decisão de moderação (aprovado) via render() — registro no switch exaustivo', async () => {
+    const sender = new ResendEmailSender(fakeClient);
+
+    await sender.send({
+      to: 'autor@example.com',
+      template: 'moderation-approved',
+      data: {
+        autorNome: 'Maria',
+        tipoConteudo: 'vaga',
+        tituloConteudo: 'Auxiliar Administrativo',
+        areaUrl: 'https://portal.test/empresa',
+      },
+    });
+
+    const payload = sendMock.mock.calls[0]?.[0] as SendPayload;
+    expect(payload.subject).toContain('Auxiliar Administrativo');
+    expect(payload.html).toContain('publicado(a)');
+    expect(payload.text).toContain('Maria');
+  });
+
   it('erro do provedor → { ok: false } (não lança)', async () => {
     sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
     const sender = new ResendEmailSender(fakeClient);
@@ -156,6 +177,18 @@ describe('templates de e-mail', () => {
     expect(email.html).not.toContain('<b>Empresa</b>');
     expect(email.html).toContain('&lt;b&gt;Empresa&lt;/b&gt;');
     expect(email.text).toContain('<b>Empresa</b> & Cia');
+  });
+
+  it('decisão de moderação (aprovado): assunto/corpo com tipo e título, sem motivo', () => {
+    const email = renderModerationApprovedEmail({
+      autorNome: 'Ana',
+      tipoConteudo: 'vaga',
+      tituloConteudo: 'Auxiliar Administrativo',
+      areaUrl: 'https://portal.test/empresa',
+    });
+    expect(email.subject).toContain('Auxiliar Administrativo');
+    expect(email.html).toContain('Ana');
+    expect(email.html).not.toContain('Motivo informado');
   });
 
   it('redefinição: inclui URL e validade, e escapa HTML do nome (anti-injeção)', () => {

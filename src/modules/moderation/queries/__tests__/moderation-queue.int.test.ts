@@ -207,3 +207,62 @@ describe.skipIf(!hasDb)('USP-029/T029-4 — fila inclui serviços reais', () => 
     expect(queue.find((q) => q.contentId === service.id)).toBeUndefined();
   });
 });
+
+// USP-056/MOD-1 — perfis de candidato REAIS (`candidate_profiles`) na fila (E-001/P-005).
+describe.skipIf(!hasDb)('USP-056 MOD-1 — fila inclui perfis de candidato reais', () => {
+  const createdPersonIds: string[] = [];
+
+  beforeAll(async () => {
+    await prisma.person.upsert({
+      where: { id: VIEWER },
+      update: {},
+      create: { id: VIEWER, fullName: 'Viewer Perfil Int', status: 'ATIVO' },
+    });
+  });
+
+  afterEach(async () => {
+    if (createdPersonIds.length > 0) {
+      await prisma.candidateProfile.deleteMany({ where: { personId: { in: createdPersonIds } } });
+      await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
+      createdPersonIds.length = 0;
+    }
+  });
+
+  afterAll(async () => {
+    await prisma.candidateProfile.deleteMany({ where: { personId: VIEWER } });
+  });
+
+  it('[MOD1-01] perfil IN_MODERATION real aparece como CANDIDATE_PROFILE com contentId=personId', async () => {
+    const author = await prisma.person.create({
+      data: { fullName: 'Autor Perfil Real', status: 'ATIVO' },
+      select: { id: true },
+    });
+    createdPersonIds.push(author.id);
+    await prisma.candidateProfile.create({
+      data: {
+        personId: author.id,
+        headline: 'Auxiliar Administrativo Int',
+        publicationStatus: PrismaContentStatus.IN_MODERATION,
+      },
+    });
+
+    const queue = await viewModerationQueue({ viewerPersonId: VIEWER });
+    const item = queue.find((q) => q.contentId === author.id);
+    expect(item).toBeDefined();
+    expect(item?.contentKind).toBe('CANDIDATE_PROFILE');
+    expect(item?.title).toBe('Auxiliar Administrativo Int');
+  });
+
+  it('[USP056-MN-01/P-005] perfil cujo personId == viewer não aparece na fila', async () => {
+    await prisma.candidateProfile.create({
+      data: {
+        personId: VIEWER,
+        headline: 'Perfil do próprio viewer',
+        publicationStatus: PrismaContentStatus.IN_MODERATION,
+      },
+    });
+
+    const queue = await viewModerationQueue({ viewerPersonId: VIEWER });
+    expect(queue.find((q) => q.contentId === VIEWER)).toBeUndefined();
+  });
+});

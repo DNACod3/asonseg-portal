@@ -34,6 +34,13 @@ export const AuditEvent = {
   ROLE_GRANT_REVOKED: 'ROLE_GRANT_REVOKED',
   /** Ativação do papel candidato com criação/atualização do perfil em DRAFT (USP-009 / CAD-01). */
   CANDIDATE_ROLE_ACTIVATED: 'CANDIDATE_ROLE_ACTIVATED',
+  /**
+   * Perfil de candidato pausado (`ACTIVE→PAUSED`, `AUTHOR_ACTION`) via `transitionContent`
+   * (espelha `JOB_PAUSED`/`SERVICE_PAUSED`). Cobre o caso "OCULTAR" da cascata de
+   * revogação de consentimento `JOB_APPLICATION` (USP-053 / CAND-7) — remediação da
+   * Fase 8: antes era um `updateMany` direto sem entrada própria no `audit_log`.
+   */
+  CANDIDATE_PROFILE_PAUSED: 'CANDIDATE_PROFILE_PAUSED',
   /** Ativação do papel prestador PF com criação/atualização do perfil em DRAFT (USP-010 / CAD-06). */
   PROVIDER_ROLE_ACTIVATED: 'PROVIDER_ROLE_ACTIVATED',
   /** Ativação automática do papel cliente na 1ª manifestação de interesse (USP-011 / CAD-09). */

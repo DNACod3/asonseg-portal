@@ -181,7 +181,11 @@ export function JobForm({ companyId, jobAreas, regions }: JobFormProps) {
   const areaValue = watch('areaId');
 
   return (
-    <form onSubmit={handleSubmit(onPublish)} className="flex flex-col gap-5 max-w-lg">
+    <form
+      onSubmit={handleSubmit(onPublish)}
+      noValidate
+      className="flex flex-col gap-5 max-w-lg"
+    >
       <input type="hidden" {...register('companyId')} />
 
       {/* Título */}

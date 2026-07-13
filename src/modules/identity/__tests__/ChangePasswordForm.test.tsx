@@ -34,6 +34,12 @@ function fill(senhaNova: string, confirmar: string) {
 }
 
 describe('ChangePasswordForm', () => {
+  // RF-MN-01 (ORQ-3): sem GET fallback — mesma defesa do LoginForm.
+  it('RF-MN-01: o <form> declara method="post" (sem fallback GET)', () => {
+    const { container } = render(<ChangePasswordForm />);
+    expect(container.querySelector('form')).toHaveAttribute('method', 'post');
+  });
+
   it('renderiza os campos e o botão', () => {
     render(<ChangePasswordForm />);
     expect(screen.getByLabelText('Nova senha')).toBeInTheDocument();

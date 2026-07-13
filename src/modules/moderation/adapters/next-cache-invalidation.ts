@@ -16,8 +16,14 @@ export class NextCacheInvalidation implements CacheInvalidationPort {
   private readonly log = childLogger({ module: 'moderation', adapter: 'next-cache' });
 
   async revalidateForContent(target: CacheInvalidationTarget): Promise<void> {
-    // Só transições que mudam visibilidade pública importam para o cache.
-    if (target.to !== ContentStatus.ACTIVE && target.to !== ContentStatus.INACTIVATED) {
+    // Só transições que mudam visibilidade pública importam para o cache:
+    // entra em ACTIVE/INACTIVATED OU sai de ACTIVE (USP-054/EMP-3 — o early-return
+    // aqui era o bug: uma vaga pausada/arquivada ficava presa no cache público).
+    if (
+      target.to !== ContentStatus.ACTIVE &&
+      target.to !== ContentStatus.INACTIVATED &&
+      target.from !== ContentStatus.ACTIVE
+    ) {
       return;
     }
     for (const path of this.publicPathsFor(target.contentKind)) {
@@ -31,7 +37,10 @@ export class NextCacheInvalidation implements CacheInvalidationPort {
     } else if (target.contentKind === ContentKind.SERVICE) {
       revalidatePath(`/servicos/${target.contentId}`);
     }
-    this.log.debug({ contentKind: target.contentKind, to: target.to }, 'moderation:cache:revalidated');
+    this.log.debug(
+      { contentKind: target.contentKind, from: target.from, to: target.to },
+      'moderation:cache:revalidated',
+    );
   }
 
   /** Rotas públicas (route group `(public)`) cuja listagem depende do conteúdo. */

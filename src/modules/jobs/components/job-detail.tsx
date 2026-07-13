@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatDate } from '@/shared/lib/time';
+import { formatDateOnly } from '@/shared/lib/time';
 import { Badge, Button, FormCard, FormSectionTitle } from '@/shared/ui';
 import type { JobDetail } from '../views/job-detail.view';
 import { ApplyToJobButton } from './apply-to-job-button';
@@ -134,7 +134,7 @@ export function JobDetailView({ job, myApplicationId = null }: Readonly<JobDetai
             <div>
               <dt className="font-medium text-fg-muted">Válida até</dt>
               <dd className="text-fg">
-                <time dateTime={job.validUntil.toISOString()}>{formatDate(job.validUntil)}</time>
+                <time dateTime={job.validUntil.toISOString()}>{formatDateOnly(job.validUntil)}</time>
               </dd>
             </div>
           )}

@@ -19,6 +19,11 @@ const OTHER_AREA_NAME = 'Busca Candidatos Int Área B';
 const REGION_A = 'Busca Candidatos Int Região A';
 const REGION_B = 'Busca Candidatos Int Região B';
 
+// USP-060 (follow-up de determinismo): marcador de busca exclusivo destas 2
+// fixtures — escopa USP028-01 aos IDs do próprio teste via `q`, independente
+// de quantos outros candidatos ACTIVE/ATIVO já existam no DB (volume do seed).
+const ORDEM_MARKER = 'OrdemCronologicaBuscaCandidatosIntUnica';
+
 const CPF_SENSOR = '75456780090';
 const ENDERECO_SENSOR = 'Rua Sensível Busca Candidatos Int, 77';
 const SOBRENOME_SENSOR = 'SobrenomeSensorBuscaCandidatosInt';
@@ -121,6 +126,7 @@ skipIfNoDb('searchCandidates — integração', () => {
       regionId: regionAId,
       createdAt: now,
       headline: 'Auxiliar administrativo buscacandidatosintunico',
+      skillsText: ORDEM_MARKER,
       availability: 'Período integral',
     });
     cAntigo = await makeCandidate({
@@ -131,7 +137,7 @@ skipIfNoDb('searchCandidates — integração', () => {
       regionId: regionBId,
       createdAt: earlier,
       headline: null,
-      skillsText: 'Vendas',
+      skillsText: `Vendas ${ORDEM_MARKER}`,
       availability: 'Meio período',
     });
     cDraft = await makeCandidate({
@@ -188,18 +194,18 @@ skipIfNoDb('searchCandidates — integração', () => {
   });
 
   it('USP028-01: lista só perfis ACTIVE/ATIVO, ordenados por cadastro (mais recentes primeiro)', async () => {
-    // Sem filtro, o dataset de fixtures tem 28 candidatos ACTIVE/ATIVO (SEARCH_PAGE_SIZE+5 de
-    // paginação + cRecente + cSensor + cAntigo) — junta 2 páginas p/ verificar a ordem geral,
-    // já que cAntigo (criado 60s antes) fica fora do top 20 por si só (coberto por MN-04 à parte).
-    const [page1, page2] = await Promise.all([
-      searchCandidates({}, responsible),
-      searchCandidates({ page: 2 }, responsible),
-    ]);
-    expect(page1.ok).toBe(true);
-    expect(page2.ok).toBe(true);
-    if (!page1.ok || !page2.ok) return;
+    // USP-060 (follow-up de determinismo): a busca original sem filtro dependia do
+    // dataset global ter ≤28 candidatos ACTIVE/ATIVO (assunção que quebra sob volume
+    // de seed/dev acumulado — mesma classe de HYG-01/HYG-02). Escopamos via `q` ao
+    // ORDEM_MARKER exclusivo destas 2 fixtures: exercita o MESMO WHERE de produção
+    // (gate on-read + `ORDER BY created_at DESC`) e o MESMO caminho de paginação,
+    // mas o resultado fica imune a quantos outros candidatos existam no DB.
+    const res = await searchCandidates({ q: ORDEM_MARKER }, responsible);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
 
-    const ids = [...page1.data.items, ...page2.data.items].map((i) => i.candidatePersonId);
+    expect(res.data.total).toBe(2); // só cRecente + cAntigo casam o marcador exclusivo
+    const ids = res.data.items.map((i) => i.candidatePersonId);
     expect(ids).toContain(cRecente);
     expect(ids).toContain(cAntigo);
     expect(ids.indexOf(cRecente)).toBeLessThan(ids.indexOf(cAntigo)); // mais recente primeiro

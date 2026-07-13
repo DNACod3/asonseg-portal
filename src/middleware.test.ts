@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { middleware } from '@/middleware';
-import { rateLimiter } from '@/shared/lib/rateLimit';
+import { rateLimiter, RATE_LIMITS } from '@/shared/lib/rateLimit';
 
 /**
  * Testes do Edge Middleware (US #200 / #201): categorização anônimo/autenticado/
@@ -12,6 +12,11 @@ import { rateLimiter } from '@/shared/lib/rateLimit';
 
 function req(path: string, headers: Record<string, string> = {}): NextRequest {
   return new NextRequest(`https://portal.asonseg.org.br${path}`, { headers });
+}
+
+/** Requisição com método explícito (USP-050 · PUB-2: mutação vs. leitura). */
+function reqWithMethod(path: string, method: string, headers: Record<string, string> = {}): NextRequest {
+  return new NextRequest(`https://portal.asonseg.org.br${path}`, { method, headers });
 }
 
 /** Cookie de sessão Supabase usado para simular usuário autenticado. */
@@ -60,12 +65,18 @@ describe('middleware — categorização e rate limit', () => {
     expect(res.headers.get('X-RateLimit-Limit')).toBe('60');
   });
 
-  it('usa o limite de cadastro (3/15min) na rota /cadastro', () => {
+  // USP-050 (PUB-2): a cota de cadastro (3/15min) foi dimensionada para
+  // SUBMISSÕES (POST/Server Action), não para leituras — GET/prefetch caem em
+  // anonymous/authenticated normal. Teste-âncora atualizado deliberadamente
+  // de GET→POST (contrato novo); ver REG-01 logo abaixo para o caso GET.
+  it('usa o limite de cadastro (3/15min) em POST /cadastro (submissão — REG-02)', () => {
     const ip = { 'x-real-ip': '2.2.2.2' };
-    expect(middleware(req('/cadastro', ip)).headers.get('X-RateLimit-Limit')).toBe('3');
-    middleware(req('/cadastro', ip));
-    middleware(req('/cadastro', ip));
-    const fourth = middleware(req('/cadastro', ip));
+    expect(
+      middleware(reqWithMethod('/cadastro', 'POST', ip)).headers.get('X-RateLimit-Limit'),
+    ).toBe('3');
+    middleware(reqWithMethod('/cadastro', 'POST', ip));
+    middleware(reqWithMethod('/cadastro', 'POST', ip));
+    const fourth = middleware(reqWithMethod('/cadastro', 'POST', ip));
     expect(fourth.status).toBe(429);
   });
 
@@ -200,5 +211,174 @@ describe('middleware — /api (H2, Fase 6 hardening, MN-H2)', () => {
     }
     const blocked = middleware(req('/vagas', ip));
     expect(blocked.status).toBe(429);
+  });
+});
+
+describe('middleware — registration só em mutação; /cadastro-assistido fora (USP-050 · PUB-2/SOC-1)', () => {
+  it('REG-01: GET /cadastro NÃO conta em registration — cai em anonymous (limit 10)', () => {
+    const ip = { 'x-real-ip': '7.7.7.10' };
+    expect(middleware(req('/cadastro', ip)).headers.get('X-RateLimit-Limit')).toBe('10');
+  });
+
+  it('RL-MN-02 (negativo): 4 GET /cadastro do mesmo IP não geram 429 de registration; POST depois ainda tem os 3 de registration', () => {
+    const ip = { 'x-real-ip': '7.7.7.11' };
+    for (let i = 0; i < 4; i++) {
+      const res = middleware(req('/cadastro', ip));
+      expect(res.status).not.toBe(429);
+      expect(res.headers.get('X-RateLimit-Limit')).toBe('10');
+    }
+    // POST (submissão) continua com a cota de registration (3/15min) intacta.
+    expect(middleware(reqWithMethod('/cadastro', 'POST', ip)).headers.get('X-RateLimit-Limit')).toBe('3');
+    middleware(reqWithMethod('/cadastro', 'POST', ip));
+    middleware(reqWithMethod('/cadastro', 'POST', ip));
+    expect(middleware(reqWithMethod('/cadastro', 'POST', ip)).status).toBe(429);
+  });
+
+  it('REG-02: GET /cadastro/consentimento também não conta em registration (segmento público)', () => {
+    const ip = { 'x-real-ip': '7.7.7.12' };
+    expect(middleware(req('/cadastro/consentimento', ip)).headers.get('X-RateLimit-Limit')).toBe('10');
+  });
+
+  it('POST /cadastro/consentimento conta em registration (mutação do segmento público)', () => {
+    const ip = { 'x-real-ip': '7.7.7.13' };
+    expect(
+      middleware(reqWithMethod('/cadastro/consentimento', 'POST', ip)).headers.get('X-RateLimit-Limit'),
+    ).toBe('3');
+  });
+
+  it('RL-MN-03 (negativo): /cadastro-assistido NUNCA cai em registration — authenticated (60) com cookie, anonymous (10) sem cookie', () => {
+    const semCookie = { 'x-real-ip': '7.7.7.14' };
+    const comCookie = { 'x-real-ip': '7.7.7.15', ...AUTH_COOKIE };
+    expect(middleware(req('/cadastro-assistido', semCookie)).headers.get('X-RateLimit-Limit')).toBe('10');
+    expect(middleware(req('/cadastro-assistido', comCookie)).headers.get('X-RateLimit-Limit')).toBe('60');
+    // POST também nunca vira registration (SOC-1, REG-03).
+    expect(
+      middleware(reqWithMethod('/cadastro-assistido', 'POST', comCookie)).headers.get('X-RateLimit-Limit'),
+    ).toBe('60');
+  });
+});
+
+describe('middleware — fetch de dados do client router cai num teto próprio, generoso-mas-finito, NÃO num bypass (USP-050 · PUB-1b, iteração 3)', () => {
+  // Iteração 2 (ciclo de fix pós-Verifier): o header Next-Router-Prefetch (e
+  // rsc, e o query param _rsc) nunca chegam a request.headers/nextUrl no
+  // servidor real — confirmado com curl -v + instrumentação temporária
+  // (revertida) + browser Chromium real via Playwright. O sinal que sobrevive
+  // é `Next-Url`.
+  //
+  // Iteração 3 (achado adversarial do Verifier): um bypass TOTAL baseado em
+  // `Next-Url` é explorável — o header é forjável por qualquer cliente
+  // (`curl -H "Next-Url: /" ...` em loop nunca gerava 429), zerando a
+  // proteção anti-scraping de toda rota GET pública (US #200/#201,
+  // ADR-0029). Corrigido roteando esses GET/HEAD para a categoria própria
+  // `routerData` (60/min — ver rateLimit.ts), que conta e bloqueia como
+  // qualquer outra categoria.
+  const ROUTER_FETCH = { 'next-url': '/' };
+
+  it('PREF-01/PREF-03: volume típico de navegação real (15 fetches, bem abaixo do teto de 60) fica sem 429; navegação de documento subsequente também', () => {
+    const ip = { 'x-real-ip': '8.8.8.1' };
+    for (let i = 0; i < 15; i++) {
+      const res = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
+      expect(res.status).not.toBe(429);
+    }
+    // Documento (Accept: text/html, sem Next-Url) cai em anonymous — bucket
+    // independente do routerData — não é penalizado pelos 15 fetches acima.
+    const real = middleware(req('/vagas', { ...ip, accept: 'text/html' }));
+    expect(real.status).not.toBe(429);
+  });
+
+  it('PREF-02: resposta de fetch do client router INCLUI headers X-RateLimit-* refletindo o bucket routerData (60), distinto do anônimo (10)', () => {
+    const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.2', ...ROUTER_FETCH }));
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('60');
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('59');
+  });
+
+  it('fetch do client router preserva os headers de segurança e o gate de sessão', () => {
+    const res = middleware(req('/vagas', { 'x-real-ip': '8.8.8.3', ...ROUTER_FETCH }));
+    expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
+    const protectedRes = middleware(req('/perfil', { 'x-real-ip': '8.8.8.4', ...ROUTER_FETCH }));
+    expect(protectedRes.status).toBe(307); // gate de sessão intacto
+  });
+
+  it('REGRESSÃO (achado do Verifier, iteração 2): Next-Router-Prefetch sozinho (sem Next-Url) cai em anonymous — o header morto não basta', () => {
+    const ip = { 'x-real-ip': '8.8.8.5' };
+    for (let i = 0; i < 10; i++) {
+      middleware(req('/vagas', { ...ip, 'next-router-prefetch': '1' }));
+    }
+    const blocked = middleware(req('/vagas', { ...ip, 'next-router-prefetch': '1' }));
+    expect(blocked.status).toBe(429); // sem Next-Url, contou como anonymous e estourou o teto de 10
+  });
+
+  it('ADVERSARIAL (achado do Verifier, iteração 3): Next-Url FORJADO em loop pelo mesmo IP eventualmente toma 429 — não é mais um opt-out gratuito do rate limit', () => {
+    const ip = { 'x-real-ip': '8.8.8.7' };
+    let sawBlocked = false;
+    for (let i = 0; i < 60; i++) {
+      const res = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
+      expect(res.status).not.toBe(429);
+    }
+    const blocked = middleware(req('/vagas', { ...ip, ...ROUTER_FETCH }));
+    sawBlocked = blocked.status === 429;
+    expect(sawBlocked).toBe(true); // 61ª request com Next-Url forjado → 429 (teto routerData = 60)
+    expect(blocked.headers.get('X-RateLimit-Limit')).toBe('60');
+  });
+
+  it('gate de método (defesa em profundidade): um POST com Next-Url (hipotético) NÃO é isento — mutação de /cadastro continua contando em registration', () => {
+    const ip = { 'x-real-ip': '8.8.8.6' };
+    expect(
+      middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH })).headers.get('X-RateLimit-Limit'),
+    ).toBe('3');
+    middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH }));
+    middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH }));
+    expect(middleware(reqWithMethod('/cadastro', 'POST', { ...ip, ...ROUTER_FETCH })).status).toBe(429);
+  });
+});
+
+describe('middleware — 429 de documento (HTML PT-BR) vs. RSC/fetch (JSON) — USP-050 · PUB-1c', () => {
+  it('P429-01: Accept text/html sem rsc → HTML PT-BR com Retry-After, no-store e headers de segurança', () => {
+    const ip = { 'x-real-ip': '9.9.9.1' };
+    for (let i = 0; i < 10; i++) middleware(req('/vagas', { ...ip, accept: 'text/html' }));
+    const blocked = middleware(req('/vagas', { ...ip, accept: 'text/html' }));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('content-type')).toContain('text/html');
+    expect(blocked.headers.get('Retry-After')).toBeTruthy();
+    expect(blocked.headers.get('Cache-Control')).toBe('no-store');
+    expect(blocked.headers.get('Content-Security-Policy')).toBeTruthy();
+  });
+
+  it('RL-MN-06 (negativo): request RSC/fetch/Server Action real (Accept genérico, sem text/html) bloqueado continua JSON {ok:false} — nunca HTML', async () => {
+    // Assinatura real de um Server Action POST confirmada empiricamente
+    // (login via browser real): accept: 'text/x-component', sem Accept
+    // text/html. Usamos POST (mutação) para também provar que o gate de
+    // método não interfere no ramo JSON — só no bypass do bucket.
+    const ip = { 'x-real-ip': '9.9.9.2' };
+    for (let i = 0; i < 3; i++) {
+      middleware(reqWithMethod('/cadastro', 'POST', { ...ip, accept: 'text/x-component' }));
+    }
+    const blocked = middleware(reqWithMethod('/cadastro', 'POST', { ...ip, accept: 'text/x-component' }));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('content-type')).toContain('application/json');
+    const body = await blocked.json();
+    expect(body).toEqual({ ok: false, error: { code: 'RATE_LIMITED', message: expect.any(String) } });
+  });
+
+  it('request sem Accept text/html (fetch simples) bloqueado continua JSON', async () => {
+    const ip = { 'x-real-ip': '9.9.9.3' };
+    for (let i = 0; i < 10; i++) middleware(req('/vagas', ip));
+    const blocked = middleware(req('/vagas', ip));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('content-type')).toContain('application/json');
+  });
+});
+
+describe('middleware — RL-MN-07: RATE_LIMITS das categorias herdadas inalterados; routerData é adição explícita (iteração 3)', () => {
+  it('valores canônicos das categorias herdadas permanecem 10/60/3/5/20 com as janelas originais', () => {
+    expect(RATE_LIMITS.anonymous).toEqual({ limit: 10, windowMs: 60_000 });
+    expect(RATE_LIMITS.authenticated).toEqual({ limit: 60, windowMs: 60_000 });
+    expect(RATE_LIMITS.registration).toEqual({ limit: 3, windowMs: 15 * 60_000 });
+    expect(RATE_LIMITS.passwordReset).toEqual({ limit: 5, windowMs: 15 * 60_000 });
+    expect(RATE_LIMITS.responsibleLookup).toEqual({ limit: 20, windowMs: 60_000 });
+  });
+
+  it('routerData (adição autorizada da iteração 3) tem o teto generoso-mas-finito documentado: 60/min', () => {
+    expect(RATE_LIMITS.routerData).toEqual({ limit: 60, windowMs: 60_000 });
   });
 });

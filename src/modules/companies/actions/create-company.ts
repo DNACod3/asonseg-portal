@@ -104,7 +104,17 @@ export async function createCompany(
           select: { id: true, cnpj: true, razaoSocial: true },
         });
 
-        // Grant RESPONSIBLE + Consent COMPANY_REPRESENTATION em paralelo (sem dependência).
+        // MOD-2: releitura do consent COMPANY_REPRESENTATION ativo DENTRO da tx
+        // (após a validação de hash do passo 3b) — espelha o padrão idempotente
+        // de `ensure-client-role.ts` (Passo 4). Uma Pessoa que já é responsável
+        // de outra Empresa reusa o consent existente em vez de tentar criar um
+        // 2º consent ativo (o que estourava a unique parcial e virava "erro
+        // interno"). O grant RESPONSIBLE é sempre criado, por Empresa.
+        const activeRepresentationConsent = await tx.consent.findFirst({
+          where: { personId: person.id, purpose: 'COMPANY_REPRESENTATION', revokedAt: null },
+          select: { id: true },
+        });
+
         await Promise.all([
           tx.personCompanyGrant.create({
             data: {
@@ -115,17 +125,21 @@ export async function createCompany(
               status: 'ACTIVE', // USP-013: criador é responsável ativo de imediato (sem aceite).
             },
           }),
-          tx.consent.create({
-            data: {
-              personId: person.id,
-              purpose: 'COMPANY_REPRESENTATION',
-              termVersion: data.companyRepresentationTermVersion,
-              termContentHash: term.hash,
-              acceptedIp: ip,
-              userAgent,
-              context: { route: '/empresa/cadastrar', companyId: created.id },
-            },
-          }),
+          ...(activeRepresentationConsent
+            ? []
+            : [
+                tx.consent.create({
+                  data: {
+                    personId: person.id,
+                    purpose: 'COMPANY_REPRESENTATION',
+                    termVersion: data.companyRepresentationTermVersion,
+                    termContentHash: term.hash,
+                    acceptedIp: ip,
+                    userAgent,
+                    context: { route: '/empresa/cadastrar', companyId: created.id },
+                  },
+                }),
+              ]),
         ]);
 
         audit.entityType = 'company';

@@ -39,6 +39,16 @@ export type {
 export { requireActiveConsent } from './server/require-active-consent';
 export type { ConsentCheck, ConsentCheckReason } from './server/require-active-consent';
 
+// Porta dos efeitos de artefato da cascata de revogação (USP-053 / CAND-7 —
+// A-5). O adapter real (jobs+persons) é ligado em `shared/container.ts`.
+export { REVOCATION_EFFECTS_TOKEN } from './ports/revocation-effects';
+export type {
+  RevocationEffectsPort,
+  RevocationEffectsContext,
+  JobApplicationCascadeOutcome,
+  RevocationTx,
+} from './ports/revocation-effects';
+
 // ── Server Actions (#37) ─────────────────────────────────────────────────────
 export { grantConsent } from './actions/grant-consent';
 export type { GrantConsentResult } from './actions/grant-consent';

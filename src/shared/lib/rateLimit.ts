@@ -51,6 +51,21 @@ export const RATE_LIMITS = {
   // Busca de Pessoa por CPF/e-mail ao adicionar responsável (USP-013 / L-002):
   // teto por identidade para conter enumeração de CPF. Valor tunável (ADR-0029).
   responsibleLookup: { limit: 20, windowMs: MINUTE_MS },
+  // USP-050 (iteração 3 — achado adversarial do Verifier, ADR-0029): GET/HEAD
+  // de fetch de dados do client router (header `Next-Url`, ver
+  // shared/lib/rateLimitResponse.ts) NÃO pode ter bypass total do rate limit
+  // — `Next-Url` é forjável por qualquer cliente (curl), então um bypass
+  // rígido zerava a proteção anti-scraping de toda rota GET pública. Em vez
+  // disso, cai numa categoria própria com teto generoso-mas-finito: uma
+  // navegação real mede ~8-15 router-fetches por load (dossiê PUB-1b;
+  // confirmado no outcome-check da iteração 2 — 8/10 do bucket anônimo
+  // consumidos por um único load da home). 60/min dá ~4-7x de folga acima de
+  // um único load (cobre várias páginas/min de navegação real) e reusa o
+  // mesmo teto já aceito para `authenticated` (não é um número novo
+  // inventado), enquanto ainda limita um scraper que force o header em loop
+  // a no máximo 1 req/s sustentado — não mais um opt-out gratuito e
+  // não-autenticado do rate limit anônimo.
+  routerData: { limit: 60, windowMs: MINUTE_MS },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitCategory = keyof typeof RATE_LIMITS;

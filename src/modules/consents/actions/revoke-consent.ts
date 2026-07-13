@@ -3,12 +3,14 @@
 import { headers } from 'next/headers';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { getCurrentPerson } from '@/modules/identity';
+import { container } from '@/shared/container';
 import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
 import type { ConsentPurpose } from '../domain/purposes';
 import { roleForPurpose } from '../domain/purpose-role-map';
+import { REVOCATION_EFFECTS_TOKEN } from '../ports/revocation-effects';
 import { revokeConsentSchema, type RevokeConsentInput } from '../schemas/consent';
 
 const DEFAULT_REASON = 'Revogação de consentimento solicitada pelo titular.';
@@ -21,6 +23,13 @@ export interface RevokeConsentResult {
   roleRevoked: boolean;
   /** `true` se a finalidade já estava revogada (operação idempotente, sem efeito). */
   alreadyRevoked: boolean;
+  /**
+   * USP-053 / CAND-7: candidaturas ativas encerradas pela cascata de artefatos
+   * de `JOB_APPLICATION` (ENCERRAR+MARCAR). `0` para as demais finalidades.
+   */
+  applicationsEnded: number;
+  /** USP-053 / CAND-7: `true` se o `CandidateProfile` foi ocultado (OCULTAR). */
+  profileHidden: boolean;
 }
 
 /**
@@ -69,7 +78,14 @@ export async function revokeConsent(
       select: { id: true },
     });
     if (anyConsent) {
-      return ok({ purpose, consentsRevoked: 0, roleRevoked: false, alreadyRevoked: true });
+      return ok({
+        purpose,
+        consentsRevoked: 0,
+        roleRevoked: false,
+        alreadyRevoked: true,
+        applicationsEnded: 0,
+        profileHidden: false,
+      });
     }
     return fail('NOT_FOUND', 'Nenhum consentimento desta finalidade foi encontrado.');
   }
@@ -119,11 +135,37 @@ export async function revokeConsent(
           }
         }
 
+        // Cascata de artefatos de JOB_APPLICATION (USP-053 / CAND-7 / A-5/A-6):
+        // roda só para esta finalidade e só quando algo foi de fato revogado
+        // (MN-06 — sobre-aplicação a outras finalidades; A-6 — sem no-op).
+        // Na MESMA tx: qualquer throw do applier rejeita o `$transaction` e
+        // desfaz consent+papel+candidaturas+perfil (MN-04 — atomicidade).
+        let applicationsEnded = 0;
+        let profileHidden = false;
+        if (purpose === 'JOB_APPLICATION' && revoked.count > 0) {
+          const applier = container.resolve(REVOCATION_EFFECTS_TOKEN);
+          const outcome = await applier.applyJobApplicationCascade(tx, {
+            personId: person.id,
+            actorPersonId: person.id,
+            ip,
+            userAgent,
+            justification,
+          });
+          applicationsEnded = outcome.applicationsEnded;
+          profileHidden = outcome.profileHidden;
+        }
+
         audit.entityType = 'consent';
         audit.justification = justification;
         audit.before = { purpose, role: role ?? null };
-        audit.after = { purpose, consentsRevoked: revoked.count, roleRevoked };
-        return { consentsRevoked: revoked.count, roleRevoked };
+        audit.after = {
+          purpose,
+          consentsRevoked: revoked.count,
+          roleRevoked,
+          applicationsEnded,
+          profileHidden,
+        };
+        return { consentsRevoked: revoked.count, roleRevoked, applicationsEnded, profileHidden };
       },
       {
         actorPersonId: person.id,
@@ -134,7 +176,14 @@ export async function revokeConsent(
     );
 
     log.info(
-      { personId: person.id, purpose, consentsRevoked: result.consentsRevoked, roleRevoked: result.roleRevoked },
+      {
+        personId: person.id,
+        purpose,
+        consentsRevoked: result.consentsRevoked,
+        roleRevoked: result.roleRevoked,
+        applicationsEnded: result.applicationsEnded,
+        profileHidden: result.profileHidden,
+      },
       'consent:revoked',
     );
     return ok({
@@ -142,6 +191,8 @@ export async function revokeConsent(
       consentsRevoked: result.consentsRevoked,
       roleRevoked: result.roleRevoked,
       alreadyRevoked: false,
+      applicationsEnded: result.applicationsEnded,
+      profileHidden: result.profileHidden,
     });
   } catch (err) {
     log.error({ err, purpose }, 'consent:revoke_failed');

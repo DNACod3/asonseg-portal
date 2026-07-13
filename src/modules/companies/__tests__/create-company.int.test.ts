@@ -46,13 +46,15 @@ skipIfNoDb('createCompany — integração', () => {
 
   beforeAll(async () => {
     // Cleanup idempotente: remove dados residuais de runs anteriores.
-    const staleCompany = await prisma.company.findUnique({
-      where: { cnpj: '11222333000181' },
-      select: { id: true },
-    });
-    if (staleCompany) {
-      await prisma.personCompanyGrant.deleteMany({ where: { companyId: staleCompany.id } });
-      await prisma.company.delete({ where: { id: staleCompany.id } });
+    for (const staleCnpj of ['11222333000181', '11444777000161']) {
+      const staleCompany = await prisma.company.findUnique({
+        where: { cnpj: staleCnpj },
+        select: { id: true },
+      });
+      if (staleCompany) {
+        await prisma.personCompanyGrant.deleteMany({ where: { companyId: staleCompany.id } });
+        await prisma.company.delete({ where: { id: staleCompany.id } });
+      }
     }
 
     const person = await prisma.person.create({
@@ -216,5 +218,45 @@ skipIfNoDb('createCompany — integração', () => {
       select: { id: true },
     });
     expect(duplicates).toHaveLength(1);
+  });
+
+  it('MOD-2 (EMP055-MN-01): 2ª Empresa (CNPJ distinto) reusa o consent COMPANY_REPRESENTATION ativo — ok, exatamente 1 consent ativo, nunca INTERNAL', async () => {
+    // O happy path (1º teste) já deixou a Pessoa com 1 consent COMPANY_REPRESENTATION ativo.
+    const before = await prisma.consent.findMany({
+      where: { personId, purpose: 'COMPANY_REPRESENTATION', revokedAt: null },
+      select: { id: true },
+    });
+    expect(before).toHaveLength(1);
+
+    const result = await createCompany({
+      ...VALID_INPUT,
+      cnpj: '11.444.777/0001-61',
+      razaoSocial: 'Segunda Empresa Integração Ltda',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    createdCompanyIds.push(result.data.companyId);
+
+    // Exatamente 1 consent ativo (reuso do mesmo registro — sem 2º consent criado).
+    const after = await prisma.consent.findMany({
+      where: { personId, purpose: 'COMPANY_REPRESENTATION', revokedAt: null },
+      select: { id: true },
+    });
+    expect(after).toHaveLength(1);
+    expect(after[0]?.id).toBe(before[0]?.id);
+
+    // 2 Empresas + 2 grants RESPONSIBLE ativos para a mesma Pessoa.
+    const companies = await prisma.company.findMany({
+      where: { createdBy: personId },
+      select: { id: true },
+    });
+    expect(companies).toHaveLength(2);
+
+    const grants = await prisma.personCompanyGrant.findMany({
+      where: { personId, grantType: 'RESPONSIBLE', status: 'ACTIVE', revokedAt: null },
+      select: { companyId: true },
+    });
+    expect(grants).toHaveLength(2);
   });
 });

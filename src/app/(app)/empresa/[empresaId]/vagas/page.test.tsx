@@ -15,6 +15,7 @@ const guardState = vi.hoisted(() => ({
   requireActiveResponsible: vi.fn(),
   companyFindUnique: vi.fn(),
   listCompanyJobs: vi.fn(),
+  listLatestReturnReasons: vi.fn(),
   notFoundCalled: false,
 }));
 
@@ -35,9 +36,17 @@ vi.mock('@/modules/identity', () => ({
 vi.mock('@/modules/jobs', () => ({
   requireActiveResponsible: (...a: unknown[]) => guardState.requireActiveResponsible(...a),
   listCompanyJobs: (...a: unknown[]) => guardState.listCompanyJobs(...a),
-  viewCompanyJobRow: (row: unknown) => row,
-  CompanyJobList: ({ rows }: { rows: Array<{ id: string }> }) => (
-    <div data-testid="company-job-list">{rows.length} vaga(s)</div>
+  listLatestReturnReasons: (...a: unknown[]) => guardState.listLatestReturnReasons(...a),
+  // Identity-like stub, mas repassa o returnReason (2º arg) para a asserção de render do motivo.
+  viewCompanyJobRow: (row: { id: string; status?: string }, returnReason: string | null = null) => ({
+    ...row,
+    returnReason,
+  }),
+  CompanyJobList: ({ rows }: { rows: Array<{ id: string; returnReason?: string | null }> }) => (
+    <div data-testid="company-job-list">
+      {rows.length} vaga(s)
+      {rows.map((r) => (r.returnReason ? <p key={r.id}>{r.returnReason}</p> : null))}
+    </div>
   ),
 }));
 
@@ -55,6 +64,7 @@ const params = Promise.resolve({ empresaId: EMPRESA_ID });
 beforeEach(() => {
   vi.clearAllMocks();
   guardState.notFoundCalled = false;
+  guardState.listLatestReturnReasons.mockResolvedValue(new Map());
 });
 
 describe('GestaoVagasPage — gate de rota (P-005/D-005)', () => {
@@ -90,5 +100,36 @@ describe('GestaoVagasPage — gate de rota (P-005/D-005)', () => {
     expect(guardState.notFoundCalled).toBe(false);
     expect(screen.getByText(/Padaria Aurora/)).toBeInTheDocument();
     expect(screen.getByTestId('company-job-list')).toHaveTextContent('2 vaga(s)');
+  });
+
+  it('USP-054/MOD-3: vaga AWAITING_ADJUSTMENTS → busca e passa o motivo da devolução ao painel', async () => {
+    guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
+    guardState.requireActiveResponsible.mockResolvedValue(true);
+    guardState.companyFindUnique.mockResolvedValue({ nomeFantasia: 'Padaria Aurora' });
+    guardState.listCompanyJobs.mockResolvedValue([
+      { id: 'job-1', status: 'ACTIVE' },
+      { id: 'job-2', status: 'AWAITING_ADJUSTMENTS' },
+    ]);
+    guardState.listLatestReturnReasons.mockResolvedValue(
+      new Map([['job-2', { reason: 'Falta descrever os requisitos', returnedAt: new Date() }]]),
+    );
+
+    const ui = await GestaoVagasPage({ params });
+    render(ui);
+
+    // owner-scope (MN-03): só o jobId AWAITING_ADJUSTMENTS é consultado, nunca todos.
+    expect(guardState.listLatestReturnReasons).toHaveBeenCalledWith(['job-2']);
+    expect(screen.getByText('Falta descrever os requisitos')).toBeInTheDocument();
+  });
+
+  it('sem vaga AWAITING_ADJUSTMENTS → NÃO chama listLatestReturnReasons', async () => {
+    guardState.requireActivePerson.mockResolvedValue({ id: 'p-dono' });
+    guardState.requireActiveResponsible.mockResolvedValue(true);
+    guardState.companyFindUnique.mockResolvedValue({ nomeFantasia: 'Padaria Aurora' });
+    guardState.listCompanyJobs.mockResolvedValue([{ id: 'job-1', status: 'ACTIVE' }]);
+
+    await GestaoVagasPage({ params });
+
+    expect(guardState.listLatestReturnReasons).not.toHaveBeenCalled();
   });
 });

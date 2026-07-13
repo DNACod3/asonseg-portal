@@ -161,6 +161,10 @@ skipIfNoDb('submitJobForModeration — integração', () => {
     await cleanupCompany();
     await prisma.person.deleteMany({ where: { id: { in: [ownerId, strangerId, pendingId] } } });
     await prisma.jobArea.deleteMany({ where: { name: AREA_NAME } });
+    // HYG-09/HYG-11: remove a Region própria deste arquivo (a jobArea já era
+    // limpa) — evita poluir o select de região dos dropdowns públicos (PUB-6).
+    await prisma.region.deleteMany({ where: { name: 'Centro Int Submit' } });
+    expect(await prisma.region.count({ where: { name: 'Centro Int Submit' } })).toBe(0);
   });
 
   it('E-001: submissão válida → IN_MODERATION vinculada à Empresa e ao autor', async () => {
