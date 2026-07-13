@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { seedReference } from './seeds/reference';
 import { seedDemo } from './seeds/demo';
-import { seedBulk } from './seeds/bulk';
+import { seedBulk, FIXED_PASSWORD } from './seeds/bulk';
 
 /**
  * Entrypoint do seed (`npm run db:seed` / `prisma db seed`, F0A-03).
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
     console.log(`  demo_services (ACTIVE): ${demo.demoServices}`);
 
     const bulk = await seedBulk(prisma);
-    console.log('Seed de volume concluído (idempotente, dev/staging — senha fixa 12345678):');
+    console.log(`Seed de volume concluído (idempotente, dev/staging — senha fixa ${FIXED_PASSWORD}):`);
     console.log(`  pessoas login-áveis:     ${bulk.people}`);
     console.log(`  empresas:                ${bulk.companies}`);
     console.log(`  vagas:                   ${bulk.jobs}`);

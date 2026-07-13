@@ -30,8 +30,14 @@ import { isValidCnpj } from '../../src/modules/companies/domain/cnpj';
 
 // ── Parâmetros ────────────────────────────────────────────────────────────────
 
-/** Senha fixa de todas as contas de teste (≥ 8 chars — política local aceita). */
-const FIXED_PASSWORD = '12345678';
+/**
+ * Senha fixa de todas as contas de teste. Satisfaz a política mais estrita do
+ * produto (≥8, ≤128, ≥1 letra, ≥1 número — `changePasswordFirstAccessSchema` /
+ * `resetPasswordSchema`), para que as contas de demo consigam trocar/recuperar
+ * a própria senha sem que o formulário rejeite a senha semeada (HYG-MN-05).
+ * Exportada para reuso no log do seed (`prisma/seed.ts`) e no teste-guarda.
+ */
+export const FIXED_PASSWORD = 'asonseg2026';
 /** Domínio dos e-mails determinísticos. `email_confirm: true` ⇒ nenhum e-mail é enviado. */
 const EMAIL_DOMAIN = 'seed.asonseg.dev';
 

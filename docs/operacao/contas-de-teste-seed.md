@@ -6,11 +6,17 @@
 
 ## Credenciais
 
-- **Senha (todas as contas):** `12345678`
+- **Senha (todas as contas):** `asonseg2026`
 - **Domínio dos e-mails:** `@seed.asonseg.dev` (fictício — nenhum e-mail é enviado)
 - **Total de contas login-áveis:** 112
 
-Para logar: `/login` com o e-mail da tabela e a senha `12345678`.
+Para logar: `/login` com o e-mail da tabela e a senha `asonseg2026`.
+
+> **Nota (HYG-12):** o Supabase Auth reusa a credencial por e-mail em re-execuções
+> idempotentes do seed — contas já existentes **não** têm a senha reaplicada. Se
+> você semeou o banco antes desta mudança (senha antiga `12345678`), rode
+> `supabase db reset` (ou recrie os usuários de Auth) e reaplique o seed para
+> propagar a nova senha às contas pré-existentes.
 
 ## Coordenador(a) (3)
 
