@@ -186,7 +186,9 @@ skipIfNoDb('reivindicação de credencial — integração', () => {
       captchaToken: 'captcha-ok',
     });
     expect(result.ok).toBe(true);
-    expect(await prisma.credentialClaim.count()).toBe(0);
+    // HYG-02: escopado às fixtures do teste (requestedEmail), não uma contagem global —
+    // preserva a propriedade de segurança (zero claim para este pedido) sem depender de volume.
+    expect(await prisma.credentialClaim.count({ where: { requestedEmail: REQUESTED_EMAIL } })).toBe(0);
   });
 
   it('request com CAPTCHA inválido é bloqueado e NÃO cria claim (ADR-0014)', async () => {
