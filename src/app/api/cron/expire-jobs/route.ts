@@ -8,7 +8,8 @@ import { childLogger } from '@/shared/lib/logger';
  * Job de expiração automática de vaga (USP-024 — E-001/G1/L-001). Transiciona toda vaga
  * `ACTIVE` cuja validade passou para `EXPIRED` via `transitionContent` (defesa em
  * profundidade complementar ao filtro on-read de `searchJobs`/`getActiveJobDetail`).
- * Agendado pelo Vercel Cron (`vercel.json`, `0 * * * *` — cadência horária, L-001).
+ * Agendado por um cron EXTERNO (cron-job.org, não Vercel Cron — plano Hobby só
+ * permite cron diário nativo), cadência horária, L-001.
  *
  * Mesmo padrão de proteção de `auth-attempts-retention` (clonado, `verifyCronSecret`):
  * sem `CRON_SECRET` configurado → 503 (fail-closed); segredo ausente/incorreto → 401,

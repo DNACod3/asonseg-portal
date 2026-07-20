@@ -7,8 +7,9 @@ import { childLogger } from '@/shared/lib/logger';
 /**
  * Dispatcher assíncrono do Outbox de e-mail (USP-044 — AD-007). Drena a fila
  * `Outbox` onde `topic='email'` (6 sítios de enqueue já gravam linhas; nada em
- * produção as processava antes desta USP). Agendado pelo Vercel Cron
- * (`vercel.json`, `* * * * *` — cadência de 1min, design D-4, L-001 ≤60s).
+ * produção as processava antes desta USP). Agendado por um cron EXTERNO
+ * (cron-job.org, não Vercel Cron — plano Hobby só permite cron diário nativo),
+ * cadência de 1min, design D-4, L-001 ≤60s.
  *
  * Mesmo esqueleto de `expire-jobs`/`auth-attempts-retention` (`verifyCronSecret`):
  * sem `CRON_SECRET` configurado → 503 (fail-closed); segredo ausente/incorreto
