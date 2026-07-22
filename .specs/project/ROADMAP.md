@@ -201,9 +201,9 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ### Unidades
 
-- [ ] USP-061 — Casca de navegação da área logada: header persistente com informações da pessoa logada (nome + papel ativo) e ação Sair · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-061-casca-header/ · deps: — · gate: — · achados: H-3 (SOC-2, EMP-5)
-- [ ] USP-062 — Navegação mobile/tablet: bottom tab bar fixa com ícones para os atalhos primários por papel · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-062-bottom-tab-bar/ · deps: USP-061 · gate: —
-- [ ] USP-063 — Navegação desktop: menu (hambúrguer/dropdown) no header com a navegação completa por papel, active-state por rota · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-063-menu-desktop/ · deps: USP-061 · gate: —
+- [x] USP-061 — Casca de navegação da área logada: header persistente com informações da pessoa logada (nome + papel ativo) e ação Sair · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-061-casca-header/ · deps: — · gate: — · achados: H-3 (SOC-2, EMP-5)
+- [x] USP-062 — Navegação mobile/tablet: bottom tab bar fixa com ícones para os atalhos primários por papel · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-062-bottom-tab-bar/ · deps: USP-061 · gate: —
+- [x] USP-063 — Navegação desktop: menu (hambúrguer/dropdown) no header com a navegação completa por papel, active-state por rota · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-063-menu-desktop/ · deps: USP-061 · gate: —
 
 ---
 

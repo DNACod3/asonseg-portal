@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 20,
+  "next_id": 22,
   "lessons": [
     {
       "id": "L-001",
@@ -348,6 +348,42 @@
       ],
       "created": "2026-07-13T01:48:41Z",
       "last_seen": "2026-07-13T01:48:41Z"
+    },
+    {
+      "id": "L-020",
+      "key": "surviving_mutant::when an ac requires omitting an empty optional ui element not just avoiding a placeholder string assert the element s absence from the dom directly e g by testid role not an indirect textcontent querybytext proxy that stays green even if the element renders empty",
+      "text": "When an AC requires omitting an empty/optional UI element (not just avoiding a placeholder string), assert the element's absence from the DOM directly (e.g. by testid/role), not an indirect textContent/queryByText proxy that stays green even if the element renders empty.",
+      "signal": "surviving_mutant",
+      "scope": "rtl-component-tests",
+      "status": "candidate",
+      "features": [
+        "usp-061-casca-header"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/app/(app)/_components/__tests__/app-header.test.tsx:28-34 (rtl-component-tests)"
+      ],
+      "created": "2026-07-22T15:46:49Z",
+      "last_seen": "2026-07-22T15:46:49Z"
+    },
+    {
+      "id": "L-021",
+      "key": "spec_deviation::a client component that needs a pure io free export from a module whose barrel also re exports server only code next headers server actions must import that export directly from its source file not via the module barrel or the client bundle fails to build",
+      "text": "A Client Component that needs a pure, IO-free export from a module whose barrel also re-exports server-only code (next/headers, Server Actions) must import that export directly from its source file, not via the module barrel, or the client bundle fails to build",
+      "signal": "spec_deviation",
+      "scope": "modules-barrel",
+      "status": "candidate",
+      "features": [
+        "app-shell-logado/usp-062-bottom-tab-bar"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/app/(app)/_components/app-bottom-nav.tsx:16 (SPEC_DEVIATION, commit 35dbc1a) (modules-barrel)"
+      ],
+      "created": "2026-07-22T16:43:28Z",
+      "last_seen": "2026-07-22T16:43:28Z"
     }
   ]
 }

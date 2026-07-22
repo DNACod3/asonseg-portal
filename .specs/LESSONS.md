@@ -126,6 +126,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: validation.md#HYG-06 AC3 (cron-drain-locally, not re-driven live) (validation-method)
 - last seen: 2026-07-13T01:48:41Z
 
+### L-020 — When an AC requires omitting an empty/optional UI element (not just avoiding a placeholder string), assert the element's absence from the DOM directly (e.g. by testid/role), not an indirect textContent/queryByText proxy that stays green even if the element renders empty.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `rtl-component-tests` · harmful: 0
+- features: usp-061-casca-header
+- evidence: src/app/(app)/_components/__tests__/app-header.test.tsx:28-34 (rtl-component-tests)
+- last seen: 2026-07-22T15:46:49Z
+
+### L-021 — A Client Component that needs a pure, IO-free export from a module whose barrel also re-exports server-only code (next/headers, Server Actions) must import that export directly from its source file, not via the module barrel, or the client bundle fails to build
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `modules-barrel` · harmful: 0
+- features: app-shell-logado/usp-062-bottom-tab-bar
+- evidence: src/app/(app)/_components/app-bottom-nav.tsx:16 (SPEC_DEVIATION, commit 35dbc1a) (modules-barrel)
+- last seen: 2026-07-22T16:43:28Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
