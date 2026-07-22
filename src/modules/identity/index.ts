@@ -129,7 +129,7 @@ export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
 // Rótulos PT-BR de TODOS os papéis (USP-049 / PERFIL-01) — ver SPEC_DEVIATION
 // em domain/roles.ts sobre o nome `ALL_ROLE_LABELS` (evita colisão com o
 // `ROLE_LABELS` acima, escopado a PublicRole).
-export { ALL_ROLE_LABELS } from './domain/roles';
+export { ALL_ROLE_LABELS, describeActiveRoles } from './domain/roles';
 export { ActivateRoleForm } from './components/activate-role-form';
 export type { ActivatableRoleOption } from './components/activate-role-form';
 export { buildActivatableOptions } from './server/build-activatable-options';
