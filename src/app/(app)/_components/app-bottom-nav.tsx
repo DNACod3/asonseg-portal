@@ -3,7 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/ui';
-import { pickActiveHref, type BottomTab } from '@/modules/identity';
+// SPEC_DEVIATION: design.md lista `pickActiveHref (@/modules/identity)` (via
+// barrel). O barrel do módulo re-exporta actions/session com dependências
+// server-only (next/headers, next/cache) — um Client Component que importa
+// o barrel arrasta essas dependências para o bundle do client e quebra
+// `next build` ("You're importing a component that needs next/headers...").
+// Reason: import direto do arquivo puro (sem IO), que não re-exporta nada
+// server-only — mesma exceção já justificada em
+// `persons/components/candidate-form.tsx` (Client Component + barrel
+// server-only).
+// eslint-disable-next-line no-restricted-imports
+import { pickActiveHref, type BottomTab } from '@/modules/identity/domain/app-nav';
 import { NavIcon } from './nav-icons';
 
 /**

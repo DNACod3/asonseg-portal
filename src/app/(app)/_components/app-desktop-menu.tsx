@@ -4,7 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/ui';
-import { pickActiveHref, type HubLinkGroup } from '@/modules/identity';
+// SPEC_DEVIATION: ver nota em app-bottom-nav.tsx — import direto dos
+// arquivos puros (`domain/app-nav`, `domain/hub-links`) em vez do barrel
+// `@/modules/identity`, para não arrastar dependências server-only
+// (next/headers, next/cache) ao bundle deste Client Component e quebrar
+// `next build`.
+// eslint-disable-next-line no-restricted-imports
+import { pickActiveHref } from '@/modules/identity/domain/app-nav';
+// eslint-disable-next-line no-restricted-imports
+import type { HubLinkGroup } from '@/modules/identity/domain/hub-links';
 
 /**
  * Menu disclosure do header desktop (`≥ md` — USP-063, DNAV-01..05). Client
