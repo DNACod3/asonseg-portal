@@ -56,6 +56,11 @@ describe('APP-SHELL-MN-03 — casca (app) sem sessão/PII/Prisma/View Model/Serv
     expect(scannedBasenames).toContain('nav-icons.tsx');
   });
 
+  it('DNAV-MN-03 (USP-063): app-desktop-menu.tsx consta da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('app-desktop-menu.tsx');
+  });
+
   it.each(FORBIDDEN_PATTERNS)('nenhum arquivo da casca referencia $name', ({ pattern }) => {
     const offenders = files
       .map((file) => ({ file, content: readFileSync(file, 'utf-8') }))
