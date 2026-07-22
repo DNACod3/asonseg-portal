@@ -49,6 +49,12 @@ describe('APP-SHELL-MN-04 — casca (app) tokens-only (DS intacto)', () => {
     expect(files.length).toBeGreaterThan(0);
   });
 
+  it('BNAV-MN-04/DNAV-MN-04 (USP-062/063): app-bottom-nav.tsx e nav-icons.tsx constam da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('app-bottom-nav.tsx');
+    expect(scannedBasenames).toContain('nav-icons.tsx');
+  });
+
   it('nenhum arquivo contém hex cru (#RRGGBB)', () => {
     const offenders = files
       .map((file) => ({ file, content: readFileSync(file, 'utf-8') }))

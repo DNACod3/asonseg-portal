@@ -50,6 +50,12 @@ describe('APP-SHELL-MN-03 — casca (app) sem sessão/PII/Prisma/View Model/Serv
     expect(files.length).toBeGreaterThan(0);
   });
 
+  it('BNAV-MN-03/DNAV-MN-03 (USP-062/063): app-bottom-nav.tsx e nav-icons.tsx constam da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('app-bottom-nav.tsx');
+    expect(scannedBasenames).toContain('nav-icons.tsx');
+  });
+
   it.each(FORBIDDEN_PATTERNS)('nenhum arquivo da casca referencia $name', ({ pattern }) => {
     const offenders = files
       .map((file) => ({ file, content: readFileSync(file, 'utf-8') }))
