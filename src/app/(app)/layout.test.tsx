@@ -44,7 +44,9 @@ describe('AppLayout (app) — composition-root da casca', () => {
 
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByText('Ana Candidata')).toBeInTheDocument();
-    expect(screen.getByText('Candidato(a)')).toBeInTheDocument();
+    // Verifica diretamente o nó do rótulo (data-testid estável do AppHeader),
+    // não só o texto solto no DOM.
+    expect(screen.getByTestId('app-header-role-label')).toHaveTextContent('Candidato(a)');
     expect(screen.getByTestId('page-content')).toBeInTheDocument();
   });
 
@@ -59,7 +61,9 @@ describe('AppLayout (app) — composition-root da casca', () => {
     render(ui);
 
     expect(screen.getByText('Pessoa Sem Papel')).toBeInTheDocument();
-    expect(screen.queryByText('Candidato(a)')).not.toBeInTheDocument();
+    // Verifica a AUSÊNCIA do nó do rótulo diretamente (não um proxy de texto) —
+    // mata o mutante que remove a guarda `roleLabel &&` no AppHeader.
+    expect(screen.queryByTestId('app-header-role-label')).not.toBeInTheDocument();
   });
 
   it('chama requireActivePerson() sem argumentos (herda o redirect a /trocar-senha no 1º acesso)', async () => {

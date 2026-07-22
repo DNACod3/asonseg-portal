@@ -24,15 +24,19 @@ describe('AppHeader — APP-SHELL-01/02/03/04/05', () => {
   it('APP-SHELL-03: exibe fullName e o rótulo de papel quando roleLabel é não-vazio', () => {
     render(<AppHeader personName="Ana Candidata" roleLabel="Candidato(a) · Diretoria" />);
     expect(screen.getByText('Ana Candidata')).toBeInTheDocument();
-    expect(screen.getByText('Candidato(a) · Diretoria')).toBeInTheDocument();
+    // Verifica diretamente o nó do rótulo (data-testid estável), não só o texto solto no DOM.
+    expect(screen.getByTestId('app-header-role-label')).toHaveTextContent(
+      'Candidato(a) · Diretoria',
+    );
   });
 
   it('APP-SHELL-04: omite a linha de papel quando roleLabel é string vazia (sem placeholder)', () => {
     render(<AppHeader personName="Pessoa Sem Papel" roleLabel="" />);
     expect(screen.getByText('Pessoa Sem Papel')).toBeInTheDocument();
-    // Nenhum texto vazio/placeholder de papel é renderizado — só o nome existe.
-    const header = screen.getByRole('banner');
-    expect(header.textContent).not.toMatch(/undefined|null/);
+    // Verifica a AUSÊNCIA do nó do rótulo diretamente (não um proxy de texto) —
+    // mata o mutante que troca `{roleLabel && <span>…}` por `<span>{roleLabel}</span>`
+    // incondicional (o span existiria vazio, mas nunca deveria existir no DOM).
+    expect(screen.queryByTestId('app-header-role-label')).not.toBeInTheDocument();
   });
 
   it('APP-SHELL-05: renderiza o controle "Sair" (SignOutForm)', () => {

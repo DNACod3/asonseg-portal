@@ -49,7 +49,11 @@ export function AppHeader({ personName, roleLabel, nav, className }: AppHeaderPr
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-end text-right">
               <span className="text-sm font-semibold text-fg">{personName}</span>
-              {roleLabel && <span className="text-xs text-fg-muted">{roleLabel}</span>}
+              {roleLabel && (
+                <span data-testid="app-header-role-label" className="text-xs text-fg-muted">
+                  {roleLabel}
+                </span>
+              )}
             </div>
             <SignOutForm />
           </div>
