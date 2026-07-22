@@ -63,7 +63,7 @@ export function AppSidebar({ groups, className }: AppSidebarProps) {
     <aside
       className={cn(
         'hidden md:flex md:flex-col shrink-0 self-start sticky top-0 h-screen',
-        'border-r border-border bg-surface transition-[width]',
+        'border-r border-border bg-surface transition-[width] duration-200 ease-in-out',
         collapsed ? 'w-16' : 'w-60',
         className,
       )}
