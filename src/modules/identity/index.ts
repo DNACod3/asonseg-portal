@@ -57,7 +57,8 @@ export { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } from './domain
 export type { HubAccess, HubLink, HubLinkGroup } from './domain/hub-links';
 
 // ── Navegação da casca (app) — bottom bar + menu desktop (USP-062/063) ────────
-export { pickActiveHref } from './domain/app-nav';
+export { pickActiveHref, selectPrimaryTabs, BOTTOM_TAB_SHORT_LABELS } from './domain/app-nav';
+export type { BottomTab } from './domain/app-nav';
 
 // ── Logout (USP-049 / AUTH-3) ──────────────────────────────────────────────────
 export { signOutAction } from './actions/signOut';
