@@ -1,27 +1,31 @@
 import Link from 'next/link';
 import { cn } from '@/shared/ui';
 import { SignOutForm } from '@/modules/identity';
+import { ProfileMenu } from './profile-menu';
 
 /**
  * Header persistente da área autenticada `(app)/*` (USP-061 — APP-SHELL-01,
- * -02, -03, -04, -05; APP-SHELL-MN-04). Server Component apresentacional
- * (A3): sem interatividade própria — recebe `personName`/`roleLabel` já
- * computados do composition-root (`(app)/layout.tsx`) e apenas exibe a
- * marca (linka `/inicio`), a identidade e o `SignOutForm`. Visual espelha o
- * `SiteHeader` público (badge "A" + wordmark), mas linkando ao hub
- * autenticado em vez da home pública (A7).
+ * -02, -03, -04, -05; APP-SHELL-MN-04; round 2 USP-065 — PROF-01, -03, -06,
+ * PROF-MN-05). Server Component apresentacional (A3): sem interatividade
+ * própria — recebe `personName`/`roleLabel` já computados do
+ * composition-root (`(app)/layout.tsx`) e exibe a marca (linka `/inicio`) e
+ * o `ProfileMenu` (Client, USP-065), a quem passa `signOut={<SignOutForm/>}`
+ * como `ReactNode` (o `ProfileMenu` nunca importa o barrel `@/modules/identity`
+ * — L-021/PROF-MN-03). Visual espelha o `SiteHeader` público (badge "A" +
+ * wordmark), mas linkando ao hub autenticado em vez da home pública (A7).
  *
- * `nav` é o seam `headerNav` (USP-063, A4) — `undefined` por padrão, sem
- * buraco visual (APP-SHELL-07).
+ * O seam `nav` (`headerNav`, USP-063) foi removido — a sidebar (USP-064)
+ * assume a navegação desktop. `PROF-MN-05` reenquadra `APP-SHELL-MN-01`:
+ * a garantia "sem beco sem saída" passa a ser o trigger de perfil sempre
+ * visível + Sair alcançável ao abrir o menu (em vez de "Sair sempre no DOM").
  */
 export interface AppHeaderProps {
   personName: string;
   roleLabel: string;
-  nav?: React.ReactNode;
   className?: string;
 }
 
-export function AppHeader({ personName, roleLabel, nav, className }: AppHeaderProps) {
+export function AppHeader({ personName, roleLabel, className }: AppHeaderProps) {
   return (
     <header
       className={cn(
@@ -43,20 +47,8 @@ export function AppHeader({ personName, roleLabel, nav, className }: AppHeaderPr
           </span>
         </Link>
 
-        <div className="flex flex-1 items-center justify-end gap-4">
-          {nav}
-
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end text-right">
-              <span className="text-sm font-semibold text-fg">{personName}</span>
-              {roleLabel && (
-                <span data-testid="app-header-role-label" className="text-xs text-fg-muted">
-                  {roleLabel}
-                </span>
-              )}
-            </div>
-            <SignOutForm />
-          </div>
+        <div className="flex flex-1 items-center justify-end">
+          <ProfileMenu personName={personName} roleLabel={roleLabel} signOut={<SignOutForm />} />
         </div>
       </div>
     </header>
