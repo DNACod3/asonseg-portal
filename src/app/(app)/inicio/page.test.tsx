@@ -2,11 +2,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 /**
- * USP-049 — HUB-01, HUB-02, HUB-03, HUB-04, HUB-06, HUB-07.
+ * USP-049 — HUB-01, HUB-02, HUB-03, HUB-04, HUB-07.
+ * USP-061 — APP-SHELL-08, APP-SHELL-MN-02 (migração do logout p/ a casca).
  *
  * `requireActivePerson` e `canAccessModerationQueue` são mockados; `buildHubLinks`/
  * `hubAccessFromRoles` (puros) permanecem reais — já cobertos exaustivamente por
  * `identity/__tests__/hub-links.test.ts` (HUB-MN-01/02).
+ *
+ * SPEC_DEVIATION (com justificativa, Assumption A5 de USP-061/spec.md): o antigo
+ * teste HUB-06 ("hub renderiza a opção de logout via SignOutForm") é substituído
+ * pelo teste negativo MN-02 abaixo — o "Sair" migrou para a `AppShell`/`AppHeader`
+ * (USP-061), fonte única de logout; o hub isolado NÃO deve mais renderizá-lo. O
+ * mock de `SignOutForm` também é removido do `@/modules/identity` mockado abaixo,
+ * pois `page.tsx` não a importa mais. Não é enfraquecimento silencioso: a
+ * capacidade de logout é preservada (e reforçada — alcançável de toda rota
+ * `(app)/*`), só a localização muda.
  */
 
 const guardState = vi.hoisted(() => ({
@@ -22,7 +32,6 @@ vi.mock('@/modules/identity', async () => {
     hubAccessFromRoles: domain.hubAccessFromRoles,
     buildHubLinks: domain.buildHubLinks,
     requireActivePerson: (...a: unknown[]) => guardState.requireActivePerson(...a),
-    SignOutForm: () => <button type="button">Sair</button>,
   };
 });
 
@@ -60,7 +69,7 @@ describe('HubPage (/inicio)', () => {
     );
   });
 
-  it('HUB-06: renderiza a opção de logout (SignOutForm)', async () => {
+  it('APP-SHELL-MN-02: o render isolado do hub NÃO renderiza mais o próprio "Sair" (logout migrou para a casca — USP-061)', async () => {
     guardState.requireActivePerson.mockResolvedValue({
       id: 'p-cand',
       fullName: 'Ana',
@@ -70,7 +79,7 @@ describe('HubPage (/inicio)', () => {
     const ui = await HubPage();
     render(ui);
 
-    expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument();
   });
 
   it('HUB-04: voluntário COM delegação de moderação vê /moderacao', async () => {

@@ -2,7 +2,6 @@ import {
   requireActivePerson,
   hubAccessFromRoles,
   buildHubLinks,
-  SignOutForm,
   type HubAccess,
 } from '@/modules/identity';
 import { canAccessModerationQueue } from '@/modules/moderation';
@@ -45,8 +44,6 @@ export default async function HubPage() {
           </div>
         </section>
       ))}
-
-      <SignOutForm />
     </main>
   );
 }
