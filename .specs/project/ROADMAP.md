@@ -198,12 +198,15 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 > **Não muda o design system.** Reaproveita os tokens de `globals.css`, os componentes de `shared/ui` (`Button`, `cn`) e o padrão de ícone SVG inline já usado no `PublicNav` (sem biblioteca de ícones nova, sem paleta nova). O contrato visual (cores, espaçamento, tipografia) é o mesmo das Fases 1-8; muda só a estrutura de navegação da casca autenticada.
 > **Escopo por USP.** USP-061 = casca/header (info da pessoa logada + Sair, substituindo o `SignOutForm` solto do hub). USP-062 = bottom tab bar mobile/tablet com os atalhos primários por papel (reaproveita `buildHubLinks`). USP-063 = menu desktop (hambúrguer/dropdown) com a navegação completa, active-state por rota (mesmo `isActive` do `PublicNav`).
 > **Relação com H-3 (Fase 9).** H-3 misturava duas questões independentes: navegação (UX, sem gate humano) e busca/lista de Pessoas (privacidade, gate PO+DPO). Esta fase resolve só a primeira; a segunda continua na Fase 9.
+> **Round 2 (2026-07-22, feedback do dono pós-merge/#292).** Mobile/tablet (USP-062) aprovado como está. Desktop (USP-063, menu hambúrguer/dropdown) **rejeitado na prática** — dono pediu padrão de sidebar colapsável (ícone+rótulo ⇄ só-ícone), inspirado no console do Supabase (topbar com breadcrumb-style + sidebar à esquerda). Também pediu mover o `ThemeToggle` (hoje flutuante fixo no canto inferior direito, montado no `layout.tsx` raiz, fora do escopo desta fase) para dentro de um novo menu de Perfil na área logada. **USP-063 permanece `[x]` como registro histórico do que foi entregue e verificado**; USP-064/065 substituem o padrão de navegação desktop dela — não reabrem USP-061/062.
 
 ### Unidades
 
 - [x] USP-061 — Casca de navegação da área logada: header persistente com informações da pessoa logada (nome + papel ativo) e ação Sair · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-061-casca-header/ · deps: — · gate: — · achados: H-3 (SOC-2, EMP-5)
 - [x] USP-062 — Navegação mobile/tablet: bottom tab bar fixa com ícones para os atalhos primários por papel · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-062-bottom-tab-bar/ · deps: USP-061 · gate: —
 - [x] USP-063 — Navegação desktop: menu (hambúrguer/dropdown) no header com a navegação completa por papel, active-state por rota · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-063-menu-desktop/ · deps: USP-061 · gate: —
+- [ ] USP-064 — Navegação desktop round 2: sidebar colapsável (ícone+rótulo ⇄ só-ícone), substitui o menu hambúrguer da USP-063 · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-064-sidebar-desktop/ · deps: USP-061 · gate: —
+- [ ] USP-065 — Menu de Perfil (nome/papel, seletor de tema, Sair) — ThemeToggle migra do canto flutuante global para dentro deste menu na área logada · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-065-menu-perfil/ · deps: USP-061 · gate: —
 
 ---
 
