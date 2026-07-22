@@ -61,6 +61,11 @@ describe('APP-SHELL-MN-03 — casca (app) sem sessão/PII/Prisma/View Model/Serv
     expect(scannedBasenames).toContain('app-desktop-menu.tsx');
   });
 
+  it('SIDE-MN-03 (USP-064): app-sidebar.tsx consta da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('app-sidebar.tsx');
+  });
+
   it.each(FORBIDDEN_PATTERNS)('nenhum arquivo da casca referencia $name', ({ pattern }) => {
     const offenders = files
       .map((file) => ({ file, content: readFileSync(file, 'utf-8') }))

@@ -60,6 +60,11 @@ describe('APP-SHELL-MN-04 — casca (app) tokens-only (DS intacto)', () => {
     expect(scannedBasenames).toContain('app-desktop-menu.tsx');
   });
 
+  it('SIDE-MN-04 (USP-064): app-sidebar.tsx consta da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('app-sidebar.tsx');
+  });
+
   it('nenhum arquivo contém hex cru (#RRGGBB)', () => {
     const offenders = files
       .map((file) => ({ file, content: readFileSync(file, 'utf-8') }))
