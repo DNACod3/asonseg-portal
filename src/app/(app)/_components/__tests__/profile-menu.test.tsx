@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ProfileMenu } from '../profile-menu';
 
@@ -131,6 +131,39 @@ describe('ProfileMenu — contrato ARIA de disclosure (round 2, fix 4)', () => {
     fireEvent.mouseDown(screen.getByTestId('app-header-role-label'));
 
     expect(document.getElementById('profile-menu-panel')).toBeInTheDocument();
+  });
+
+  it('registra os listeners de keydown/mousedown só enquanto o menu está aberto — sem vazar após fechar (mata mutantes: guard `if (!open) return` e cleanup do useEffect)', () => {
+    const addSpy = vi.spyOn(document, 'addEventListener');
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+
+    render(
+      <ProfileMenu personName="Ana Candidata" roleLabel="Candidato(a)" signOut={<button>Sair</button>} />,
+    );
+
+    // Fechado (mount inicial): nenhum listener de keydown/mousedown registrado.
+    // Sem o guard `if (!open) return`, o efeito registraria os listeners mesmo
+    // fechado — este assert mata esse mutante.
+    expect(addSpy).not.toHaveBeenCalledWith('keydown', expect.any(Function));
+    expect(addSpy).not.toHaveBeenCalledWith('mousedown', expect.any(Function));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir menu de perfil' }));
+
+    const keydownHandler = addSpy.mock.calls.find(([type]) => type === 'keydown')?.[1];
+    const mousedownHandler = addSpy.mock.calls.find(([type]) => type === 'mousedown')?.[1];
+    expect(keydownHandler).toBeDefined();
+    expect(mousedownHandler).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar menu de perfil' }));
+
+    // Fechar deve remover os MESMOS handlers registrados na abertura. Sem o
+    // cleanup do useEffect, nenhum destes `removeEventListener` aconteceria
+    // (listener vazaria) — este assert mata esse mutante.
+    expect(removeSpy).toHaveBeenCalledWith('keydown', keydownHandler);
+    expect(removeSpy).toHaveBeenCalledWith('mousedown', mousedownHandler);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
   });
 });
 
