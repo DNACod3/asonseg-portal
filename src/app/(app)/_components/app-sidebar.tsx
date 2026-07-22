@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/ui';
-// SPEC_DEVIATION: ver nota em app-bottom-nav.tsx/app-desktop-menu.tsx — import
+// SPEC_DEVIATION: ver nota completa em app-bottom-nav.tsx — import
 // direto dos arquivos puros (`domain/app-nav`, `domain/hub-links`) em vez do
 // barrel `@/modules/identity`, para não arrastar dependências server-only
 // (next/headers, next/cache) ao bundle deste Client Component e quebrar
