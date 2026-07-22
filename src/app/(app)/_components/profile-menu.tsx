@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn, ThemeToggle } from '@/shared/ui';
 
 /**
@@ -12,6 +12,11 @@ import { cn, ThemeToggle } from '@/shared/ui';
  * `@/modules/identity` — o barrel reexporta `session.ts` server-only e
  * quebraria `next build` (lição L-021, PROF-MN-03). Molde: disclosure do
  * `PublicNav`/`AppDesktopMenu` (`useState`, `aria-expanded`/`aria-controls`).
+ *
+ * `role="menu"`/`aria-haspopup="menu"` implicam o contrato ARIA completo de
+ * disclosure (round 2 — PR #293 fix 4): Esc fecha e devolve o foco ao
+ * trigger; clique fora do painel fecha. Os listeners (`keydown`/`mousedown`)
+ * só existem no DOM enquanto `open === true` (efeito com cleanup).
  */
 export interface ProfileMenuProps {
   personName: string;
@@ -23,10 +28,35 @@ export interface ProfileMenuProps {
 export function ProfileMenu({ personName, roleLabel, signOut, className }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const initial = personName.trim().charAt(0).toUpperCase() || '?';
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
 
   return (
-    <div className={cn('relative', className)}>
+    <div ref={containerRef} className={cn('relative', className)}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}

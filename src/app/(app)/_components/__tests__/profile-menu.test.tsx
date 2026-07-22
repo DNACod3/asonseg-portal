@@ -91,6 +91,49 @@ describe('ProfileMenu — Sair (PROF-03)', () => {
   });
 });
 
+describe('ProfileMenu — contrato ARIA de disclosure (round 2, fix 4)', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('Escape fecha o menu aberto e devolve o foco ao trigger', () => {
+    render(<ProfileMenu personName="Ana Candidata" roleLabel="Candidato(a)" signOut={<button>Sair</button>} />);
+    const trigger = screen.getByRole('button', { name: 'Abrir menu de perfil' });
+    fireEvent.click(trigger);
+    expect(document.getElementById('profile-menu-panel')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(document.getElementById('profile-menu-panel')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Abrir menu de perfil' })).toHaveFocus();
+  });
+
+  it('clique fora do painel fecha o menu', () => {
+    render(
+      <div>
+        <ProfileMenu personName="Ana Candidata" roleLabel="Candidato(a)" signOut={<button>Sair</button>} />
+        <button type="button">Fora do menu</button>
+      </div>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir menu de perfil' }));
+    expect(document.getElementById('profile-menu-panel')).toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Fora do menu' }));
+
+    expect(document.getElementById('profile-menu-panel')).not.toBeInTheDocument();
+  });
+
+  it('clique dentro do painel (ex.: no ThemeToggle) NÃO fecha o menu via listener de fora', () => {
+    render(<ProfileMenu personName="Ana Candidata" roleLabel="Candidato(a)" signOut={<button>Sair</button>} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir menu de perfil' }));
+    expect(document.getElementById('profile-menu-panel')).toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByTestId('app-header-role-label'));
+
+    expect(document.getElementById('profile-menu-panel')).toBeInTheDocument();
+  });
+});
+
 describe('ProfileMenu — PROF-MN-03 (negativo/static: sem import do barrel @/modules/identity)', () => {
   it('o arquivo profile-menu.tsx não importa de "@/modules/identity"', () => {
     const source = readFileSync(
