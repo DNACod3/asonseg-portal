@@ -4,11 +4,15 @@ import { AppShell } from '../app-shell';
 
 /**
  * USP-061 — APP-SHELL-06, APP-SHELL-07, APP-SHELL-MN-01.
+ * Round 2 (USP-064): `AppShell` vira flex-row — seam `sidebar` (substitui
+ * `headerNav`) à esquerda + coluna `flex-1` com header/children/bottomNav.
  *
  * `AppShell` é o ponto de extensão único da casca: compõe `AppHeader` +
- * `{children}` + o seam `bottomNav`. O must-not MN-01 garante que nenhum
- * caminho renderiza `children` sem o header persistente (marca + Sair) —
- * o beco sem saída do UAT (SOC-2/EMP-5).
+ * `{children}` + os seams `sidebar`/`bottomNav`. O must-not MN-01 garante que
+ * nenhum caminho renderiza `children` sem o header persistente (marca + Sair)
+ * — o beco sem saída do UAT (SOC-2/EMP-5). (O reframe do MN-01 para o Menu de
+ * Perfil — USP-065 — é feito na task T4, quando o `AppHeader` passa a montar
+ * o `ProfileMenu`; aqui o `AppHeader` real segue inalterado.)
  */
 describe('AppShell — APP-SHELL-06/07', () => {
   it('APP-SHELL-07: sem seams injetados, renderiza só a chrome do header + children (sem buraco/erro)', () => {
@@ -22,19 +26,24 @@ describe('AppShell — APP-SHELL-06/07', () => {
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
   });
 
-  it('APP-SHELL-06: headerNav injetado renderiza dentro do header', () => {
-    render(
+  it('APP-SHELL-06 (round 2, seam sidebar): sidebar injetada renderiza na casca, à esquerda do header', () => {
+    const { container } = render(
       <AppShell
         personName="Ana Candidata"
         roleLabel="Candidato(a)"
-        headerNav={<nav data-testid="header-nav">menu desktop</nav>}
+        sidebar={<nav data-testid="sidebar">sidebar desktop</nav>}
       >
         <main>conteúdo</main>
       </AppShell>,
     );
-    const nav = screen.getByTestId('header-nav');
-    expect(nav).toBeInTheDocument();
-    expect(screen.getByRole('banner')).toContainElement(nav);
+    const sidebar = screen.getByTestId('sidebar');
+    expect(sidebar).toBeInTheDocument();
+    const header = screen.getByRole('banner');
+    // A sidebar precede o header na árvore (posicionada à esquerda pelo flex-row).
+    expect(
+      sidebar.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.firstElementChild?.className).toMatch(/\bflex\b/);
   });
 
   it('APP-SHELL-06: bottomNav injetado renderiza na casca (após o conteúdo)', () => {
