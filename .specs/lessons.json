@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 22,
+  "next_id": 23,
   "lessons": [
     {
       "id": "L-001",
@@ -384,6 +384,24 @@
       ],
       "created": "2026-07-22T16:43:28Z",
       "last_seen": "2026-07-22T16:43:28Z"
+    },
+    {
+      "id": "L-022",
+      "key": "surviving_mutant::when a disclosure component gates document level event listeners on an open visible state add a test that proves the listener is absent or its cleanup ran while closed not just that it works correctly while open",
+      "text": "When a disclosure component gates document-level event listeners on an open/visible state, add a test that proves the listener is absent (or its cleanup ran) while closed, not just that it works correctly while open",
+      "signal": "surviving_mutant",
+      "scope": "app-shell-logado",
+      "status": "candidate",
+      "features": [
+        "app-shell-logado/fix-pr-review-293-2026-07-22"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/app/(app)/_components/__tests__/profile-menu.test.tsx (mutations #3, #4 in validation.md) (app-shell-logado)"
+      ],
+      "created": "2026-07-22T20:07:19Z",
+      "last_seen": "2026-07-22T20:07:19Z"
     }
   ]
 }

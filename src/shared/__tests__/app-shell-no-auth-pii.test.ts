@@ -56,9 +56,14 @@ describe('APP-SHELL-MN-03 — casca (app) sem sessão/PII/Prisma/View Model/Serv
     expect(scannedBasenames).toContain('nav-icons.tsx');
   });
 
-  it('DNAV-MN-03 (USP-063): app-desktop-menu.tsx consta da varredura', () => {
+  it('SIDE-MN-03 (USP-064): app-sidebar.tsx consta da varredura', () => {
     const scannedBasenames = files.map((f) => f.split('/').pop());
-    expect(scannedBasenames).toContain('app-desktop-menu.tsx');
+    expect(scannedBasenames).toContain('app-sidebar.tsx');
+  });
+
+  it('PROF-MN-01 (USP-065): profile-menu.tsx consta da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('profile-menu.tsx');
   });
 
   it.each(FORBIDDEN_PATTERNS)('nenhum arquivo da casca referencia $name', ({ pattern }) => {

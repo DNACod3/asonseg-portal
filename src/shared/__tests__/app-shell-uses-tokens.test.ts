@@ -55,9 +55,14 @@ describe('APP-SHELL-MN-04 — casca (app) tokens-only (DS intacto)', () => {
     expect(scannedBasenames).toContain('nav-icons.tsx');
   });
 
-  it('DNAV-MN-04 (USP-063): app-desktop-menu.tsx consta da varredura', () => {
+  it('SIDE-MN-04 (USP-064): app-sidebar.tsx consta da varredura', () => {
     const scannedBasenames = files.map((f) => f.split('/').pop());
-    expect(scannedBasenames).toContain('app-desktop-menu.tsx');
+    expect(scannedBasenames).toContain('app-sidebar.tsx');
+  });
+
+  it('PROF-MN-02 (USP-065): profile-menu.tsx consta da varredura', () => {
+    const scannedBasenames = files.map((f) => f.split('/').pop());
+    expect(scannedBasenames).toContain('profile-menu.tsx');
   });
 
   it('nenhum arquivo contém hex cru (#RRGGBB)', () => {
