@@ -138,6 +138,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/app/(app)/_components/app-bottom-nav.tsx:16 (SPEC_DEVIATION, commit 35dbc1a) (modules-barrel)
 - last seen: 2026-07-22T16:43:28Z
 
+### L-022 — When a disclosure component gates document-level event listeners on an open/visible state, add a test that proves the listener is absent (or its cleanup ran) while closed, not just that it works correctly while open
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `app-shell-logado` · harmful: 0
+- features: app-shell-logado/fix-pr-review-293-2026-07-22
+- evidence: src/app/(app)/_components/__tests__/profile-menu.test.tsx (mutations #3, #4 in validation.md) (app-shell-logado)
+- last seen: 2026-07-22T20:07:19Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
