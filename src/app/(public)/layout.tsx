@@ -5,6 +5,7 @@
 //   • listagens/detalhe   → revalidate = 1800 (30min) + `force-static`
 // Cada página declara o seu próprio `revalidate` — este layout não declara.
 
+import { ThemeToggle } from '@/shared/ui';
 import { SiteFooter } from './_components/site-footer';
 import { SiteHeader } from './_components/site-header';
 
@@ -16,6 +17,10 @@ import { SiteHeader } from './_components/site-header';
  * migração — design.md §7; corrigido nesta tarefa em `page.tsx`,
  * `vagas/page.tsx`, `vagas/[id]/page.tsx`, `servicos/page.tsx` e
  * `servicos/[id]/page.tsx`, que declaravam `<main>` próprio).
+ *
+ * O `ThemeToggle` flutuante (round 2 — USP-065, PROF-05/PROF-MN-04) é
+ * reinstalado aqui: saiu do `layout.tsx` raiz (que monta em todos os
+ * grupos); em `(app)` o controle de tema mora só no Menu de Perfil.
  */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +28,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <SiteHeader />
       <main>{children}</main>
       <SiteFooter />
+      <ThemeToggle className="fixed bottom-4 right-4 z-50 shadow-md" />
     </>
   );
 }
