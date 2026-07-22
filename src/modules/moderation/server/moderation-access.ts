@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { PermissionId } from '@prisma/client';
 import { isCoordinator, type CurrentPerson } from '@/modules/identity';
 import { prisma } from '@/shared/lib/prisma';
@@ -20,15 +21,24 @@ const ALL_MODERATABLE_KINDS: ContentKind[] = [
  * inerente) ou voluntário com **qualquer** delegação de moderação ativa
  * (ADR-0001 / USP-008). A decisão por item ainda re-checa a permissão do tipo
  * específico na Server Action (defesa em profundidade — P-007).
+ *
+ * Envolvida em `cache()` de `'react'` (mesmo padrão de dedupe do App Router
+ * usado em {@link getCurrentPerson}): `(app)/layout.tsx` e a `page.tsx` do hub
+ * chamam esta função de forma independente com a MESMA instância de `person`
+ * (já que `getCurrentPerson` é cacheada), então o cache — keyed por
+ * referência do argumento — também bate na 2ª chamada dentro da mesma
+ * request, evitando a query dupla ao Prisma.
  */
-export async function canAccessModerationQueue(person: CurrentPerson): Promise<boolean> {
+export const canAccessModerationQueue = cache(async function canAccessModerationQueue(
+  person: CurrentPerson,
+): Promise<boolean> {
   if (isCoordinator(person)) return true;
   const grant = await prisma.delegatedPermission.findFirst({
     where: { personId: person.id, permission: { in: MODERATION_PERMISSIONS }, revokedAt: null },
     select: { id: true },
   });
   return grant !== null;
-}
+});
 
 /**
  * `true` se a Pessoa pode gerir conteúdo publicado (superfície de inativação —

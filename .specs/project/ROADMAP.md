@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** Lançamento (UAT + cutover)
-**Status:** UAT completo de execução realizado em **2026-07-11** (8 testadores autônomos, todos os perfis e fluxos das Fases 1–7, build de produção local; dossiê em `.specs/features/ajustes-uat/uat-findings-2026-07-11.md`). Resultado: núcleo sólido (moderação/FSM, PII/anonimização, LGPD, auditoria, USP-017 e2e), porém **1 P0 + 14 P1** de fluxo/UX — destaque: pós-login cai em 404 (`/inicio` nunca foi criado). Criada a **Fase 8 — Remediação do UAT** (12 unidades executáveis, sem mudança de arquitetura) e a **Fase 9 — Itens de avaliação humana** (não despachável pelo loop). Lançamento (UAT com sponsor + cutover) fica gated pela Fase 8.
+**Status:** UAT completo de execução realizado em **2026-07-11** (8 testadores autônomos, todos os perfis e fluxos das Fases 1–7, build de produção local; dossiê em `.specs/features/ajustes-uat/uat-findings-2026-07-11.md`). Resultado: núcleo sólido (moderação/FSM, PII/anonimização, LGPD, auditoria, USP-017 e2e), porém **1 P0 + 14 P1** de fluxo/UX — destaque: pós-login cai em 404 (`/inicio` nunca foi criado). Criada a **Fase 8 — Remediação do UAT** (12 unidades executáveis, sem mudança de arquitetura) e a **Fase 9 — Itens de avaliação humana** (não despachável pelo loop). Lançamento (UAT com sponsor + cutover) fica gated pela Fase 8. Em **2026-07-22**, criada a **Fase 10 — App Shell da Área Logada**: resolve a metade "navegação/app-shell" de H-3 (mobile-first — bottom tab bar em mobile/tablet, menu em desktop); a metade "busca/lista de Pessoas" de H-3 permanece na Fase 9, gated por PO+DPO.
 
 Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do PRD (44 user stories, IDs `USP-001`…`USP-044`) — mais `USP-045` (reativar Pessoa) e `USP-046`…`USP-048` (fachada pública — Fase 7), todas **extras ao PRD/board** — mapeados a features versionadas em `.specs/features/`.
 
@@ -180,7 +180,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 - H-1 — Indicador da home (E-001 literal) × lista pública com gate `isVerified`: qual conta vale?
 - H-2 — Footer "(em breve)" × CTAs reais da home: reconciliar A-07 (USP-046) com NAV-04 (USP-048).
-- H-3 — App-shell autenticado completo + busca/lista de Pessoas para AS (Épico 9 navegável) — envolve nota de privacidade ADR-0014 (PO+DPO).
+- H-3 — Busca/lista de Pessoas para AS (Épico 9 navegável): descoberta por nome/CPF tem nota de privacidade — PO+DPO decidem escopo e View Model antes de virar USP. *(A metade "app-shell autenticado/navegação" de H-3 foi extraída para a **Fase 10** — não depende de decisão humana, é UX puro. Correção: a citação original apontava "ADR-0014", que é CAPTCHA/Turnstile — a nota de privacidade remete à **ADR-0010** — visibilidade conservadora/View Models.)*
 - H-4 — Header público refletir sessão × casca estática ISR (CASCA-MN-01).
 - H-5 — Edição de conteúdo/perfil ACTIVE exige re-moderação? (nenhuma spec cobre edição pós-aprovação).
 - H-6 — Papel Cliente self-service em /perfil/papeis × USP-011 "sem UI de cadastro de cliente": reconciliar specs.
@@ -189,12 +189,60 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ---
 
-## Lançamento (1 sem)
+## Fase 10 — App Shell da Área Logada (navegação fluida, mobile-first) (1 sem)
+
+**Goal:** A área autenticada ganha navegação persistente — nenhuma tela é mais uma ilha alcançável só voltando a `/inicio` ou digitando a URL. Resolve a metade "app-shell/navegação" de **H-3** (Fase 9); a metade "busca/lista de Pessoas" segue separada, gated por PO+DPO.
+**Target:** Toda rota `(app)/*` renderiza dentro de uma casca com header (marca + informações da pessoa logada + Sair) e navegação role-aware derivada de `buildHubLinks`/`hubAccessFromRoles`. Em mobile/tablet (`< md`), a navegação primária vira uma **bottom tab bar fixa com ícones**; em desktop (`≥ md`), um **menu (hambúrguer/dropdown) no header** dá acesso à navegação completa — mesmo padrão visual/aria do `PublicNav`/`SiteHeader` (Fase 7), sem novo componente de marca.
+
+> **Por que existe.** UAT 2026-07-11 (H-3, achados SOC-2/EMP-5): a área logada não tem app-shell — `(app)/layout.tsx` só faz o guard de sessão (`requireActivePerson()`) e renderiza `{children}` puro (nenhum Header/Nav global). USP-049 (Fase 8) mitigou o 404 pós-login com o hub `/inicio`, mas não criou navegação persistente: de qualquer outra tela `(app)/*`, a única saída é o botão "voltar" do navegador ou reescrever a URL.
+> **Não muda o design system.** Reaproveita os tokens de `globals.css`, os componentes de `shared/ui` (`Button`, `cn`) e o padrão de ícone SVG inline já usado no `PublicNav` (sem biblioteca de ícones nova, sem paleta nova). O contrato visual (cores, espaçamento, tipografia) é o mesmo das Fases 1-8; muda só a estrutura de navegação da casca autenticada.
+> **Escopo por USP.** USP-061 = casca/header (info da pessoa logada + Sair, substituindo o `SignOutForm` solto do hub). USP-062 = bottom tab bar mobile/tablet com os atalhos primários por papel (reaproveita `buildHubLinks`). USP-063 = menu desktop (hambúrguer/dropdown) com a navegação completa, active-state por rota (mesmo `isActive` do `PublicNav`).
+> **Relação com H-3 (Fase 9).** H-3 misturava duas questões independentes: navegação (UX, sem gate humano) e busca/lista de Pessoas (privacidade, gate PO+DPO). Esta fase resolve só a primeira; a segunda continua na Fase 9.
+
+### Unidades
+
+- [x] USP-061 — Casca de navegação da área logada: header persistente com informações da pessoa logada (nome + papel ativo) e ação Sair · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-061-casca-header/ · deps: — · gate: — · achados: H-3 (SOC-2, EMP-5)
+- [x] USP-062 — Navegação mobile/tablet: bottom tab bar fixa com ícones para os atalhos primários por papel · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-062-bottom-tab-bar/ · deps: USP-061 · gate: —
+- [x] USP-063 — Navegação desktop: menu (hambúrguer/dropdown) no header com a navegação completa por papel, active-state por rota · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-063-menu-desktop/ · deps: USP-061 · gate: —
+
+---
+
+## Lançamento — Checklist de ida a produção (2026-07-14)
 
 **Goal:** Sistema validado e em produção.
+**Pré-requisito:** Fase 8 concluída ✅ (12/12 PASS, PR #291 mergeada); Fase 10 concluída; itens da Fase 9 decididos ou aceitos como estão pelo sponsor.
 
-- UAT com sponsor; documentação operacional; treinamento de moderadores e AS; cutover.
-- **Pré-requisito:** Fase 8 concluída; itens da Fase 9 decididos ou aceitos como estão pelo sponsor.
+> **Não é despachada pelo loop** — checklist manual, marque `[x]` conforme resolver. Fonte: `docs/infra/fase-0-provisioning-runbook.md`, `.specs/project/STATE.md` (Active Blockers), Fase 9 do ROADMAP. Atualizado a cada nova investigação — adicione linhas livremente.
+
+### 1. Infra/secrets — provisionamento real
+
+- [ ] Registrar secrets reais no GitHub Actions (`gh secret list` está vazio hoje): `DATABASE_URL`/`DIRECT_URL` produção, chaves Supabase, `RESEND_API_KEY`, Turnstile (site+secret real), `ANTHROPIC_API_KEY`, credenciais B2, `SENTRY_DSN`
+- [ ] Conferir manualmente as Environment Variables de Produção na Vercel contra a matriz de secrets (`docs/infra/README.md`) — não verificável via código/CLI local
+- [ ] Corrigir o mismatch de nome `B2_APPLICATION_KEY` (código) × `B2_APP_KEY` (workflows `.github/workflows/backup-*.yml`) **antes** de registrar o secret real
+- [ ] Instalar o SDK do Sentry (`@sentry/nextjs` + `sentry.client/server/edge.config.ts`) — projeto/DSN já provisionados, mas o SDK nunca foi integrado ao código
+- [ ] Trocar chaves de teste do Cloudflare Turnstile pelas chaves reais na Vercel (dev/CI usam as públicas de teste)
+- [ ] Rodar o spike de extração de CV (Anthropic) com `ANTHROPIC_API_KEY` real, preenchendo a coluna "medido" do spike
+- [ ] Repetir o restore drill (Backblaze B2) contra um dump **real de produção** (hoje só smoke local)
+- [ ] Corrigir `NEXT_PUBLIC_SITE_URL` (ainda `localhost` até em `.env.staging`) para o domínio real de staging/produção
+
+### 2. Sign-offs jurídicos/de negócio (bloqueiam go-live, não bloqueiam merge)
+
+- [ ] **B-001** — Formalizar por escrito a designação do DPO (Diretora Geral, já decidido em AD-024) + publicar o contato do encarregado
+- [ ] **B-003** — Diretoria + jurídico assinam por escrito o modelo de aceite de responsabilidade da USP-013 (mecanismo já implementado — só falta o sign-off)
+- [ ] **B-004** — Sponsor + coordenador + PO assinam o conteúdo da checklist de verificação de Empresa-fantasma; semear o conteúdo aprovado no DB antes do cutover
+
+### 3. Itens da Fase 9 — decisão de dono
+
+- [ ] Decidir ou aceitar explicitamente os 8 itens da Fase 9 (ver seção acima) antes do lançamento
+
+### 4. Validação final pré-cutover
+
+- [ ] UAT com o sponsor (humano)
+- [ ] Teste de carga
+- [ ] Pentest
+- [ ] Treinamento de moderadores e assistentes sociais
+- [ ] Documentação operacional
+- [ ] Cutover
 
 ---
 

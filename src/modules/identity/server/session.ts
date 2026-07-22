@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/shared/lib/prisma';
 import { createSupabaseServerClient } from '@/shared/lib/supabase/server';
@@ -37,8 +38,16 @@ export interface CurrentPerson {
  * Retorna a Pessoa autenticada (revalidando status no DB) ou `null` se não há
  * sessão / a Pessoa não existe / está inativa. Não redireciona — para checagens
  * condicionais. Para confinar uma rota, use {@link requireActivePerson}.
+ *
+ * Envolvida em `cache()` de `'react'` (padrão App Router de dedupe por
+ * render): `(app)/layout.tsx` e a `page.tsx` de cada rota chamam este helper
+ * de forma independente, e sem cache pagariam a query de Auth + Prisma em
+ * dobro na mesma request. `cache()` dedupe por identidade dos argumentos
+ * dentro da mesma árvore de render RSC; fora de uma render real (ex.: testes
+ * unitários chamando a função diretamente), apenas executa sem memoizar — não
+ * há efeito colateral fora do contexto de request.
  */
-export async function getCurrentPerson(): Promise<CurrentPerson | null> {
+export const getCurrentPerson = cache(async function getCurrentPerson(): Promise<CurrentPerson | null> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -75,7 +84,7 @@ export async function getCurrentPerson(): Promise<CurrentPerson | null> {
     phone: person.phone,
     fullAddress: person.fullAddress,
   };
-}
+});
 
 /**
  * Confina uma rota `(app)/*`: exige sessão + Pessoa ATIVA. Redireciona a

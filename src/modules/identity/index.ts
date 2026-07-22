@@ -56,6 +56,10 @@ export type { CurrentPerson } from './server/session';
 export { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } from './domain/hub-links';
 export type { HubAccess, HubLink, HubLinkGroup } from './domain/hub-links';
 
+// ── Navegação da casca (app) — bottom bar + menu desktop (USP-062/063) ────────
+export { pickActiveHref, selectPrimaryTabs, BOTTOM_TAB_SHORT_LABELS } from './domain/app-nav';
+export type { BottomTab } from './domain/app-nav';
+
 // ── Logout (USP-049 / AUTH-3) ──────────────────────────────────────────────────
 export { signOutAction } from './actions/signOut';
 export { SignOutForm } from './components/SignOutForm';
@@ -129,7 +133,7 @@ export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
 // Rótulos PT-BR de TODOS os papéis (USP-049 / PERFIL-01) — ver SPEC_DEVIATION
 // em domain/roles.ts sobre o nome `ALL_ROLE_LABELS` (evita colisão com o
 // `ROLE_LABELS` acima, escopado a PublicRole).
-export { ALL_ROLE_LABELS } from './domain/roles';
+export { ALL_ROLE_LABELS, describeActiveRoles } from './domain/roles';
 export { ActivateRoleForm } from './components/activate-role-form';
 export type { ActivatableRoleOption } from './components/activate-role-form';
 export { buildActivatableOptions } from './server/build-activatable-options';

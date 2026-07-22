@@ -27,3 +27,20 @@ export const ALL_ROLE_LABELS: Record<string, string> = {
   SOCIAL_ASSISTANT: 'Assistente social',
   BOARD: 'Diretoria',
 };
+
+/**
+ * Rótulo PT-BR do(s) papel(is) ATIVO(s) da Pessoa, para o header persistente
+ * da casca `(app)` (USP-061 — APP-SHELL-03/04). Itera as chaves de
+ * `ALL_ROLE_LABELS` **na ordem de declaração** (não na ordem de `roles`) para
+ * um rótulo deterministicamente ordenado, e ignora qualquer papel presente em
+ * `roles` que não esteja mapeado (defensivo — nunca exibe a string crua).
+ * `roles` vazio (ou só papéis desconhecidos) retorna `''`, sinal para o
+ * `AppHeader` omitir a linha de papel (sem placeholder).
+ */
+export function describeActiveRoles(roles: readonly string[]): string {
+  const active = new Set(roles);
+  return Object.keys(ALL_ROLE_LABELS)
+    .filter((role) => active.has(role))
+    .map((role) => ALL_ROLE_LABELS[role])
+    .join(' · ');
+}
