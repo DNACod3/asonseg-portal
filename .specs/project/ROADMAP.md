@@ -205,8 +205,8 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 - [x] USP-061 — Casca de navegação da área logada: header persistente com informações da pessoa logada (nome + papel ativo) e ação Sair · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-061-casca-header/ · deps: — · gate: — · achados: H-3 (SOC-2, EMP-5)
 - [x] USP-062 — Navegação mobile/tablet: bottom tab bar fixa com ícones para os atalhos primários por papel · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-062-bottom-tab-bar/ · deps: USP-061 · gate: —
 - [x] USP-063 — Navegação desktop: menu (hambúrguer/dropdown) no header com a navegação completa por papel, active-state por rota · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-063-menu-desktop/ · deps: USP-061 · gate: —
-- [ ] USP-064 — Navegação desktop round 2: sidebar colapsável (ícone+rótulo ⇄ só-ícone), substitui o menu hambúrguer da USP-063 · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-064-sidebar-desktop/ · deps: USP-061 · gate: —
-- [ ] USP-065 — Menu de Perfil (nome/papel, seletor de tema, Sair) — ThemeToggle migra do canto flutuante global para dentro deste menu na área logada · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-065-menu-perfil/ · deps: USP-061 · gate: —
+- [x] USP-064 — Navegação desktop round 2: sidebar colapsável (ícone+rótulo ⇄ só-ícone), substitui o menu hambúrguer da USP-063 · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-064-sidebar-desktop/ · deps: USP-061 · gate: —
+- [x] USP-065 — Menu de Perfil (nome/papel, seletor de tema, Sair) — ThemeToggle migra do canto flutuante global para dentro deste menu na área logada · epic: app-shell-logado · dir: .specs/features/app-shell-logado/usp-065-menu-perfil/ · deps: USP-061 · gate: —
 
 ---
 
