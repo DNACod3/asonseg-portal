@@ -13,9 +13,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const { AppDesktopMenu } = await import('../app-desktop-menu');
-const { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } = await import(
-  '@/modules/identity/domain/hub-links'
-);
+const { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } = await import('@/modules/identity');
 
 const FULL_ACCESS = {
   candidate: true,

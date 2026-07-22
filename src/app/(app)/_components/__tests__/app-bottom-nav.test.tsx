@@ -13,9 +13,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 const { AppBottomNav } = await import('../app-bottom-nav');
-const { selectPrimaryTabs } = await import('@/modules/identity/domain/app-nav');
-const { buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } = await import(
-  '@/modules/identity/domain/hub-links'
+const { selectPrimaryTabs, buildHubLinks, hubAccessFromRoles, EXISTING_HUB_ROUTES } = await import(
+  '@/modules/identity'
 );
 
 const FULL_ACCESS = {
