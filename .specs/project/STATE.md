@@ -37,6 +37,13 @@
 
 ## Recent Decisions (Last 60 days)
 
+### AD-029: Migration early p/ extensão `unaccent`/`pg_trgm` — corrige deploy em banco novo (staging/DR) — 2026-07-22
+
+**Decision:** Ao provisionar um Supabase de staging do zero, `prisma migrate deploy` falhava em `20260620120000_usp021_job_search_fields` com `function unaccent(unknown, text) does not exist` (42883) — a `CREATE INDEX ... USING gin(immutable_unaccent(...))` daquela migration avalia a função na hora, e `immutable_unaccent` chama `unaccent(...)` sem qualificar o schema. Nova migration **`20260620110000_ensure_unaccent_extension_schema`** (timestamp anterior a `20260620120000` de propósito) cria o schema `extensions`, instala `unaccent`/`pg_trgm` lá (idempotente, `IF NOT EXISTS`) e ajusta `search_path` por 3 vias redundantes (`SET` da sessão + `ALTER DATABASE` + `ALTER ROLE`, cada uma cobrindo uma hipótese diferente de como o Prisma reutiliza/reabre conexão entre migrations) — assim a chamada não-qualificada das migrations originais (620000, `20260708150000_usp028_candidate_search`) resolve em bancos novos sem precisar editar o conteúdo delas (evita quebrar o checksum do Prisma em bancos que já as aplicaram — prod, local).
+**Achado colateral importante:** o hotfix `20260722140000_fix_immutable_unaccent_schema_qualify` (que qualifica `immutable_unaccent` para `extensions.unaccent(...)`, resolvendo o mesmo incidente em runtime via pooler) **já existia no working tree desde antes desta sessão — mas nunca tinha sido commitado nem aplicado em nenhum ambiente**, incluindo produção. O incidente de produção que o motivou (2026-07-21, P3018 "text search dictionary unaccent does not exist") pode **ainda estar sem correção em produção** até alguém rodar `prisma migrate deploy` lá manualmente (não há pipeline automatizado de migration contra produção — ver STATE Handoff).
+**Validação:** `supabase db reset` (banco local zerado) + `npm run db:deploy` aplicou as 35 migrations (as 2 novas incluídas) do zero sem erro; confirmado via SQL que `unaccent`/`pg_trgm` foram parar em `extensions` e que `immutable_unaccent` ficou com a definição qualificada do hotfix; 28/28 testes de integração de busca (jobs/candidatos/serviços) verdes.
+**Pendente (ação humana, não é código):** rodar `prisma migrate deploy` contra **produção** com as credenciais reais — isso não foi feito por mim (ação de alto risco contra banco vivo, requer confirmação explícita e as credenciais de produção, que não uso sem pedido direto). Até lá, o incidente de runtime de 21/07 pode persistir.
+
 ### AD-028: Fase 10 Round 2 — Sidebar colapsável + Menu de Perfil (substitui o hambúrguer desktop da USP-063) — PASS 2026-07-22
 
 **Decision:** Depois de ver a Fase 10 (AD-027, PR #292) rodando em produção, o dono aprovou a navegação mobile/tablet (USP-062, bottom tab bar) como está e **rejeitou na prática** o menu hambúrguer desktop (USP-063) — pediu um padrão de sidebar colapsável inspirado no console do Supabase, e que o `ThemeToggle` (hoje flutuante no canto inferior direito, global) migrasse para dentro de um novo menu de Perfil. Executado como **rodada 2 da Fase 10** (mesmo epic `app-shell-logado`), 1 unit, USP-064+065 juntas, Planner→Implementer→Verifier, **0 fix→re-verify**. Decisões técnicas:
@@ -293,6 +300,15 @@
 **Impact:** Antes da USP-017 ir para **produção**, a **checklist de verificação de Empresa** (critérios objetivos que o coordenador segue p/ aprovar/rejeitar) precisa estar validada **por escrito** (sponsor + coordenador + Bravi PO) e testada com voluntários. Sem ela, RP-005 (empresa-fantasma) fica desprotegido. É o entregável de **Fase 0** `seed-taxonomia-checklists` (AC-111-2).
 **Workaround:** Desenvolver/mergear normalmente o **mecanismo** da checklist (P-001 RESOLVIDO — itens marcáveis + dispensa com motivo), lendo os itens de fonte configurável (seed), não hard-coded (R3 do design). O conteúdo é seedado depois sem redeploy.
 **Resolution:** Sponsor+coordenador+Bravi PO assinam os itens da checklist; seed populado antes do cutover.
+
+---
+
+### B-005: Migration hotfix do `unaccent` (incidente de produção 21/07) pode nunca ter sido aplicada em produção
+
+**Discovered:** 2026-07-22 (AD-029) — enquanto investigava falha de `prisma migrate deploy` num Supabase de staging novo.
+**Impact:** A migration `20260722140000_fix_immutable_unaccent_schema_qualify` (corrige `immutable_unaccent` para chamar `extensions.unaccent(...)` totalmente qualificado — o fix real do incidente P3018 de 21/07 "text search dictionary unaccent does not exist" na busca de vagas/candidatos/serviços via pooler) **existia no working tree local desde antes desta sessão, mas nunca foi commitada nem rodada contra nenhum banco**, incluindo produção. Não existe pipeline automatizado de `migrate deploy` contra produção (é sempre manual, com credenciais reais). Ou seja: **produção pode ainda estar com a busca textual sem acento quebrada** (ou funcionando por sorte de search_path, dependendo da sessão/pooler) desde 21/07.
+**Workaround:** Nenhum — a migration já existe e está commitada (junto da nova `20260620110000_ensure_unaccent_extension_schema`, AD-029), só falta **rodar `prisma migrate deploy` contra produção** com as credenciais reais.
+**Resolution:** Alguém com acesso às credenciais de produção roda `prisma migrate deploy` lá (fora do escopo desta sessão — ação deliberada contra banco vivo, não executada sem pedido explícito). Depois, confirmar manualmente que a busca (vagas/candidatos/serviços) funciona em produção.
 
 ---
 
