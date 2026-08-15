@@ -1,5 +1,12 @@
-// Unit do componente cliente da fila (#123) — estados e ramos de UI (E-001..E-004,
-// P-003) com as Server Actions de decisão mockadas. RTL + jsdom.
+// Unit do componente cliente da fila (#123 / USP-066) — estados e ramos de UI
+// (E-001..E-004, P-003, E-006, P-001, P-004) com as Server Actions mockadas.
+// RTL + jsdom.
+//
+// USP-066/T9 — MUDANÇA DE COMPORTAMENTO INTENCIONAL (não é enfraquecimento de
+// teste): "Aprovar" agora exige o conteúdo carregado (novo AC-066-5/P-001).
+// Os casos que antes aprovavam sem abrir o conteúdo passam a abrir o painel
+// ("Ver conteúdo") antes de clicar em Aprovar — é o comportamento correto sob
+// o novo AC, documentado na spec §7 (Must-Not Ownership) e no design §Risks.
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -9,11 +16,16 @@ const decide = vi.hoisted(() => ({
   returnForAdjustments: vi.fn(),
   rejectContent: vi.fn(),
 }));
+const openContent = vi.hoisted(() => vi.fn());
 
 vi.mock('../../actions/decide', () => ({
   approveContent: (...a: unknown[]) => decide.approveContent(...a),
   returnForAdjustments: (...a: unknown[]) => decide.returnForAdjustments(...a),
   rejectContent: (...a: unknown[]) => decide.rejectContent(...a),
+}));
+
+vi.mock('../../actions/open-content', () => ({
+  openModerationContent: (...a: unknown[]) => openContent(...a),
 }));
 
 const { ModerationQueue } = await import('../moderation-queue');
@@ -28,12 +40,35 @@ const baseRow = {
 };
 const MOTIVO = 'Faltou descrever as atividades exercidas no cargo anterior';
 
+const jobView = {
+  kind: 'JOB',
+  title: 'Vaga de Auxiliar',
+  description: 'Descrição completa da vaga',
+  requirements: null,
+  salaryRange: null,
+  workRegime: null,
+  contractType: null,
+  educationLevelRequired: null,
+  location: null,
+  area: null,
+  region: null,
+  companyName: 'ACME',
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   decide.approveContent.mockResolvedValue({ ok: true });
   decide.returnForAdjustments.mockResolvedValue({ ok: true });
   decide.rejectContent.mockResolvedValue({ ok: true });
+  openContent.mockResolvedValue({ ok: true, data: jobView });
 });
+
+/** Abre o painel de conteúdo do (único) item em tela e aguarda o carregamento
+ *  (P-001 — Aprovar exige isto). */
+async function openContentFor(_contentId: string) {
+  fireEvent.click(screen.getByRole('button', { name: 'Ver conteúdo' }));
+  await waitFor(() => expect(screen.getByText('ACME')).toBeInTheDocument());
+}
 
 describe('ModerationQueue', () => {
   it('fila vazia (sem decisões): mensagem de fila vazia', () => {
@@ -60,8 +95,18 @@ describe('ModerationQueue', () => {
     expect(screen.getByText(/Autor:/)).toHaveTextContent('—');
   });
 
-  it('aprovar: chama approveContent, remove o item e mostra a confirmação', async () => {
+  it('USP-066/P-001: Aprovar nasce desabilitado — o conteúdo ainda não foi aberto', () => {
     render(<ModerationQueue items={[baseRow]} />);
+    expect(screen.getByRole('button', { name: /aprovar/i })).toBeDisabled();
+  });
+
+  it('USP-066/E-001/P-001: abrir o conteúdo habilita Aprovar; aprovar chama approveContent, remove o item e mostra a confirmação', async () => {
+    render(<ModerationQueue items={[baseRow]} />);
+    expect(screen.getByRole('button', { name: /aprovar/i })).toBeDisabled();
+
+    await openContentFor('c1');
+    expect(screen.getByRole('button', { name: /aprovar/i })).not.toBeDisabled();
+
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
     await waitFor(() =>
@@ -73,7 +118,19 @@ describe('ModerationQueue', () => {
     await waitFor(() => expect(screen.getByText(/rascunho\(s\) processado\(s\)/i)).toBeInTheDocument());
   });
 
-  it('devolver: motivo curto bloqueia com erro e NÃO chama a action; motivo válido confirma', async () => {
+  it('USP-066/E-006: carga do conteúdo falha ⇒ Aprovar permanece desabilitado; devolver/rejeitar seguem habilitados', async () => {
+    openContent.mockResolvedValue({ ok: false, error: { code: 'NOT_FOUND', message: 'Falhou a carga.' } });
+    render(<ModerationQueue items={[baseRow]} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver conteúdo' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falhou a carga.'));
+
+    expect(screen.getByRole('button', { name: /aprovar/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /devolver para ajustes/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /rejeitar/i })).not.toBeDisabled();
+  });
+
+  it('devolver: motivo curto bloqueia com erro e NÃO chama a action; motivo válido confirma (sem exigir conteúdo carregado — E-006)', async () => {
     render(<ModerationQueue items={[baseRow]} />);
     fireEvent.click(screen.getByRole('button', { name: /devolver para ajustes/i }));
 
@@ -95,7 +152,7 @@ describe('ModerationQueue', () => {
     );
   });
 
-  it('rejeitar: motivo válido chama rejectContent', async () => {
+  it('rejeitar: motivo válido chama rejectContent (sem exigir conteúdo carregado — E-006)', async () => {
     render(<ModerationQueue items={[baseRow]} />);
     fireEvent.click(screen.getByRole('button', { name: /rejeitar/i }));
     fireEvent.change(screen.getByLabelText(/motivo da rejeição/i), { target: { value: MOTIVO } });
@@ -119,21 +176,35 @@ describe('ModerationQueue', () => {
     expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
   });
 
-  it('erro da Server Action: mostra o alerta e mantém o item na fila', async () => {
+  it('erro da Server Action de aprovar: mostra o alerta e mantém o item na fila (conteúdo já aberto)', async () => {
     decide.approveContent.mockResolvedValue({ ok: false, error: { message: 'Falhou aqui' } });
     render(<ModerationQueue items={[baseRow]} />);
+    await openContentFor('c1');
+
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falhou aqui'));
     expect(screen.getByText('Vaga de Auxiliar')).toBeInTheDocument(); // segue na fila
   });
 
-  it('erro sem mensagem: usa o fallback genérico', async () => {
+  it('erro sem mensagem: usa o fallback genérico (conteúdo já aberto)', async () => {
     decide.approveContent.mockResolvedValue({ ok: false });
     render(<ModerationQueue items={[baseRow]} />);
+    await openContentFor('c1');
+
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/não foi possível concluir/i));
+  });
+
+  it('USP-066/P-004: renderizar a fila com N itens não dispara nenhuma leitura de conteúdo', () => {
+    const rows = [
+      baseRow,
+      { ...baseRow, contentId: 'c2', title: 'Vaga 2' },
+      { ...baseRow, contentId: 'c3', title: 'Vaga 3' },
+    ];
+    render(<ModerationQueue items={rows} />);
+    expect(openContent).not.toHaveBeenCalled();
   });
 });
 
@@ -146,6 +217,7 @@ describe('ModerationQueue — gating de ações por permissão (USP-056/MOD-7)',
     expect(screen.queryByRole('button', { name: /aprovar/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /devolver para ajustes/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /rejeitar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver conteúdo' })).not.toBeInTheDocument();
     expect(screen.getByText(/não tem permissão para moderar este tipo/i)).toBeInTheDocument();
   });
 
