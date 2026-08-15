@@ -24,6 +24,8 @@
     "db:seed:staging": "SEED_DEMO=1 dotenv -e .env.staging -- prisma db seed",
     "db:purge-audit": "dotenv -e .env.local -- tsx scripts/purge-audit-log.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
+    "storage:ensure:staging": "dotenv -e .env.staging -- tsx scripts/ensure-buckets.ts",
+    "storage:ensure:prod": "dotenv -e .env.production -- tsx scripts/ensure-buckets.ts",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate"
   },

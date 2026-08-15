@@ -49,3 +49,4 @@ __pycache__/
 
 # Telemetria OTEL local (auditoria de modelo por request)
 .otel/
+/tmp/

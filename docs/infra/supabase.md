@@ -58,10 +58,25 @@ Buckets **privados** (acesso via URL assinada gerada na camada de app), alinhado
 | Bucket | Conteúdo | Visibilidade |
 |---|---|---|
 | `cvs` | CVs de candidatos (PDF/DOC/DOCX, ≤ 5 MB) | privado — URL assinada |
-| `provider-photos` | fotos de prestadores (JPG/PNG) | privado — URL assinada na exibição pública |
+| `consent-terms` | termos de consentimento (PDF/JPG/PNG, ≤ 10 MB) | privado — URL assinada |
+| `provider-photos` | fotos de serviços de prestadores (JPG/PNG/WEBP, ≤ 5 MB) | **público** — URL direta do CDN |
 
-> Localmente os buckets são declarados em `supabase/config.toml` (buckets declarativos do CLI).
-> Em produção, criar com a mesma nomenclatura.
+> `supabase/config.toml` declara os buckets, mas **só provisiona a stack local do CLI** —
+> projeto hospedado não lê esse arquivo.
+
+### Provisionar buckets em ambiente hospedado (staging/produção)
+
+Passo **obrigatório** ao criar um projeto Supabase novo — sem ele o upload de CV falha com
+"Não foi possível enviar o currículo" e o upload de foto de serviço falha do mesmo jeito:
+
+```bash
+npm run storage:ensure:staging   # ou storage:ensure:prod
+```
+
+Idempotente: cria o que falta, corrige divergência de visibilidade/limite/MIMEs e nunca
+apaga bucket ou objeto. Fonte de verdade das specs: `STORAGE_BUCKET_SPECS` em
+`src/shared/lib/supabase/storage-buckets.ts` (ADR-0005). Ao alterar um bucket, atualizar
+**também** o `supabase/config.toml` para o ambiente local não divergir.
 
 ---
 
