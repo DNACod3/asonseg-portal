@@ -60,8 +60,12 @@ Três fatos do repo que o desenho **não** pode ignorar:
   campos de E-002 renderizados, sem navegar para outra rota.
 - **AC-066-2** (E-003) — Idem para `SERVICE`, incluindo as fotos submetidas.
 - **AC-066-3** (E-004) — Idem para `CANDIDATE_PROFILE`/`CV`, com link de CV por URL assinada de TTL 5 min.
-- **AC-066-4** (E-005) — Abrir conteúdo de candidato grava `SENSITIVE_FIELD_VIEWED` com moderador,
-  `contentId` e momento, na mesma transação da leitura.
+- **AC-066-4** (E-005) — Abrir conteúdo de candidato (`CANDIDATE_PROFILE`) registra `SENSITIVE_FIELD_VIEWED`
+  (ator = moderador, `entityId` = `contentId`, momento) ao **servir** o conteúdo, **fail-closed**: se a
+  gravação de auditoria falhar, o conteúdo não é entregue. Reusa o padrão audit-on-read de
+  `src/modules/jobs/queries/list-job-applicants.ts` (`withAudit`/`recordAuditEvent`) — não abre write-path de
+  status (P-005). _(Refinado do "mesma transação da leitura" original: E-005 exige o registro do acesso, não
+  atomicidade read-inside-tx; o precedente do repo audita ao servir, não dentro da leitura.)_
 - **AC-066-5** (E-006, P-001) — Com a carga de conteúdo falhando, o item mostra aviso e o botão "Aprovar"
   fica desabilitado; "Devolver" e "Rejeitar" seguem habilitados.
 - **AC-066-6** (P-002) — Moderador sem permissão para `CANDIDATE_PROFILE` não recebe nenhum campo de PII
@@ -76,7 +80,52 @@ Três fatos do repo que o desenho **não** pode ignorar:
 - Diff entre versões do rascunho (não há versionamento de conteúdo no MVP).
 - Preview de conteúdo já publicado (USP-018).
 
-## 6. Gate de entrada
+## 6. Premissas registradas (modo autônomo)
+
+Ambiguidades resolvidas como premissas (dono = `agent` em todas → **não** disparam o Entry Gate). Confirmável pelo
+dono do intent no UAT; nenhuma bloqueia o desenvolvimento.
+
+| Premissa / decisão | Dono | Default escolhido | Racional | Confirmada? |
+|---|---|---|---|---|
+| **Carga sob demanda** (não em lote no render) reconcilia E-001 + P-004 | agent | Server Action `openModerationContent` disparada ao "Ver conteúdo" do item; `page.tsx` nunca carrega conteúdo | Diverge do precedente `VerificationPanel` (carrega no render da página) **porque P-004 proíbe** carga em lote de conteúdo; on-demand também satisfaz P-002 (row restrita nunca entra no payload Flight da página) | n |
+| **E-002 "Empresa"** = identidade pública da Empresa (razão social / nome fantasia) | agent | Exibir o nome da Empresa como no detalhe público; CNPJ/dados de verificação seguem no `VerificationPanel` da USP-017 (bloco separado, P-002 daquela USP) | "Como será publicado" = nome público; não duplicar o painel de verificação de Empresa | n |
+| **E-003 "área de atendimento"** = `Service.region.name` (+ `availabilityDescription`) | agent | Mapear a região (single-region MVP) como área de atendimento e exibir `availabilityDescription` (dias/horários); reusar a seleção de campos de `viewServiceDetail` | O schema não tem campo literal "área de atendimento"; a região é o proxy geográfico e o que o detalhe público mostra | n |
+| **`ContentKind.CV`** (kind isolado) sem model real | agent | Conteúdo de candidato (incl. arquivo de CV via `cvStoragePath`) é servido pela leitura de `CANDIDATE_PROFILE`; kind `CV` isolado → sem reader registrado → E-006 gracioso | `_moderation_fixture` vazio em prod (precedente USP-056); não há item `CV` real na fila | n |
+| **Audit-on-read fail-closed** em vez de "mesma tx da leitura" | agent | `withAudit('SENSITIVE_FIELD_VIEWED', …)` ao servir conteúdo de candidato; falha ⇒ não entrega | E-005 exige o registro do acesso, não atomicidade read-inside-tx; alinha ao precedente `list-job-applicants.ts` | n |
+| **ctx do audit**: `actorPersonId` obrigatório; `ip`/`userAgent` best-effort | agent | Preencher `actorPersonId` do `requirePermission`; ip/userAgent se houver helper de request, senão omitir (opcionais em `AuditContext`) | Suficiente para rastrear quem viu; ip/userAgent são best-effort | n |
+| **Painel de conteúdo só no bloco `canModerate`** (USP-056) | agent | Renderizar o `ModerationContentPanel` dentro do ramo `canModerate`; kinds fora da permissão do viewer mantêm a nota "sem permissão" (nenhum "Ver conteúdo") | Defesa em profundidade: gate de UI (USP-056) + gate autoritativo `requirePermission` na action (P-002) | n |
+
+## 7. Must-nots (rastreabilidade — IDs canônicos do ICE)
+
+Cada proibição vira um AC negativo com teste negativo próprio. IDs = `P-001..P-005` do ICE (não se cunha ID paralelo).
+
+| ID | WHEN … THEN system SHALL NOT | Previne | Task dona | Teste negativo |
+|---|---|---|---|---|
+| **P-001** | oferecer "Aprovar" para item cujo conteúdo não foi carregado e exibido | F1 (moderação vira carimbo) | T9 | carga falha/ausente ⇒ Aprovar desabilitado; devolver/rejeitar seguem |
+| **P-002** | carregar/transmitir conteúdo de `ContentKind` fora da permissão do viewer | F2 (vazamento de PII) | T6 | moderador só-`JOB` pede `CANDIDATE_PROFILE` ⇒ **sem campo de PII no payload** serializado |
+| **P-003** | exibir versão truncada/resumida/cacheada sem sinalizar | F3 (preview ≠ publicado) | T7 | conteúdo longo ⇒ texto integral acessível na saída |
+| **P-004** | carregar conteúdo integral de todos os itens no render da fila | F4 (fila degradada) | T9 (+T8) | render de N itens ⇒ 0 leituras de conteúdo / 0 URLs assinadas |
+| **P-005** | alterar status a partir da tela de detalhe por via ≠ `transitionContent` | F1 (burlar a FSM) | T6 | abrir conteúdo não muda `status`/`publicationStatus` |
+
+## 8. Rastreabilidade de requisitos
+
+| Requisito (ICE) | AC | Task(s) | Status |
+|---|---|---|---|
+| E-001 | AC-066-1 | T6, T8, T9 | Pending |
+| E-002 (JOB) | AC-066-1 | T2, T7 | Pending |
+| E-003 (SERVICE) | AC-066-2 | T3, T7 | Pending |
+| E-004 (CANDIDATE_PROFILE/CV + URL assinada) | AC-066-3 | T4, T7 | Pending |
+| E-005 (`SENSITIVE_FIELD_VIEWED`) | AC-066-4 | T6 | Pending |
+| E-006 (falha ⇒ aviso + aprovar off) | AC-066-5 | T8, T9 | Pending |
+| P-001 | AC-066-5 | T9 | Pending |
+| P-002 | AC-066-6 | T6 | Pending |
+| P-003 | AC-066-8 | T7 | Pending |
+| P-004 | AC-066-7 | T9, T8 | Pending |
+| P-005 | — | T6 | Pending |
+
+**Cobertura:** 11 requisitos ICE, todos mapeados a task (0 órfãos). Fundação (tipo/port T1; adapters T2–T4; dispatcher+container T5) sustenta E-002..E-005.
+
+## 9. Gate de entrada
 
 ✅ **Liberado.** Sem dependência externa bloqueante: intent com dono definido, expectations fechadas, nenhuma
-Q-aberta. Não há `Blocked by` ativo.
+Q-aberta, todas as premissas §6 com dono `agent`. Não há `Blocked by` ativo (deps USP-016/USP-056 já em master).
