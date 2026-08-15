@@ -112,6 +112,11 @@ export {
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
 export { ModerationContentDetails } from './components/moderation-content-details';
+export { ModerationContentPanel } from './components/moderation-content-panel';
+export type {
+  ModerationContentPanelProps,
+  ModerationContentPanelState,
+} from './components/moderation-content-panel';
 export { PublishedContentManager } from './components/published-content-manager';
 export type { PublishedContentRow } from './components/published-content-manager';
 export { TaxonomySuggestionsList } from './components/taxonomy-suggestions-list';
