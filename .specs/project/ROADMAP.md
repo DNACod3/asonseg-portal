@@ -216,7 +216,41 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 > go-live. PF-001 (buckets de Storage) foi corrigido direto por ser infra sem USP. PF-002 vira USP.
 
 - [x] PF-001 — Provisionar buckets de Storage em ambiente hospedado (`scripts/ensure-buckets.ts` + `storage:ensure:staging|prod`) · classificação: `falha-de-processo` · corrigido e validado em staging
-- [ ] USP-066 — Ver conteúdo integral do rascunho na fila de moderação · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-066-ver-conteudo-rascunho/ · deps: USP-016, USP-056 · classificação: `falta-de-spec` (PF-002) · gate: —
+- [x] USP-066 — Ver conteúdo integral do rascunho na fila de moderação · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-066-ver-conteudo-rascunho/ · deps: USP-016, USP-056 · classificação: `falta-de-spec` (PF-002) · gate: —
+
+---
+
+## Fase 11 — Painel da área logada (dashboard por papel) (1 sem)
+
+**Goal:** A tela inicial da área logada (`/inicio`) deixa de ser um índice de atalhos e passa a ser um **painel de trabalho**: cada papel abre o portal já vendo os dados que importam para ele, com ação direta a partir da própria tela.
+**Target:** `/inicio` renderiza, por papel ativo, uma faixa de **indicadores**, um bloco de **ações rápidas** e **cards de listas**. Regra transversal: toda lista mostra **no máximo 5 registros**, cada registro tem **botões de ação rápida** e o card tem link **"ver lista completa"** para a rota já existente. Pessoa com papéis compostos (ADR-0008) vê os blocos de todos os seus papéis ativos, na ordem de `ALL_ROLE_LABELS`.
+
+> **Por que existe.** USP-049 (Fase 8) criou `/inicio` como hub de navegação — `buildHubLinks` devolve grupos de links e nada mais. Depois das Fases 8-10 todo o dado já existe no backend (candidaturas, manifestações, fila de moderação, encaminhamentos, indicadores), mas a primeira tela pós-login não mostra nenhum: a Pessoa precisa navegar até a área do papel para descobrir se algo aconteceu. Pedido do dono em 2026-08-15.
+> **Não muda o design system nem a casca.** Reaproveita tokens de `globals.css`, `shared/ui` e a casca das USP-061/064/065 (sidebar colapsável + topbar + menu de perfil). Muda só o **conteúdo** de `(app)/inicio/page.tsx`.
+> **Protótipo de referência:** `docs/prototipo/painel.html` (7 variações de papel, desktop + mobile) — aprovado pelo dono antes da implementação. É a fonte visual desta fase, como `index.html` foi da Fase 7.
+> **Privacidade.** Nenhum card lê Prisma direto para mostrar dado de uma Pessoa a outra: candidatos vistos pelo responsável de empresa passam por `viewCandidateForEmployer`, interessados vistos pelo prestador por `viewClientForProvider`. Vale a regra de RSC/Flight — campo restrito não entra no `select`, não basta ocultar no View Model.
+> **`buildHubLinks` continua sendo a fonte de acesso.** Os flags de `hubAccessFromRoles` (+ o guard ao vivo `canAccessModerationQueue`) decidem quais blocos aparecem — o painel não pode expor um card cuja rota-alvo a Pessoa não poderia abrir.
+
+### Escopo por papel
+
+| Papel | Indicadores | Cards (5 registros + ver lista completa + ações rápidas) |
+|---|---|---|
+| `CANDIDATE` | vagas abertas no portal, minhas candidaturas, em análise, status do currículo | **Vagas de interesse** (mais recentes nas áreas do CV; ações: ver detalhes, candidatar-se) · **Minhas candidaturas** (ações: ver detalhes, retirar candidatura) |
+| `PROVIDER` | interessados, novos em 7 dias, serviços publicados, status do perfil | **Pessoas interessadas em contratar** (ações: ver detalhes, marcar respondido) · **Meus serviços** (ações: editar, ver interessados, corrigir e reenviar) |
+| `CLIENT` | prestadores disponíveis, tipos de serviço, serviços solicitados, em andamento | **Prestadores por tipo de serviço** (contadores por categoria, cada um leva à busca filtrada) · **Últimos serviços solicitados** (ações: ver detalhes, contatar, solicitar novamente) |
+| `COMPANY_RESPONSIBLE` | vagas criadas, vagas em aberto, candidatos aplicados, candidatos ativos | **Minhas vagas** (ações: ver candidatos, editar, corrigir e reenviar) · **Candidaturas recentes** (ações: ver perfil, ver vaga) |
+| `COORDINATOR` | moderações pendentes, vagas na fila, currículos na fila, encaminhamentos no mês | **Fila de moderação** (ações: revisar, aprovar, validar empresa) · **Encaminhamentos recentes** (ações: ver detalhes, registrar resultado) |
+| `SOCIAL_ASSISTANT` | encaminhamentos no mês, aguardando resultado, cadastros assistidos, moderações pendentes (leitura) | **Encaminhamentos recentes** (ações: ver detalhes, registrar resultado) · **Fila de moderação** somente leitura |
+| `BOARD` | moderações pendentes, encaminhamentos no mês, pessoas ativas, empresas ativas | **Fila de moderação** e **Encaminhamentos recentes**, ambos somente leitura |
+
+### Unidades
+
+- [ ] USP-067 — Painel `/inicio` por papel: indicadores, ações rápidas e cards de listas (máx. 5 registros + ver lista completa + ações por registro) · epic: painel-area-logada · dir: .specs/features/painel-area-logada/usp-067-painel-por-papel/ · deps: USP-049, USP-064, USP-065, USP-021, USP-025, USP-026, USP-035, USP-030, USP-033, USP-020, USP-023, USP-027, USP-016, USP-037, USP-038, USP-042 · gate: — · protótipo: `docs/prototipo/painel.html`
+
+### Decisões de dono em aberto (não bloqueiam a unidade)
+
+- **D-001 — Fila de moderação para `SOCIAL_ASSISTANT` e `BOARD`.** O pedido original coloca os três papéis institucionais vendo a fila. O RBAC de hoje não sustenta isso: `ROLE_PERMISSIONS` (`identity/domain/permissions.ts`) dá `MODERATE_*` só a `COORDINATOR`; `SOCIAL_ASSISTANT` tem apenas `REFER_PERSON_TO_JOB`/`REGISTER_REFERRAL_RESULT` e `BOARD` não tem permissão inerente nenhuma (`hub-links.ts` não lhes dá `/moderacao`). **Premissa adotada até haver decisão:** os dois papéis veem contador + lista **somente leitura**, sem botão de decisão; o card só ganha ações para quem passa em `canAccessModerationQueue`. Alternativa se o dono discordar: conceder `MODERATE_*` a esses papéis via `ROLE_PERMISSIONS` — mas isso é mudança de política de acesso, não de tela, e exige ADR.
+- **D-002 — Fase 11 é pré ou pós go-live?** A checklist de Lançamento hoje lista como pré-requisito só as Fases 8-10. Se esta fase for bloqueante do cutover, incluir na seção "Lançamento".
 
 ---
 
