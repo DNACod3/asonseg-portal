@@ -111,6 +111,7 @@ export {
 } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
+export { ModerationContentDetails } from './components/moderation-content-details';
 export { PublishedContentManager } from './components/published-content-manager';
 export type { PublishedContentRow } from './components/published-content-manager';
 export { TaxonomySuggestionsList } from './components/taxonomy-suggestions-list';
