@@ -127,6 +127,15 @@ import { PrismaCompanyVerifyHook } from '@/modules/moderation/adapters/prisma-co
 import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
 import { PrismaJobStatusRepository } from '@/modules/jobs/adapters/prisma-job-status';
 import { PrismaServiceStatusRepository } from '@/modules/services/adapters/prisma-service-status';
+// Leitura do conteúdo integral por ContentKind (USP-066 / E-002..E-004): mesmo
+// padrão de despacho acima, para o CONTEÚDO (não o status). `CV` isolado fica
+// sem entrada (sem model real — premissa §6 da spec), o dispatcher devolve
+// `null` para ele (E-006 gracioso).
+import { CONTENT_MODERATION_READER_TOKEN } from '@/modules/moderation/ports/content-moderation-reader.port';
+import { DispatchingContentModerationReader } from '@/modules/moderation/adapters/dispatching-content-moderation-reader';
+import { PrismaJobModerationReader } from '@/modules/jobs/adapters/prisma-job-moderation-reader';
+import { PrismaServiceModerationReader } from '@/modules/services/adapters/prisma-service-moderation-reader';
+import { PrismaCandidateProfileModerationReader } from '@/modules/persons/adapters/prisma-candidate-profile-moderation-reader';
 /* eslint-enable no-restricted-imports */
 // Despacho por ContentKind (GAP-8): CANDIDATE_PROFILE (USP-009), JOB (USP-020) e
 // SERVICE (USP-029) usam suas tabelas reais; CV cai no fallback `_moderation_fixture`
@@ -146,6 +155,15 @@ container.register(
 container.register(MODERATION_NOTIFICATION_TOKEN, () => new OutboxModerationNotification());
 container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
 container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new PrismaCompanyVerifyHook());
+container.register(
+  CONTENT_MODERATION_READER_TOKEN,
+  () =>
+    new DispatchingContentModerationReader({
+      [ContentKind.JOB]: new PrismaJobModerationReader(),
+      [ContentKind.SERVICE]: new PrismaServiceModerationReader(),
+      [ContentKind.CANDIDATE_PROFILE]: new PrismaCandidateProfileModerationReader(),
+    }),
+);
 
 // Extração de CV via IA (USP-040 / ADR-0012): porta `CVExtractor` → adapter
 // Anthropic em produção; `FakeCVExtractor` só sob `env.CV_EXTRACTOR_FAKE`

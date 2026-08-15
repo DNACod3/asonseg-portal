@@ -53,6 +53,7 @@ export { PrismaModerationContentRepository } from './adapters/prisma-moderation-
 export { CONTENT_MODERATION_READER_TOKEN } from './ports/content-moderation-reader.port';
 export type { ContentModerationReader } from './ports/content-moderation-reader.port';
 export type { ModerationContentView, ModerationContentKind } from './views/moderation-content';
+export { DispatchingContentModerationReader } from './adapters/dispatching-content-moderation-reader';
 export { DispatchingContentStatusRepository } from './adapters/dispatching-content-status-repository';
 export { StubModerationNotification } from './adapters/stub-moderation-notification';
 export { OutboxModerationNotification } from './adapters/outbox-moderation-notification';
