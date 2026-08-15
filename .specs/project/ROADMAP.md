@@ -210,6 +210,16 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ---
 
+## Remediação — lacunas descobertas em staging (2026-08-15)
+
+> Achados de **processo**, registrados em `docs/qualidade/pontos-falhos-processo.md` para o relatório de
+> go-live. PF-001 (buckets de Storage) foi corrigido direto por ser infra sem USP. PF-002 vira USP.
+
+- [x] PF-001 — Provisionar buckets de Storage em ambiente hospedado (`scripts/ensure-buckets.ts` + `storage:ensure:staging|prod`) · classificação: `falha-de-processo` · corrigido e validado em staging
+- [ ] USP-066 — Ver conteúdo integral do rascunho na fila de moderação · epic: moderacao-conteudo · dir: .specs/features/moderacao-conteudo/usp-066-ver-conteudo-rascunho/ · deps: USP-016, USP-056 · classificação: `falta-de-spec` (PF-002) · gate: —
+
+---
+
 ## Lançamento — Checklist de ida a produção (2026-07-14)
 
 **Goal:** Sistema validado e em produção.
