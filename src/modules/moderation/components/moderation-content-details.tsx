@@ -26,6 +26,7 @@ function MetaField({ label, value }: Readonly<{ label: string; value: string | n
 function JobDetails({ view }: Readonly<{ view: Extract<ModerationContentView, { kind: 'JOB' }> }>) {
   return (
     <div className="flex flex-col gap-3">
+      <h4 className="text-sm font-semibold text-fg">{view.title}</h4>
       <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <MetaField label="Empresa" value={view.companyName} />
         <MetaField label="Faixa salarial" value={view.salaryRange} />
@@ -47,6 +48,7 @@ function ServiceDetails({
 }: Readonly<{ view: Extract<ModerationContentView, { kind: 'SERVICE' }> }>) {
   return (
     <div className="flex flex-col gap-3">
+      <h4 className="text-sm font-semibold text-fg">{view.title}</h4>
       <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <MetaField label="Categoria" value={view.category} />
         <MetaField label="Área de atendimento" value={view.serviceArea} />
@@ -112,6 +114,12 @@ function CandidateProfileDetails({
  * Apresenta o {@link ModerationContentView} por `ContentKind` (USP-066 /
  * E-002..E-004). Componente **puro** (sem IO) — o carregamento é
  * responsabilidade de `ModerationContentPanel`.
+ *
+ * `title` (JOB/SERVICE) é renderizado como cabeçalho do bloco (correção B3
+ * do review da PR #294): E-002/E-003 listam "título" entre os campos a
+ * exibir, e antes disso o campo entrava no `ModerationContentView` mas só
+ * aparecia no card da fila, nunca dentro do painel de conteúdo em si —
+ * redundante com o card, mas fecha a lacuna com o requisito.
  *
  * Texto longo (descrição/experiência/…) é sempre renderizado **integral**
  * (`whitespace-pre-wrap`, sem `truncate`/`line-clamp`/slice — P-003). Fotos

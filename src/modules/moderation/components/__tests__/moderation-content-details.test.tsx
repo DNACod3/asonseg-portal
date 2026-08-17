@@ -45,6 +45,9 @@ const candidateView: ModerationContentView = {
 describe('ModerationContentDetails (T7)', () => {
   it('E-002: renderiza os campos de JOB', () => {
     render(<ModerationContentDetails view={jobView} />);
+    // B3 (PR#294): título é um campo de E-002 e agora é renderizado no
+    // próprio painel (antes só aparecia no card da fila, fora do componente).
+    expect(screen.getByRole('heading', { name: 'Analista de RH' })).toBeInTheDocument();
     expect(screen.getByText('Descrição integral da vaga')).toBeInTheDocument();
     expect(screen.getByText('Requisitos completos')).toBeInTheDocument();
     expect(screen.getByText('ACME')).toBeInTheDocument();
@@ -58,6 +61,8 @@ describe('ModerationContentDetails (T7)', () => {
 
   it('E-003: renderiza os campos de SERVICE, incluindo as fotos', () => {
     render(<ModerationContentDetails view={serviceView} />);
+    // B3 (PR#294): título é um campo de E-003 e agora é renderizado no painel.
+    expect(screen.getByRole('heading', { name: 'Reforma elétrica' })).toBeInTheDocument();
     expect(screen.getByText('Descrição integral do serviço')).toBeInTheDocument();
     expect(screen.getByText('Elétrica')).toBeInTheDocument();
     expect(screen.getByText('Centro')).toBeInTheDocument();

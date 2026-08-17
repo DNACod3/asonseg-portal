@@ -189,7 +189,9 @@ describe('ModerationQueue', () => {
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falhou aqui'));
-    expect(screen.getByText('Vaga de Auxiliar')).toBeInTheDocument(); // segue na fila
+    // Segue na fila — aparece 2x agora (card + heading do painel de
+    // conteúdo carregado, B3/PR#294), daí getAllByText em vez de getByText.
+    expect(screen.getAllByText('Vaga de Auxiliar').length).toBeGreaterThan(0);
   });
 
   it('erro sem mensagem: usa o fallback genérico (conteúdo já aberto)', async () => {
