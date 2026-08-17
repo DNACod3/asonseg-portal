@@ -1,6 +1,6 @@
 # State
 
-**Last Updated:** 2026-08-15
+**Last Updated:** 2026-08-17
 **Current Work:** **USP-066 — Ver conteúdo integral do rascunho na fila de moderação — COMPLETA, PASS** (AD-030). Ver detalhe abaixo. Próximo: abrir o PR da branch `feat/usp-066-ver-conteudo-rascunho`.
 
 **Hist. imediato:** **Fase 10 Round 2 — Sidebar colapsável + Menu de Perfil — COMPLETA, PASS** (AD-028, PR #293 mergeada). **Fase 10 — App Shell da Área Logada — COMPLETA, PASS** (AD-027, PR #292 mergeada).
@@ -40,6 +40,16 @@
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-031: Rodada de correção do review da PR #294 — 12 achados, incl. 1 de segurança que o Verifier não pegou — PASS 2026-08-17
+
+**Decision:** A USP-066 passou pelo Verifier com PASS e **0 fix→re-verify**, mas o review multi-agente da PR #294 (6 subagentes, 22 comentários inline) achou **12 itens acionáveis** que a verificação não pegou — o mais grave sendo de segurança. Todos corrigidos e re-verificados.
+**O achado que importa (A1):** os 3 readers de conteúdo faziam `findUnique` **sem filtro de `publicationStatus`**, e `openModerationContent` não checava estado do item — o `contentId` vem do cliente e só era validado como UUID. Consequência: quem tem `MODERATE_CV` passava qualquer `personId` e recebia PII completo + **URL assinada de CV viva por 300s**, inclusive de perfis `DRAFT` nunca submetidos ou já `PUBLISHED`/`ARCHIVED` que a fila jamais listaria. O alcance do moderador deixava de ser "a fila" e passava a ser "a base inteira de candidatos"; a auditoria registrava o acesso mas não o impedia. Corrigido com `findFirst` escopado a `IN_MODERATION` nos três readers, caindo no caminho `NOT_FOUND`/E-006 existente, com prova em banco real (`open-content.int.test.ts`, sem mock de Prisma). **Lição de processo:** o Verifier validou os 11 ACs e matou 6/6 mutações, mas nenhum AC exigia que o conteúdo servido pertencesse à fila — um must-not ausente não é pego por sensor de must-not.
+**A2 — trade-off aceito e registrado:** `ContentKind.CV` não tem reader, o que fazia o gate novo desabilitar "Aprovar" **permanentemente** (não retentável) para itens `CV` que a fila lista. Resolvido com `CONTENT_KINDS_WITH_READER` (`moderation/domain/`): gate e painel só se aplicam aos kinds com reader. O Verifier julgou a exceção **legítima e estreita** — `ContentKind` é enum fechado de 4 valores, só `CV` fica fora, seu backing store não tem corpo além do `title` (já no card), e nenhum caminho de produção escreve linha `CV`. O custo real: o gate deixou de ser fail-closed para qualquer kind sem reader e passou a fail-open. Amarrado por teste que exige igualdade exata entre os readers registrados no `container.ts` e a constante (L-024).
+**A3/A4 e resto:** 3 sensores subespecificados no gate de Aprovar (o termo `needsChecklist` não tinha sensor algum; `contentState` por item nunca era exercitado com 2+ itens); `SENSITIVE_FIELD_VIEWED` sem `ip`/`userAgent` contra o ADR-0004 passo 2 — agrava porque a mitigação do ADR-0005 para URL assinada de CV é literalmente "audit log com IP" e `audit_log` é append-only; helper de URL assinada promovido para `shared/lib/supabase/supabase-storage.ts` (regra §2, 2+ consumidores) eliminando a duplicação `persons`/`jobs`.
+**Achado sobre confiabilidade de subagente:** o Implementer declarou "3/3 mutações mortas" em A3; o Verifier refez e achou **2/3** — a terceira sobrevivia porque todo call site do helper renderizava 1 item, então o `within(row)` nunca era posto à prova. Fechado depois (L-023) e **a morte da mutação foi confirmada pelo orquestrador em execução própria**, não por relato. Alegação de mutação de quem escreveu o código não substitui execução independente.
+**Impact:** Verifier independente **PASS**. Gates no HEAD `5b3ac1f`: typecheck/lint verdes, **2171 unit**, **671 integração**, build de produção OK, `src/app/(app)/moderacao/page.tsx` com diff zero preservado (P-004). 11/11 ACs sem regressão, 5/5 must-nots verdes. Lições `L-023`/`L-024` fechadas com prova por mutação.
+**Pendente (decisão do usuário):** separar o **AD-029** (3 migrations editadas in-place, risco de drift de checksum em prod) em PR própria — é reescrita de histórico, não feito sem instrução direta.
 
 ### AD-030: USP-066 — conteúdo do rascunho servido **sob demanda** por Server Action (não no render da fila) — PASS 2026-08-15
 
