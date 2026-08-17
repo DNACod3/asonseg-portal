@@ -1,9 +1,11 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { requirePermission } from '@/modules/identity';
 import { AuditEvent, withAudit } from '@/modules/audit';
 import { container } from '@/shared/container';
 import { fail, ok, type ActionResult } from '@/shared/errors';
+import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { ContentKind } from '../domain/content-status';
 import { PERMISSION_BY_KIND } from '../domain/moderation-permissions';
@@ -66,6 +68,15 @@ export async function openModerationContent(
     const hasCv = view.kind === 'CANDIDATE_PROFILE' && view.cvUrl != null;
     if (hasCv) viewedFields.push('cv');
 
+    // ADR-0004 passo 2 / precedente `list-job-applicants.ts` — captura IP/UA
+    // ANTES do `withAudit` (correção A4/PR#294): a mitigação do Risco 1 do
+    // ADR-0005 para a URL assinada de CV depende do audit log carregar o IP;
+    // `audit_log` é append-only, então o contexto não é recuperável depois.
+    const hdrs = await headers();
+    const rawIp = clientIp(hdrs);
+    const ip = rawIp === 'unknown' ? null : rawIp;
+    const userAgent = hdrs.get('user-agent') ?? null;
+
     try {
       await withAudit(
         AuditEvent.SENSITIVE_FIELD_VIEWED,
@@ -74,7 +85,7 @@ export async function openModerationContent(
           audit.entityId = contentId;
           audit.context = { viewedFields, hasCv };
         },
-        { actorPersonId: authz.data.person.id },
+        { actorPersonId: authz.data.person.id, ip, userAgent },
       );
     } catch (err) {
       // Fail-closed (E-005): auditoria não gravou ⇒ conteúdo NÃO é entregue.

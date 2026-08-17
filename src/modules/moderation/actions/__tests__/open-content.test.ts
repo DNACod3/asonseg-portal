@@ -15,6 +15,12 @@ const auditState = vi.hoisted(() => ({
   calls: [] as { event: string; ctx: unknown; recorder: Record<string, unknown> }[],
 }));
 
+// A4 (PR#294) — open-content.ts agora chama headers()/clientIp antes do
+// withAudit; mesmo padrão de mock de `access-report.test.ts`.
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers({ 'x-real-ip': '10.0.0.9', 'user-agent': 'vitest/open-content' }),
+}));
+
 vi.mock('@/modules/identity', () => ({ requirePermission: (...a: unknown[]) => requirePermission(...a) }));
 
 vi.mock('@/shared/container', () => ({
@@ -100,7 +106,11 @@ describe('USP-066 T6 — openModerationContent', () => {
     expect(auditState.calls).toHaveLength(1);
     expect(auditState.calls[0]).toMatchObject({
       event: 'SENSITIVE_FIELD_VIEWED',
-      ctx: { actorPersonId: 'mod-1' },
+      // A4 (PR#294): ip/userAgent capturados via headers()/clientIp e
+      // propagados no AuditContext — sem eles, actor_ip/user_agent
+      // persistem null em audit_log (ADR-0004 passo 2 / mitigação do
+      // Risco 1 do ADR-0005 para a URL assinada de CV).
+      ctx: { actorPersonId: 'mod-1', ip: '10.0.0.9', userAgent: 'vitest/open-content' },
       recorder: {
         entityType: 'candidate_profile',
         entityId: JOB_ID,
