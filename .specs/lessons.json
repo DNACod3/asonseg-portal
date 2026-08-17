@@ -416,10 +416,11 @@
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "src/modules/moderation/components/__tests__/moderation-queue.test.tsx:73 (openContentFor helper) (src/modules/moderation/components)"
+        "src/modules/moderation/components/__tests__/moderation-queue.test.tsx:73 (openContentFor helper) (src/modules/moderation/components)",
+        "closed: src/modules/moderation/components/__tests__/moderation-queue.test.tsx:79-83,239-243 (openContentFor now exercised via multi-item test; mutation ignoring row arg -> red, reverted) - commit 8df54df"
       ],
       "created": "2026-08-17T11:46:20Z",
-      "last_seen": "2026-08-17T11:46:20Z"
+      "last_seen": "2026-08-17T11:53:07Z"
     },
     {
       "id": "L-024",
@@ -434,10 +435,11 @@
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "P-001 / src/shared/container.ts:130-138 vs src/modules/moderation/domain/content-moderation-reader-kinds.ts (src/modules/moderation)"
+        "P-001 / src/shared/container.ts:130-138 vs src/modules/moderation/domain/content-moderation-reader-kinds.ts (src/modules/moderation)",
+        "closed: src/shared/__tests__/container-content-moderation-reader-kinds.test.ts (ties container's registered reader keys to CONTENT_KINDS_WITH_READER; both add-a-4th-reader and remove-from-constant mutations -> red, reverted) - commit 4040faf"
       ],
       "created": "2026-08-17T11:46:20Z",
-      "last_seen": "2026-08-17T11:46:20Z"
+      "last_seen": "2026-08-17T11:53:14Z"
     }
   ]
 }
