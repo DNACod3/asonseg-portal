@@ -9,7 +9,7 @@
 // o novo AC, documentado na spec §7 (Must-Not Ownership) e no design §Risks.
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
 const decide = vi.hoisted(() => ({
   approveContent: vi.fn(),
@@ -63,11 +63,16 @@ beforeEach(() => {
   openContent.mockResolvedValue({ ok: true, data: jobView });
 });
 
-/** Abre o painel de conteúdo do (único) item em tela e aguarda o carregamento
- *  (P-001 — Aprovar exige isto). */
-async function openContentFor(_contentId: string) {
-  fireEvent.click(screen.getByRole('button', { name: 'Ver conteúdo' }));
-  await waitFor(() => expect(screen.getByText('ACME')).toBeInTheDocument());
+/**
+ * Abre o painel de conteúdo **do card informado** (escopado via `within` —
+ * corrige o achado da PR #294: a versão anterior ignorava o parâmetro e
+ * sempre clicava "o" botão da tela via `getByRole`, o que quebra com 2+ itens
+ * na fila e mascarava a ausência de sensor multi-item de P-001) e aguarda o
+ * carregamento.
+ */
+async function openContentFor(row: HTMLElement) {
+  fireEvent.click(within(row).getByRole('button', { name: 'Ver conteúdo' }));
+  await waitFor(() => expect(within(row).getByText('ACME')).toBeInTheDocument());
 }
 
 describe('ModerationQueue', () => {
@@ -104,7 +109,7 @@ describe('ModerationQueue', () => {
     render(<ModerationQueue items={[baseRow]} />);
     expect(screen.getByRole('button', { name: /aprovar/i })).toBeDisabled();
 
-    await openContentFor('c1');
+    await openContentFor(screen.getByRole('listitem'));
     expect(screen.getByRole('button', { name: /aprovar/i })).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
@@ -179,7 +184,7 @@ describe('ModerationQueue', () => {
   it('erro da Server Action de aprovar: mostra o alerta e mantém o item na fila (conteúdo já aberto)', async () => {
     decide.approveContent.mockResolvedValue({ ok: false, error: { message: 'Falhou aqui' } });
     render(<ModerationQueue items={[baseRow]} />);
-    await openContentFor('c1');
+    await openContentFor(screen.getByRole('listitem'));
 
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
@@ -190,7 +195,7 @@ describe('ModerationQueue', () => {
   it('erro sem mensagem: usa o fallback genérico (conteúdo já aberto)', async () => {
     decide.approveContent.mockResolvedValue({ ok: false });
     render(<ModerationQueue items={[baseRow]} />);
-    await openContentFor('c1');
+    await openContentFor(screen.getByRole('listitem'));
 
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
@@ -205,6 +210,89 @@ describe('ModerationQueue', () => {
     ];
     render(<ModerationQueue items={rows} />);
     expect(openContent).not.toHaveBeenCalled();
+  });
+
+  it('USP-066/P-001 (PR#294 achado #9): contentState é por item — abrir o conteúdo do item B não habilita Aprovar de A/C', async () => {
+    // `contentState` é um Record<contentId, estado> — se colapsasse para um
+    // booleano global, abrir QUALQUER item habilitaria Aprovar de todos
+    // (violação de P-001 mascarada, pois o teste antigo só renderizava 1 item).
+    openContent.mockImplementation(async ({ contentId }: { contentId: string }) => ({
+      ok: true,
+      data: { ...jobView, companyName: `ACME-${contentId}` },
+    }));
+    const rows = [
+      baseRow,
+      { ...baseRow, contentId: 'c2', title: 'Vaga 2' },
+      { ...baseRow, contentId: 'c3', title: 'Vaga 3' },
+    ];
+    render(<ModerationQueue items={rows} />);
+    const [cardA, cardB, cardC] = screen.getAllByRole('listitem');
+    if (!cardA || !cardB || !cardC) throw new Error('esperava 3 cards na fila');
+
+    fireEvent.click(within(cardB).getByRole('button', { name: 'Ver conteúdo' }));
+    await waitFor(() => expect(within(cardB).getByText('ACME-c2')).toBeInTheDocument());
+
+    expect(within(cardA).getByRole('button', { name: /aprovar/i })).toBeDisabled();
+    expect(within(cardB).getByRole('button', { name: /aprovar/i })).not.toBeDisabled();
+    expect(within(cardC).getByRole('button', { name: /aprovar/i })).toBeDisabled();
+    expect(openContent).toHaveBeenCalledTimes(1);
+    expect(openContent).toHaveBeenCalledWith({ contentKind: ContentKind.JOB, contentId: 'c2' });
+  });
+
+  describe('USP-066/A3 (PR#294 achado): gate combinado — checklist da USP-017 + conteúdo carregado', () => {
+    const verification = {
+      companyId: 'comp-1',
+      cnpj: '00.000.000/0001-00',
+      razaoSocial: 'ACME Ltda',
+      nomeFantasia: 'ACME',
+      setor: 'Serviços',
+      endereco: null,
+      isVerified: false,
+      verifiedAtLabel: null,
+      verifiedByName: null,
+      rejectionCount: 0,
+      changedSinceVerification: [],
+      rejections: [],
+    };
+    const CHECKLIST_ITEMS = [{ id: 'item-unico', label: 'Item único de verificação' }];
+
+    it('conteúdo carregado + checklist incompleta ⇒ Aprovar segue desabilitado, título traz a mensagem da checklist', async () => {
+      render(
+        <ModerationQueue items={[{ ...baseRow, verification }]} checklistItems={CHECKLIST_ITEMS} />,
+      );
+      await openContentFor(screen.getByRole('listitem'));
+
+      const approveBtn = screen.getByRole('button', { name: /aprovar/i });
+      expect(approveBtn).toBeDisabled();
+      expect(approveBtn).toHaveAttribute(
+        'title',
+        'Conclua a checklist de verificação da Empresa para aprovar (P-001).',
+      );
+    });
+
+    it('conteúdo carregado + checklist concluída ⇒ Aprovar habilita', async () => {
+      render(
+        <ModerationQueue items={[{ ...baseRow, verification }]} checklistItems={CHECKLIST_ITEMS} />,
+      );
+      await openContentFor(screen.getByRole('listitem'));
+
+      fireEvent.click(screen.getByRole('checkbox', { name: /item único de verificação/i }));
+
+      const approveBtn = screen.getByRole('button', { name: /aprovar/i });
+      await waitFor(() => expect(approveBtn).not.toBeDisabled());
+      expect(approveBtn).not.toHaveAttribute('title');
+    });
+  });
+
+  it('A2 (PR#294): item CV (sem reader registrado) não exige conteúdo carregado — Aprovar não trava para sempre', () => {
+    const cvRow = { ...baseRow, contentId: 'cv-1', contentKind: ContentKind.CV, title: 'CV de Auxiliar' };
+    render(<ModerationQueue items={[cvRow]} />);
+
+    // CV não tem ContentModerationReader (sem model real) — não há painel
+    // "Ver conteúdo" para ele, e Aprovar não pode ficar permanentemente
+    // desabilitado esperando um carregamento que nunca vai acontecer.
+    expect(screen.queryByRole('button', { name: 'Ver conteúdo' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /aprovar/i })).not.toBeDisabled();
   });
 });
 

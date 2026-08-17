@@ -130,7 +130,11 @@ import { PrismaServiceStatusRepository } from '@/modules/services/adapters/prism
 // Leitura do conteúdo integral por ContentKind (USP-066 / E-002..E-004): mesmo
 // padrão de despacho acima, para o CONTEÚDO (não o status). `CV` isolado fica
 // sem entrada (sem model real — premissa §6 da spec), o dispatcher devolve
-// `null` para ele (E-006 gracioso).
+// `null` para ele (E-006 gracioso). Os kinds registrados aqui DEVEM coincidir
+// com `CONTENT_KINDS_WITH_READER` (moderation/domain/content-moderation-reader-kinds.ts)
+// — é essa lista que `moderation-queue.tsx` usa para decidir quais kinds
+// exigem "conteúdo carregado" antes de Aprovar (correção A2/PR#294: um kind
+// sem reader não pode travar "Aprovar" para sempre).
 import { CONTENT_MODERATION_READER_TOKEN } from '@/modules/moderation/ports/content-moderation-reader.port';
 import { DispatchingContentModerationReader } from '@/modules/moderation/adapters/dispatching-content-moderation-reader';
 import { PrismaJobModerationReader } from '@/modules/jobs/adapters/prisma-job-moderation-reader';

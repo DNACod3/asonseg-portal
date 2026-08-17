@@ -23,6 +23,7 @@ export {
   PERMISSION_BY_KIND,
   CONTENT_KINDS_BY_PERMISSION,
 } from './domain/moderation-permissions';
+export { CONTENT_KINDS_WITH_READER } from './domain/content-moderation-reader-kinds';
 
 // ── transitionContent + ports (#122) ─────────────────────────────────────────
 export { transitionContent } from './actions/transition-content';
