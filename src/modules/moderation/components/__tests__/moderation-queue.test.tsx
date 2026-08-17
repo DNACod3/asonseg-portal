@@ -69,10 +69,16 @@ beforeEach(() => {
  * sempre clicava "o" botão da tela via `getByRole`, o que quebra com 2+ itens
  * na fila e mascarava a ausência de sensor multi-item de P-001) e aguarda o
  * carregamento.
+ *
+ * `expectedText` (default `'ACME'`, o `companyName` de `jobView`) existe para
+ * que o próprio helper seja exercitado pelo cenário multi-item (L-023): sem
+ * um call site com 2+ cards renderizados passando pelo helper, reverter o
+ * `within(row)` para `screen` nunca é pego pela suíte, porque com 1 card
+ * `screen` e `within(row)` enxergam o mesmo (único) botão/texto.
  */
-async function openContentFor(row: HTMLElement) {
+async function openContentFor(row: HTMLElement, expectedText = 'ACME') {
   fireEvent.click(within(row).getByRole('button', { name: 'Ver conteúdo' }));
-  await waitFor(() => expect(within(row).getByText('ACME')).toBeInTheDocument());
+  await waitFor(() => expect(within(row).getByText(expectedText)).toBeInTheDocument());
 }
 
 describe('ModerationQueue', () => {
@@ -231,8 +237,11 @@ describe('ModerationQueue', () => {
     const [cardA, cardB, cardC] = screen.getAllByRole('listitem');
     if (!cardA || !cardB || !cardC) throw new Error('esperava 3 cards na fila');
 
-    fireEvent.click(within(cardB).getByRole('button', { name: 'Ver conteúdo' }));
-    await waitFor(() => expect(within(cardB).getByText('ACME-c2')).toBeInTheDocument());
+    // Passa pelo helper `openContentFor` (não inline) — é o sensor multi-item
+    // de L-023: se o helper voltar a ignorar `row` (usar `screen` em vez de
+    // `within(row)`), há 3 botões "Ver conteúdo" na tela e o `getByRole`
+    // interno lança "found multiple elements", derrubando este teste.
+    await openContentFor(cardB, 'ACME-c2');
 
     expect(within(cardA).getByRole('button', { name: /aprovar/i })).toBeDisabled();
     expect(within(cardB).getByRole('button', { name: /aprovar/i })).not.toBeDisabled();
