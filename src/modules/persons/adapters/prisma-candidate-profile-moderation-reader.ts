@@ -1,42 +1,7 @@
 import { ContentStatus as PrismaContentStatus, Prisma } from '@prisma/client';
 import type { ContentKind, ContentModerationReader, ModerationContentView } from '@/modules/moderation';
-import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
-import {
-  createSupabaseStorageClient,
-  STORAGE_BUCKETS,
-  SIGNED_URL_TTL_SECONDS,
-} from '@/shared/lib/supabase/supabase-storage';
-
-const log = childLogger({ module: 'persons', adapter: 'PrismaCandidateProfileModerationReader' });
-
-/**
- * Resolve a URL assinada do CV (bucket privado `cvs`, TTL 300s — ADR-0005).
- *
- * Réplica intencional do padrão de `jobs/queries/list-job-applicants.ts:26`
- * (`resolveCvUrl`), em vez de importá-lo: `jobs` já importa `@/modules/persons`
- * (`viewCandidateForEmployer`), então importar `resolveCvUrl` daqui criaria um
- * ciclo de barrels persons↔jobs. Degrada limpo (nunca lança): `null` sem
- * `cvStoragePath`, com erro do Storage ou qualquer exceção de rede.
- */
-async function resolveSignedCvUrl(path: string | null): Promise<string | null> {
-  if (!path) return null;
-
-  try {
-    const storage = createSupabaseStorageClient();
-    const { data, error } = await storage
-      .from(STORAGE_BUCKETS.CVS)
-      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-    if (error || !data) {
-      log.warn({ err: error, path }, 'persons:moderation_cv_signed_url_unavailable');
-      return null;
-    }
-    return data.signedUrl;
-  } catch (err) {
-    log.warn({ err, path }, 'persons:moderation_cv_signed_url_unavailable');
-    return null;
-  }
-}
+import { resolveSignedCvUrl } from '@/shared/lib/supabase/supabase-storage';
 
 const candidateProfileModerationSelect = {
   headline: true,
@@ -68,7 +33,10 @@ export class PrismaCandidateProfileModerationReader implements ContentModeration
     });
     if (!row) return null;
 
-    const cvUrl = await resolveSignedCvUrl(row.cvStoragePath);
+    const cvUrl = await resolveSignedCvUrl(row.cvStoragePath, {
+      module: 'persons',
+      adapter: 'PrismaCandidateProfileModerationReader',
+    });
 
     return {
       kind: 'CANDIDATE_PROFILE',
