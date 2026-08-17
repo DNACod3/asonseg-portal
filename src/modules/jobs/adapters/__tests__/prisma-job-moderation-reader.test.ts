@@ -1,14 +1,15 @@
-// Unit do PrismaJobModerationReader (USP-066 / T2 / E-002) — Prisma mockado.
-// Cobre: mapeamento de todos os campos, faixa salarial (salaryVisible/legado),
-// companyName (nome fantasia > razão social) e `null` quando o item não existe.
+// Unit do PrismaJobModerationReader (USP-066 / T2 / E-002 — corrigido A1/PR#294)
+// — Prisma mockado. Cobre: mapeamento de todos os campos, faixa salarial
+// (salaryVisible/legado), companyName (nome fantasia > razão social), `null`
+// quando o item não existe e o filtro de escopo `status: IN_MODERATION` (A1).
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Prisma } from '@prisma/client';
 
-const prismaState = vi.hoisted(() => ({ findUnique: vi.fn() }));
+const prismaState = vi.hoisted(() => ({ findFirst: vi.fn() }));
 
 vi.mock('@/shared/lib/prisma', () => ({
-  prisma: { job: { findUnique: (...a: unknown[]) => prismaState.findUnique(...a) } },
+  prisma: { job: { findFirst: (...a: unknown[]) => prismaState.findFirst(...a) } },
 }));
 
 const { PrismaJobModerationReader } = await import('../prisma-job-moderation-reader');
@@ -37,7 +38,7 @@ const baseRow = {
 
 describe('PrismaJobModerationReader (T2/E-002)', () => {
   it('mapeia todos os campos de E-002 (área, região, faixa salarial, empresa)', async () => {
-    prismaState.findUnique.mockResolvedValue({
+    prismaState.findFirst.mockResolvedValue({
       ...baseRow,
       salaryMin: new Prisma.Decimal(3000),
       salaryMax: new Prisma.Decimal(4000),
@@ -58,14 +59,14 @@ describe('PrismaJobModerationReader (T2/E-002)', () => {
       region: 'Zona Norte',
       companyName: 'ACME',
     });
-    expect(view && 'salaryRange' in view ? view.salaryRange : undefined).toMatch(/3\.000|4\.000/);
-    expect(prismaState.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'job-1' } }),
+    expect(view && 'salaryRange' in view ? view.salaryRange : undefined).toBe('R$ 3.000 – R$ 4.000');
+    expect(prismaState.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'job-1', status: 'IN_MODERATION' } }),
     );
   });
 
   it('salaryVisible=false ⇒ faixa salarial oculta (null), mesmo com salaryMin/Max presentes', async () => {
-    prismaState.findUnique.mockResolvedValue({
+    prismaState.findFirst.mockResolvedValue({
       ...baseRow,
       salaryVisible: false,
       salaryMin: new Prisma.Decimal(3000),
@@ -77,7 +78,7 @@ describe('PrismaJobModerationReader (T2/E-002)', () => {
   });
 
   it('sem salaryMin/Max mas com salário legado (freetext) ⇒ usa o texto legado', async () => {
-    prismaState.findUnique.mockResolvedValue({
+    prismaState.findFirst.mockResolvedValue({
       ...baseRow,
       salary: 'A combinar',
       salaryMin: null,
@@ -90,7 +91,7 @@ describe('PrismaJobModerationReader (T2/E-002)', () => {
   });
 
   it('companyName cai para razaoSocial quando nomeFantasia é ausente', async () => {
-    prismaState.findUnique.mockResolvedValue({
+    prismaState.findFirst.mockResolvedValue({
       ...baseRow,
       company: { razaoSocial: 'ACME Ltda', nomeFantasia: null },
     });
@@ -99,9 +100,20 @@ describe('PrismaJobModerationReader (T2/E-002)', () => {
     expect(view).toMatchObject({ kind: 'JOB', companyName: 'ACME Ltda' });
   });
 
-  it('findUnique → null ⇒ retorna null (E-006 gracioso)', async () => {
-    prismaState.findUnique.mockResolvedValue(null);
+  it('findFirst → null ⇒ retorna null (E-006 gracioso)', async () => {
+    prismaState.findFirst.mockResolvedValue(null);
     const view = await new PrismaJobModerationReader().readContent(ContentKind.JOB, 'nope');
     expect(view).toBeNull();
+  });
+
+  it('A1 (PR#294): escopa a leitura a status IN_MODERATION — vaga ACTIVE/DRAFT/ARCHIVED não é servida', async () => {
+    prismaState.findFirst.mockResolvedValue(null);
+
+    const view = await new PrismaJobModerationReader().readContent(ContentKind.JOB, 'job-active');
+
+    expect(view).toBeNull();
+    expect(prismaState.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'job-active', status: 'IN_MODERATION' } }),
+    );
   });
 });

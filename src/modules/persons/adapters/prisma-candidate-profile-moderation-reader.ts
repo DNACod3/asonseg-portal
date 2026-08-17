@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { ContentStatus as PrismaContentStatus, Prisma } from '@prisma/client';
 import type { ContentKind, ContentModerationReader, ModerationContentView } from '@/modules/moderation';
 import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
@@ -52,12 +52,18 @@ const candidateProfileModerationSelect = {
  * Adapter Prisma do {@link ContentModerationReader} para o perfil de candidato
  * (USP-066 / E-004). `contentId` é o `personId` (PK do perfil — mesmo padrão de
  * {@link PrismaCandidateProfileStatusRepository}). Lê o conteúdo integral do
- * rascunho `IN_MODERATION` + resolve a URL assinada do CV.
+ * rascunho, **escopado a `publicationStatus: IN_MODERATION`** (correção A1 do
+ * review da PR #294): `contentId` chega do cliente e só é validado como UUID
+ * (`openContentSchema`); sem este filtro, qualquer portador de `MODERATE_CV`
+ * conseguiria ler PII + URL assinada de CV de **qualquer** perfil por
+ * `personId` — inclusive `DRAFT`/`PUBLISHED`/`ARCHIVED` que a fila
+ * (`viewModerationQueue`, mesmo filtro) jamais listaria. `@@index([publicationStatus])`
+ * já existe (`prisma/schema.prisma`). Fora do estado ⇒ `null` ⇒ `NOT_FOUND` (E-006).
  */
 export class PrismaCandidateProfileModerationReader implements ContentModerationReader {
   async readContent(_kind: ContentKind, personId: string): Promise<ModerationContentView | null> {
-    const row = await prisma.candidateProfile.findUnique({
-      where: { personId },
+    const row = await prisma.candidateProfile.findFirst({
+      where: { personId, publicationStatus: PrismaContentStatus.IN_MODERATION },
       select: candidateProfileModerationSelect,
     });
     if (!row) return null;

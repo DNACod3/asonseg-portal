@@ -1,15 +1,17 @@
-// Unit do PrismaCandidateProfileModerationReader (USP-066 / T4 / E-004) —
-// Prisma + client de Storage mockados.
+// Unit do PrismaCandidateProfileModerationReader (USP-066 / T4 / E-004 —
+// corrigido A1/PR#294) — Prisma + client de Storage mockados.
 // Cobre: mapeamento de campos, URL assinada de CV (TTL 300s), cvStoragePath
-// nulo (sem chamar storage), erro de storage (degrada a null) e item ausente.
+// nulo (sem chamar storage), erro de storage (degrada a null), item ausente,
+// e o filtro de escopo `publicationStatus: IN_MODERATION` (A1 — minimização,
+// impede ler PII/CV de perfil fora do que a fila lista).
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const prismaState = vi.hoisted(() => ({ findUnique: vi.fn() }));
+const prismaState = vi.hoisted(() => ({ findFirst: vi.fn() }));
 const storageState = vi.hoisted(() => ({ createSignedUrl: vi.fn() }));
 
 vi.mock('@/shared/lib/prisma', () => ({
-  prisma: { candidateProfile: { findUnique: (...a: unknown[]) => prismaState.findUnique(...a) } },
+  prisma: { candidateProfile: { findFirst: (...a: unknown[]) => prismaState.findFirst(...a) } },
 }));
 
 vi.mock('@/shared/lib/supabase/supabase-storage', () => ({
@@ -41,7 +43,7 @@ const baseRow = {
 
 describe('PrismaCandidateProfileModerationReader (T4/E-004)', () => {
   it('mapeia todos os campos de E-004 + cvUrl assinada com TTL 300s quando há cvStoragePath', async () => {
-    prismaState.findUnique.mockResolvedValue({ ...baseRow, cvStoragePath: 'cvs/p1/cv.pdf' });
+    prismaState.findFirst.mockResolvedValue({ ...baseRow, cvStoragePath: 'cvs/p1/cv.pdf' });
     storageState.createSignedUrl.mockResolvedValue({
       data: { signedUrl: 'https://storage/cvs/p1/cv.pdf?sig=abc' },
       error: null,
@@ -66,7 +68,7 @@ describe('PrismaCandidateProfileModerationReader (T4/E-004)', () => {
   });
 
   it('cvStoragePath nulo ⇒ cvUrl: null sem chamar o storage', async () => {
-    prismaState.findUnique.mockResolvedValue({ ...baseRow, cvStoragePath: null });
+    prismaState.findFirst.mockResolvedValue({ ...baseRow, cvStoragePath: null });
 
     const view = await new PrismaCandidateProfileModerationReader().readContent(
       ContentKind.CANDIDATE_PROFILE,
@@ -78,7 +80,7 @@ describe('PrismaCandidateProfileModerationReader (T4/E-004)', () => {
   });
 
   it('erro do storage ⇒ cvUrl: null (degradação limpa, nunca lança)', async () => {
-    prismaState.findUnique.mockResolvedValue({ ...baseRow, cvStoragePath: 'cvs/p3/cv.pdf' });
+    prismaState.findFirst.mockResolvedValue({ ...baseRow, cvStoragePath: 'cvs/p3/cv.pdf' });
     storageState.createSignedUrl.mockResolvedValue({ data: null, error: new Error('bucket ausente') });
 
     const view = await new PrismaCandidateProfileModerationReader().readContent(
@@ -90,7 +92,7 @@ describe('PrismaCandidateProfileModerationReader (T4/E-004)', () => {
   });
 
   it('exceção do client de storage ⇒ cvUrl: null (nunca lança)', async () => {
-    prismaState.findUnique.mockResolvedValue({ ...baseRow, cvStoragePath: 'cvs/p4/cv.pdf' });
+    prismaState.findFirst.mockResolvedValue({ ...baseRow, cvStoragePath: 'cvs/p4/cv.pdf' });
     storageState.createSignedUrl.mockRejectedValue(new Error('rede indisponível'));
 
     const view = await new PrismaCandidateProfileModerationReader().readContent(
@@ -101,12 +103,31 @@ describe('PrismaCandidateProfileModerationReader (T4/E-004)', () => {
     expect(view).toMatchObject({ kind: 'CANDIDATE_PROFILE', cvUrl: null });
   });
 
-  it('findUnique → null ⇒ retorna null (E-006 gracioso)', async () => {
-    prismaState.findUnique.mockResolvedValue(null);
+  it('findFirst → null ⇒ retorna null (E-006 gracioso)', async () => {
+    prismaState.findFirst.mockResolvedValue(null);
     const view = await new PrismaCandidateProfileModerationReader().readContent(
       ContentKind.CANDIDATE_PROFILE,
       'nope',
     );
     expect(view).toBeNull();
+  });
+
+  it('A1 (PR#294): escopa a leitura a publicationStatus IN_MODERATION — perfil ACTIVE/DRAFT/ARCHIVED não é servido', async () => {
+    // Prova que o adapter passa o filtro correto ao Prisma (o Postgres real é
+    // quem de fato barra a linha fora do estado — coberto em
+    // open-content.int.test.ts com DB real).
+    prismaState.findFirst.mockResolvedValue(null);
+
+    const view = await new PrismaCandidateProfileModerationReader().readContent(
+      ContentKind.CANDIDATE_PROFILE,
+      'p-active',
+    );
+
+    expect(view).toBeNull();
+    expect(prismaState.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { personId: 'p-active', publicationStatus: 'IN_MODERATION' },
+      }),
+    );
   });
 });

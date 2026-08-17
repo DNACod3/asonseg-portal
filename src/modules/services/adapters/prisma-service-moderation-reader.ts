@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { ContentStatus as PrismaContentStatus, Prisma } from '@prisma/client';
 import type { ContentKind, ContentModerationReader, ModerationContentView } from '@/modules/moderation';
 import { prisma } from '@/shared/lib/prisma';
 import { buildServicePhotoUrl } from '../domain/photo-url';
@@ -35,16 +35,20 @@ const serviceModerationSelect = {
 /**
  * Adapter Prisma do {@link ContentModerationReader} para o serviço (USP-066 / E-003).
  *
- * Lê o conteúdo **integral** do rascunho — sem filtro de `status` (o item já
- * chega `IN_MODERATION` pela fila; a fronteira de permissão é a Server Action
- * `openModerationContent`). `serviceArea` = `region.name` (premissa §6 da
- * spec — proxy geográfico; single-region MVP). Fotos = URLs públicas do CDN
- * (bucket `provider-photos`), na ordem `position asc`.
+ * Lê o conteúdo **integral** do rascunho, **escopado a `status: IN_MODERATION`**
+ * (correção A1 do review da PR #294): `contentId` chega do cliente e só é
+ * validado como UUID (`openContentSchema`) — sem este filtro, qualquer
+ * portador de `MODERATE_SERVICE` conseguiria ler o conteúdo de qualquer
+ * serviço por `id`, inclusive fora do estado que a fila (`viewModerationQueue`,
+ * mesmo filtro) lista. `@@index([status])` já existe. Fora do estado ⇒ `null`
+ * ⇒ `NOT_FOUND` (E-006). `serviceArea` = `region.name` (premissa §6 da spec —
+ * proxy geográfico; single-region MVP). Fotos = URLs públicas do CDN (bucket
+ * `provider-photos`), na ordem `position asc`.
  */
 export class PrismaServiceModerationReader implements ContentModerationReader {
   async readContent(_kind: ContentKind, serviceId: string): Promise<ModerationContentView | null> {
-    const row = await prisma.service.findUnique({
-      where: { id: serviceId },
+    const row = await prisma.service.findFirst({
+      where: { id: serviceId, status: PrismaContentStatus.IN_MODERATION },
       select: serviceModerationSelect,
     });
     if (!row) return null;
