@@ -144,6 +144,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/app/(app)/_components/__tests__/profile-menu.test.tsx (mutations #3, #4 in validation.md) (app-shell-logado)
 - last seen: 2026-07-22T20:07:19Z
 
+### L-023 — A per-item test helper's scoping arg (e.g. within(row)) is dead unless at least one call site actually renders 2+ items — every current call site renders exactly 1, so the multi-item fix is unproven; add the multi-item case before claiming the mutation is killed.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/modules/moderation/components` · harmful: 0
+- features: moderacao-conteudo/usp-066-ver-conteudo-rascunho
+- evidence: src/modules/moderation/components/__tests__/moderation-queue.test.tsx:73 (openContentFor helper) (src/modules/moderation/components)
+- last seen: 2026-08-17T11:46:20Z
+
+### L-024 — When a must-not gate is keyed off 'kinds with a reader registered', enforce the container's reader registrations and the gate's kind-allowlist stay in sync with a test, not a comment — otherwise a future kind added to one and not the other silently flips a fail-closed gate to fail-open.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `src/modules/moderation` · harmful: 0
+- features: moderacao-conteudo/usp-066-ver-conteudo-rascunho
+- evidence: P-001 / src/shared/container.ts:130-138 vs src/modules/moderation/domain/content-moderation-reader-kinds.ts (src/modules/moderation)
+- last seen: 2026-08-17T11:46:20Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
