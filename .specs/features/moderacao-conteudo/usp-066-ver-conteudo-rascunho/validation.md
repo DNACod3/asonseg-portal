@@ -4,7 +4,13 @@
 **Spec**: `.specs/features/moderacao-conteudo/usp-066-ver-conteudo-rascunho/spec.md` → ICE:
 `docs/IDSD/ice-portal-asonseg/expectations/expectations-USP-066.md`, `intents/intent-USP-066.md`,
 `matriz-conexoes.md` (card USP-066)
-**Diff range**: `ece14e6..8c5e362` (9 commits, T1..T9, 22 files, +1713/-11)
+**Diff range**: `ece14e6..8c5e362` (9 commits, T1..T9, 22 files, +1713/-11) — this is the range
+validated below. Two docs-only commits landed after it (`9c99e4d` docs: marca USP-066 concluída,
+`ef749d6` docs: marca no ROADMAP), neither touching `src/`. PR #294 (opened against this same
+range) then received a multi-agent review; the findings (A1..A4, B1..B8) were fixed in a
+follow-up correction round on top of `ef749d6` — see the branch's later commits for that work.
+This validation report was **not** re-run after the correction round (not requested — see the
+correction round's own final report for what changed and why).
 **Verifier**: independent sub-agent (author ≠ verifier)
 
 ---
@@ -146,8 +152,8 @@ All 5 deviations independently verified against evidence, not accepted on the Im
   - `test` (unit): ✅ 2153/2153 passed, 303/303 files
   - `test:integration`: ✅ 667/667 passed, 114/114 files (against local Supabase Postgres)
   - `build`: ✅ production build succeeded, all routes compiled, `/moderacao` present
-- **Test count before feature**: baseline `moderation-queue.test.tsx` had 14 `it()` blocks; 9 new test files added by this diff (0 pre-existing)
-- **Test count after feature**: `moderation-queue.test.tsx` 17 `it()` blocks (+3, 0 deletions); + 8 new test files (adapters ×3, dispatcher, action unit+int, content-details, content-panel)
+- **Test count before feature**: baseline `moderation-queue.test.tsx` had 14 `it()` blocks; 0 of the other 8 test files pre-existed (`moderation-queue.test.tsx` is modified, not new — see next line)
+- **Test count after feature**: `moderation-queue.test.tsx` 17 `it()` blocks (+3, 0 deletions); + 8 new test files (adapters ×3, dispatcher, action unit+int, content-details, content-panel) — 8, not 9: `moderation-queue.test.tsx` itself is the pre-existing file that was modified, it does not count as a 9th new file
 - **Delta**: net increase across the board, zero deletions anywhere in the diff
 - **Skipped tests**: none observed in this diff's scope
 - **Failures**: none (post-sensor-revert state)

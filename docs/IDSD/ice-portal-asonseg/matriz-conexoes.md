@@ -759,7 +759,7 @@
 - **Riscos:** RP-007 (CV ruim validado) e RP-010 (conteúdo impróprio) hoje sem defesa; risco novo: vazamento de PII a voluntário com permissão parcial (mitigado por P-002)
 - **Deps/Q-abertas:** — (nenhuma dependência externa; decisão de dono já registrada no intent)
 - **[técnico] Schemas:** `jobs`, `services`, `candidate_profiles`, `service_photos`, `audit_log` — **não** `content_items` (TD §4.5 nunca implementado; status mora na entidade)
-- **[técnico] Endpoints:** `moderation.viewContentForModeration` (leitura, novo) · decisão segue por `moderation.transitionContent` (TD §4.4)
+- **[técnico] Endpoints:** `moderation.openModerationContent` (leitura, novo) · decisão segue por `moderation.transitionContent` (TD §4.4)
 - **[técnico] Eventos:** `SENSITIVE_FIELD_VIEWED` (audit) (TD §4.6)
 - **[técnico] Runbooks:** runbook-server-action, runbook-audit-log
 - **[técnico] ADRs técnicos:** ADR-0024 (FSM inalterada), ADR-0023, ADR-0005 (URL assinada p/ arquivo de CV)
