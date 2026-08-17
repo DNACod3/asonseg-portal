@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { container } from '@/shared/container';
-import { CONTENT_MODERATION_READER_TOKEN } from '@/modules/moderation/ports/content-moderation-reader.port';
-import { CONTENT_KINDS_WITH_READER } from '@/modules/moderation/domain/content-moderation-reader-kinds';
-import { DispatchingContentModerationReader } from '@/modules/moderation/adapters/dispatching-content-moderation-reader';
+import {
+  CONTENT_MODERATION_READER_TOKEN,
+  CONTENT_KINDS_WITH_READER,
+  DispatchingContentModerationReader,
+} from '@/modules/moderation';
 
 /**
  * L-024 (USP-066 / A2 PR#294): antes desta suíte, a sincronia entre
