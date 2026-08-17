@@ -1,6 +1,6 @@
 /**
  * Provisionamento idempotente dos buckets de Storage em ambiente **hospedado**
- * (staging/produção) — AD-030.
+ * (staging/produção) — PF-001 (`docs/qualidade/pontos-falhos-processo.md`).
  *
  *   npm run storage:ensure:staging
  *   npm run storage:ensure:prod
@@ -16,13 +16,20 @@
  * o que falta e corrige o que divergiu (visibilidade, limite, MIMEs) — nunca
  * apaga bucket nem objeto, então é seguro rodar quantas vezes quiser.
  *
+ * A comparação de drift (`drift`/`bucketOptions`) vive em
+ * `shared/lib/supabase/storage-buckets.ts` (correção B5/PR#294 — lá é pura e
+ * testável; aqui, junto de `requireEnv`/`createClient`, não dava para
+ * alcançá-la por teste). Este arquivo fica só com env + orquestração.
+ *
  * Usa `@supabase/supabase-js` direto (não o client do app, que depende de
  * `next/headers` e não roda fora de um request do Next).
  */
 import { createClient } from '@supabase/supabase-js';
 import {
   STORAGE_BUCKET_SPECS,
-  type StorageBucketSpec,
+  bucketOptions,
+  drift,
+  type RemoteStorageBucket,
 } from '../src/shared/lib/supabase/storage-buckets';
 
 function requireEnv(name: string): string {
@@ -42,46 +49,13 @@ const storage = createClient(supabaseUrl, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 }).storage;
 
-/** Opções de bucket no shape do SDK (camelCase — ele mapeia para snake_case). */
-function options(spec: StorageBucketSpec) {
-  return {
-    public: spec.public,
-    fileSizeLimit: spec.fileSizeLimit,
-    allowedMimeTypes: [...spec.allowedMimeTypes],
-  };
-}
-
-/** Bucket como devolvido por `listBuckets()` (snake_case, ver StorageBucketResponse). */
-interface RemoteBucket {
-  name: string;
-  public: boolean;
-  file_size_limit?: number | null;
-  allowed_mime_types?: string[] | null;
-}
-
-function drift(remote: RemoteBucket, spec: StorageBucketSpec): string[] {
-  const diffs: string[] = [];
-  if (remote.public !== spec.public) {
-    diffs.push(`public: ${remote.public} → ${spec.public}`);
-  }
-  if ((remote.file_size_limit ?? null) !== spec.fileSizeLimit) {
-    diffs.push(`file_size_limit: ${remote.file_size_limit ?? 'null'} → ${spec.fileSizeLimit}`);
-  }
-  const remoteMimes = [...(remote.allowed_mime_types ?? [])].sort();
-  const specMimes = [...spec.allowedMimeTypes].sort();
-  if (remoteMimes.join(',') !== specMimes.join(',')) {
-    diffs.push(`allowed_mime_types: [${remoteMimes}] → [${specMimes}]`);
-  }
-  return diffs;
-}
-
 async function main(): Promise<void> {
   console.log(`Storage: ${supabaseUrl}`);
 
   const { data: existing, error: listError } = await storage.listBuckets();
   if (listError) throw listError;
 
-  const byName = new Map((existing as RemoteBucket[]).map((b) => [b.name, b]));
+  const byName = new Map((existing as RemoteStorageBucket[]).map((b) => [b.name, b]));
   console.log(
     `Buckets existentes: ${existing.length ? existing.map((b) => b.name).join(', ') : '(nenhum)'}\n`,
   );
@@ -93,7 +67,7 @@ async function main(): Promise<void> {
     const remote = byName.get(spec.name);
 
     if (!remote) {
-      const { error } = await storage.createBucket(spec.name, options(spec));
+      const { error } = await storage.createBucket(spec.name, bucketOptions(spec));
       if (error) throw new Error(`criar ${spec.name}: ${error.message}`);
       console.log(`  ✓ criado   ${spec.name} (public=${spec.public}, ${spec.fileSizeLimit} bytes)`);
       created++;
@@ -106,7 +80,7 @@ async function main(): Promise<void> {
       continue;
     }
 
-    const { error } = await storage.updateBucket(spec.name, options(spec));
+    const { error } = await storage.updateBucket(spec.name, bucketOptions(spec));
     if (error) throw new Error(`ajustar ${spec.name}: ${error.message}`);
     console.log(`  ✓ ajustado ${spec.name} — ${diffs.join('; ')}`);
     updated++;

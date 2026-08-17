@@ -44,7 +44,9 @@ const MIB = 1024 * 1024;
  * **local** do CLI; projeto hospedado não lê `config.toml`. Antes desta spec o
  * passo era manual (Studio, DoD da task #97), o que fez o bucket `cvs` nunca
  * existir no projeto de staging — todo upload de CV caía no ramo de erro de
- * `upload-cv.ts` (AD-030). Manter os dois lados em sincronia ao alterar
+ * `upload-cv.ts` (PF-001 — não confundir com AD-030, a decisão da USP-066
+ * sobre carga sob demanda de conteúdo; achado do review da PR #294). Manter
+ * os dois lados em sincronia ao alterar
  * qualquer bucket.
  */
 export const STORAGE_BUCKET_SPECS: readonly StorageBucketSpec[] = [
@@ -71,3 +73,46 @@ export const STORAGE_BUCKET_SPECS: readonly StorageBucketSpec[] = [
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
   },
 ];
+
+/** Opções de bucket no shape do SDK do Supabase (camelCase — ele mapeia para snake_case). */
+export function bucketOptions(spec: StorageBucketSpec) {
+  return {
+    public: spec.public,
+    fileSizeLimit: spec.fileSizeLimit,
+    allowedMimeTypes: [...spec.allowedMimeTypes],
+  };
+}
+
+/** Bucket como devolvido por `listBuckets()` do SDK (snake_case, ver StorageBucketResponse). */
+export interface RemoteStorageBucket {
+  name: string;
+  public: boolean;
+  file_size_limit?: number | null;
+  allowed_mime_types?: string[] | null;
+}
+
+/**
+ * Compara um bucket remoto (retorno de `listBuckets()`) com a spec versionada
+ * e devolve as divergências legíveis (vazio ⇒ sem drift). **Promovido de
+ * `scripts/ensure-buckets.ts`** (correção B5 do review da PR #294): era a
+ * única lógica pura do script (comparação com regras sutis — coalescência de
+ * `file_size_limit` nulo, ordenação + `join` de MIMEs) e a única inalcançável
+ * por teste, porque o topo do script roda `requireEnv()`/`createClient()`
+ * antes de qualquer coisa — importar o arquivo num teste lançava antes de
+ * chegar em `drift`. Aqui é puro (sem IO), como o resto deste módulo-leaf.
+ */
+export function drift(remote: RemoteStorageBucket, spec: StorageBucketSpec): string[] {
+  const diffs: string[] = [];
+  if (remote.public !== spec.public) {
+    diffs.push(`public: ${remote.public} → ${spec.public}`);
+  }
+  if ((remote.file_size_limit ?? null) !== spec.fileSizeLimit) {
+    diffs.push(`file_size_limit: ${remote.file_size_limit ?? 'null'} → ${spec.fileSizeLimit}`);
+  }
+  const remoteMimes = [...(remote.allowed_mime_types ?? [])].sort();
+  const specMimes = [...spec.allowedMimeTypes].sort();
+  if (remoteMimes.join(',') !== specMimes.join(',')) {
+    diffs.push(`allowed_mime_types: [${remoteMimes}] → [${specMimes}]`);
+  }
+  return diffs;
+}
