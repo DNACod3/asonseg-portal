@@ -47,8 +47,5 @@ export type ModerationContentView =
       cvUrl: string | null;
     };
 
-/** `ContentKind` que hoje têm reader registrado (para narrowing em consumidores). */
-export type ModerationContentKind = ModerationContentView['kind'];
-
 // Reexport de conveniência — evita import duplicado de `ContentKind` só p/ tipar.
 export type { ContentKind };

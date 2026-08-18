@@ -7,17 +7,27 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const storageState = vi.hoisted(() => ({ createSignedUrl: vi.fn() }));
+// C8 (PR#294 rodada 2) — o mock original descartava o argumento de `from()`,
+// então `STORAGE_BUCKETS.CVS` nunca era asserido: trocar o bucket dentro de
+// `resolveSignedCvUrl` mantinha a suíte inteira verde, apesar do título do
+// caso dizer "(cvs)". Capturamos a chamada em `storageState.from` para poder
+// assertá-la contra a fonte de verdade (`STORAGE_BUCKETS.CVS`), não contra o
+// literal `'cvs'`.
+const storageState = vi.hoisted(() => ({ from: vi.fn(), createSignedUrl: vi.fn() }));
 
 vi.mock('../server', () => ({
   createSupabaseAdminClient: () => ({
     storage: {
-      from: () => ({ createSignedUrl: (...a: unknown[]) => storageState.createSignedUrl(...a) }),
+      from: (...a: unknown[]) => {
+        storageState.from(...a);
+        return { createSignedUrl: (...b: unknown[]) => storageState.createSignedUrl(...b) };
+      },
     },
   }),
 }));
 
 const { resolveSignedCvUrl } = await import('../supabase-storage');
+const { STORAGE_BUCKETS } = await import('../storage-buckets');
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,6 +50,10 @@ describe('resolveSignedCvUrl (B1/PR#294)', () => {
 
     expect(url).toBe('https://storage/cvs/p1/cv.pdf?sig=abc');
     expect(storageState.createSignedUrl).toHaveBeenCalledWith('cvs/p1/cv.pdf', 300);
+    // C8 (PR#294 rodada 2) — fecha o par bucket+TTL do ADR-0005: antes só o
+    // TTL (300) tinha sensor; trocar o bucket por outro (ex.: PROVIDER_PHOTOS)
+    // dentro de `resolveSignedCvUrl` agora derruba este caso.
+    expect(storageState.from).toHaveBeenCalledWith(STORAGE_BUCKETS.CVS);
   });
 
   it('erro do Storage (bucket ausente/arquivo removido) ⇒ null, nunca lança', async () => {

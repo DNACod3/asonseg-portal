@@ -55,6 +55,14 @@ export function createSupabaseStorageClient() {
  * Storage retorna erro (bucket ausente no ambiente, arquivo removido, etc.)
  * ou em qualquer exceção de rede.
  *
+ * **Contrato do chamador (ADR-0005 — C8/PR#294 rodada 2):** este helper só
+ * cunha a URL; ele **não** verifica permissão de visibilidade nem registra o
+ * acesso no `audit_log`. Só chamar depois de `requirePermission`/checagem
+ * equivalente, e registrar o acesso (`SENSITIVE_FIELD_VIEWED` /
+ * `CV_VIEWED_BY_EMPLOYER`, conforme o consumidor) quando aplicável — os dois
+ * consumidores atuais (`list-job-applicants.ts`, `prisma-candidate-profile-
+ * moderation-reader.ts`) cumprem isso no caller, não aqui.
+ *
  * @param path `cvStoragePath` do candidato, ou `null`.
  * @param logCtx Bindings extra do logger (ex.: `{ module: 'jobs', query: 'listJobApplicants' }`)
  *   — para diferenciar a origem da chamada nos logs estruturados.

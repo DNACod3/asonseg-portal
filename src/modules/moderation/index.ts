@@ -53,7 +53,7 @@ export { PrismaModerationContentRepository } from './adapters/prisma-moderation-
 // ── Leitura do conteúdo integral por ContentKind (USP-066) ──────────────────
 export { CONTENT_MODERATION_READER_TOKEN } from './ports/content-moderation-reader.port';
 export type { ContentModerationReader } from './ports/content-moderation-reader.port';
-export type { ModerationContentView, ModerationContentKind } from './views/moderation-content';
+export type { ModerationContentView } from './views/moderation-content';
 export { DispatchingContentModerationReader } from './adapters/dispatching-content-moderation-reader';
 export { DispatchingContentStatusRepository } from './adapters/dispatching-content-status-repository';
 export { StubModerationNotification } from './adapters/stub-moderation-notification';
