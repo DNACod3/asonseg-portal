@@ -9,6 +9,7 @@ import { ok, fail } from '@/shared/errors';
 
 const requirePermission = vi.fn();
 const readContent = vi.fn();
+const loadStatus = vi.fn();
 const containerState = vi.hoisted(() => ({ resolve: vi.fn() }));
 const auditState = vi.hoisted(() => ({
   shouldThrow: false,
@@ -43,7 +44,9 @@ vi.mock('@/modules/audit', () => ({
   },
 }));
 
-import { ContentKind } from '../../domain/content-status';
+import { ContentKind, ContentStatus } from '../../domain/content-status';
+import { CONTENT_STATUS_REPOSITORY_TOKEN } from '../../ports/content-status.port';
+import { CONTENT_MODERATION_READER_TOKEN } from '../../ports/content-moderation-reader.port';
 import { openModerationContent } from '../open-content';
 
 const JOB_ID = '00000000-0000-0000-0000-000000000010';
@@ -53,10 +56,20 @@ beforeEach(() => {
   requirePermission.mockReset();
   containerState.resolve.mockReset();
   readContent.mockReset();
+  loadStatus.mockReset();
   auditState.shouldThrow = false;
   auditState.calls = [];
   requirePermission.mockResolvedValue(ok({ person }));
-  containerState.resolve.mockReturnValue({ readContent });
+  // C4 (PR#294 rodada 2) — `open-content.ts` agora resolve dois tokens do
+  // container: o repositório de status (precondição estrutural, checado
+  // ANTES do reader) e o reader de conteúdo. Default: item IN_MODERATION
+  // (caminho feliz), reader devolve o que cada teste configurar.
+  loadStatus.mockResolvedValue(ContentStatus.IN_MODERATION);
+  containerState.resolve.mockImplementation((token: unknown) => {
+    if (token === CONTENT_STATUS_REPOSITORY_TOKEN) return { loadStatus };
+    if (token === CONTENT_MODERATION_READER_TOKEN) return { readContent };
+    throw new Error(`token inesperado resolvido no teste: ${String(token)}`);
+  });
 });
 
 describe('USP-066 T6 — openModerationContent', () => {
@@ -140,6 +153,30 @@ describe('USP-066 T6 — openModerationContent', () => {
     const res = await openModerationContent({ contentKind: ContentKind.JOB, contentId: JOB_ID });
 
     expect(res).toMatchObject({ ok: false, error: { code: 'NOT_FOUND' } });
+  });
+
+  it('C4 (PR#294 rodada 2): item fora de IN_MODERATION retorna NOT_FOUND sem chamar o reader de conteúdo', async () => {
+    // Precondição de negócio estrutural: mesmo com permissão concedida e um
+    // reader que devolveria conteúdo, `status !== IN_MODERATION` barra ANTES
+    // do reader — a checagem não pode depender só do `where` do adapter.
+    loadStatus.mockResolvedValue(ContentStatus.ACTIVE);
+    readContent.mockResolvedValue({ kind: 'JOB', title: 'Não devia chegar aqui' });
+
+    const res = await openModerationContent({ contentKind: ContentKind.JOB, contentId: JOB_ID });
+
+    expect(res).toMatchObject({ ok: false, error: { code: 'NOT_FOUND' } });
+    expect(res).not.toHaveProperty('data');
+    expect(loadStatus).toHaveBeenCalledWith(ContentKind.JOB, JOB_ID);
+    expect(readContent).not.toHaveBeenCalled();
+  });
+
+  it('C4 (PR#294 rodada 2): item inexistente no status repo (loadStatus → null) retorna NOT_FOUND sem chamar o reader', async () => {
+    loadStatus.mockResolvedValue(null);
+
+    const res = await openModerationContent({ contentKind: ContentKind.JOB, contentId: JOB_ID });
+
+    expect(res).toMatchObject({ ok: false, error: { code: 'NOT_FOUND' } });
+    expect(readContent).not.toHaveBeenCalled();
   });
 
   it('E-005 fail-closed: falha ao auditar retorna erro e NÃO entrega o conteúdo', async () => {

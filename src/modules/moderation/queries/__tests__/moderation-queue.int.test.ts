@@ -82,6 +82,43 @@ describe.skipIf(!hasDb)('USP-016 #123 — viewModerationQueue (integração)', (
     const ours = queue.filter((q) => q.title === TAG);
     expect(ours.map((q) => q.contentId)).toEqual([visible]);
   });
+
+  // C1 (PR#294 rodada 2) — achado A2 sobrevivia fora do kind `CV`: uma linha
+  // do fixture semeada com `kind: JOB`/`SERVICE`/`CANDIDATE_PROFILE` (como as
+  // duas linhas acima já fazem, artefato pré-USP-020/029) fazia
+  // `moderation-queue.tsx` concluir que havia reader real para ela — o painel
+  // abria, o reader real nunca achava o `id` (que é do fixture, não de
+  // `jobs`/`services`/`candidate_profiles`), e "Aprovar" travava para sempre.
+  // `viewModerationQueue` normaliza: nenhuma linha do fixture pode sair com
+  // `contentKind` igual a um dos 3 kinds com fonte própria — vira `CV`.
+  it('C1: linha do fixture com kind=JOB/SERVICE/CANDIDATE_PROFILE nunca sai da fila com esse kind (evita o dead-end de Aprovar)', async () => {
+    const jobLike = await seed({
+      kind: ContentKind.JOB,
+      status: PrismaContentStatus.IN_MODERATION,
+      author: OTHER,
+      submittedAt: new Date('2026-06-04T09:00:00Z'),
+    });
+    const serviceLike = await seed({
+      kind: ContentKind.SERVICE,
+      status: PrismaContentStatus.IN_MODERATION,
+      author: OTHER,
+      submittedAt: new Date('2026-06-05T09:00:00Z'),
+    });
+    const candidateLike = await seed({
+      kind: ContentKind.CANDIDATE_PROFILE,
+      status: PrismaContentStatus.IN_MODERATION,
+      author: OTHER,
+      submittedAt: new Date('2026-06-06T09:00:00Z'),
+    });
+
+    const queue = await viewModerationQueue({ viewerPersonId: VIEWER });
+    const ours = queue.filter((q) => [jobLike, serviceLike, candidateLike].includes(q.contentId));
+
+    expect(ours).toHaveLength(3);
+    for (const item of ours) {
+      expect(item.contentKind).toBe(ContentKind.CV);
+    }
+  });
 });
 
 // USP-017 — vagas REAIS (model `jobs`) na fila com flag de verificação (E-001).
