@@ -417,7 +417,7 @@
       "harmful": 0,
       "evidence": [
         "src/modules/moderation/components/__tests__/moderation-queue.test.tsx:73 (openContentFor helper) (src/modules/moderation/components)",
-        "closed: src/modules/moderation/components/__tests__/moderation-queue.test.tsx:79-83,239-243 (openContentFor now exercised via multi-item test; mutation ignoring row arg -> red, reverted) - commit 8df54df"
+        "closed: src/modules/moderation/components/__tests__/moderation-queue.test.tsx:79-83,239-243 (openContentFor now exercised via multi-item test; mutation ignoring row arg -> red, reverted) - commit a3daff5 (post-rebase; superseded pre-rebase SHA 8df54df is not an ancestor of HEAD after the AD-029 extraction to PR #295)"
       ],
       "created": "2026-08-17T11:46:20Z",
       "last_seen": "2026-08-17T11:53:07Z"
@@ -436,7 +436,7 @@
       "harmful": 0,
       "evidence": [
         "P-001 / src/shared/container.ts:130-138 vs src/modules/moderation/domain/content-moderation-reader-kinds.ts (src/modules/moderation)",
-        "closed: src/shared/__tests__/container-content-moderation-reader-kinds.test.ts (ties container's registered reader keys to CONTENT_KINDS_WITH_READER; both add-a-4th-reader and remove-from-constant mutations -> red, reverted) - commit 4040faf"
+        "closed: src/shared/__tests__/container-content-moderation-reader-kinds.test.ts (ties container's registered reader keys to CONTENT_KINDS_WITH_READER; both add-a-4th-reader and remove-from-constant mutations -> red, reverted) - commit 0abcb24 (post-rebase; superseded pre-rebase SHA 4040faf is not an ancestor of HEAD after the AD-029 extraction to PR #295). Hardened further under achado C3/PR#294 rodada 2 (2026-08-18): rewritten to assert per-kind adapter identity via public supportedKinds()/readerFor() instead of a private-field cast, plus the container's registry became an exhaustive Record<ContentKind, reader|null>."
       ],
       "created": "2026-08-17T11:46:20Z",
       "last_seen": "2026-08-17T11:53:14Z"

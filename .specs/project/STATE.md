@@ -51,6 +51,39 @@
 **Impact:** Verifier independente **PASS**. Gates no HEAD `5b3ac1f`: typecheck/lint verdes, **2171 unit**, **671 integração**, build de produção OK, `src/app/(app)/moderacao/page.tsx` com diff zero preservado (P-004). 11/11 ACs sem regressão, 5/5 must-nots verdes. Lições `L-023`/`L-024` fechadas com prova por mutação.
 **AD-029 separado (2026-08-18, a pedido do dono):** o commit das 3 migrations foi extraído para a PR própria **#295** (`fix/ad-029-unaccent-schema-qualify`), e a branch da USP-066 foi rebaseada para removê-lo (29 commits, zero migrations no diff; os 22 comentários do review sobreviveram ao force-push). Rollback de infra deixa de estar amarrado ao de uma feature de UI. **Segue pendente, e é ação humana:** rodar `prisma migrate deploy` contra produção com credenciais reais depois do merge da #295 — sem isso o incidente P3018 de 2026-07-21 pode persistir em produção.
 
+**Correção — 2ª rodada do review da PR #294 (C1..C9), 2026-08-18:** o parágrafo A2 acima registrou a
+sincronia `CONTENT_KINDS_WITH_READER`↔`container.ts` como "amarrada por teste" e tratou o trade-off
+fail-open como fechado. Uma 2ª passada do review multi-agente achou que **o invariante ainda não
+estava de fato estabelecido**: o gate de Aprovar era chaveado no `row.contentKind`, e
+`_moderation_fixture.kind` é coluna `String` livre (sem enum no banco) — uma linha do fixture semeada
+com `kind: JOB`/`SERVICE`/`CANDIDATE_PROFILE` (artefato de teste anterior a USP-020/029) reproduzia o
+MESMO beco sem saída do A2, só que fora do kind `CV` (`hasContentReader=true` pelo kind, reader real
+nunca acha o `id` do fixture, "Aprovar" trava para sempre — **C1**). Corrigido: `viewModerationQueue`
+normaliza qualquer linha do fixture cujo `kind` colida com um dos 3 kinds já servidos por fonte
+própria de volta para `CV` (vacuamente sem gate, mesmo tratamento do `CV` genuíno) — provado por
+mutação em integração (reverter a normalização derruba o caso novo com `expected 'JOB' to be 'CV'`).
+Mais achados fechados na mesma rodada: **C2** — o gate combinado (checklist USP-017 + conteúdo)
+cobria só 2 das 4 combinações; a mutação `(!needsChecklist && hasContentReader && ...)` passava a
+suíte inteira e, em produção, deixaria qualquer vaga de Empresa não verificada aprovável sem o
+conteúdo nunca ter sido aberto — fechado com os 2 casos que faltavam. **C3** — o teste de sincronia
+do container comparava só chaves via cast de campo privado; virou comparação de identidade por
+`supportedKinds()`/`readerFor()` públicos, e o registro do dispatcher virou um
+`Record<ContentKind, reader|null>` exaustivo (kind novo sem decisão = erro de compilação). **C4** — o
+invariante "só serve item `IN_MODERATION`" vivia só nos 3 adapters, fora do contrato da porta; agora é
+checado estruturalmente na própria action via `CONTENT_STATUS_REPOSITORY_TOKEN`, antes do reader
+(defesa em profundidade, não só convenção). **C5** — miniatura de foto de serviço (96px) sem
+`loading="lazy"`/`decoding="async"` alimentada pelo objeto original (até 5 MiB) — corrigido. **C6** —
+a guarda de segredos (`no-committed-secrets.test.ts`) rotineiramente excedia o timeout default sob
+carga e era tratada como flake conhecido; ganhou orçamento explícito (60s). **C7** — link assinado do
+CV (TTL 300s) sem caminho de recarga uma vez carregado; painel ganhou botão "Recarregar conteúdo".
+**C8/C9** — achados menores (mock de teste que não asseria o bucket, JSDoc de contrato do chamador,
+export morto, drift em `validation.md`/`spec.md`/`lessons.json` incl. SHAs órfãos pré-rebase).
+Todos os 9 fechados com teste + mutação própria confirmada (revertida) antes do commit; ver
+`validation.md` (seção da rodada 2) para o detalhe por achado. **Não fechado por mim** (fora do
+escopo desta rodada, por decisão do orquestrador): consentimento (`requireActiveConsent`) não
+exercido, E2E do fluxo "abrir conteúdo → aprovar", item de board OpenWolf para a USP-066 — os três já
+eram apontados como pendentes na 1ª rodada e continuam.
+
 ### AD-030: USP-066 — conteúdo do rascunho servido **sob demanda** por Server Action (não no render da fila) — PASS 2026-08-15
 
 **Decision:** A validação em staging expôs uma lacuna de spec (**PF-002**, `falta-de-spec`, em `docs/qualidade/pontos-falhos-processo.md`): a fila de moderação listava os itens mas **não exibia o conteúdo do rascunho** — o moderador decidia às cegas. A USP-066 corrige isso, e a decisão de desenho central é servir o conteúdo por uma Server Action `openModerationContent(kind, id)` disparada ao **abrir** o item, e não carregar no render da fila (que é o precedente do `VerificationPanel` da USP-017). Essa única escolha reconcilia três exigências que puxavam em direções opostas: **E-001** (ver sem sair da fila) via painel inline; **P-004** (não carregar conteúdo de N itens no render) — `app/(app)/moderacao/page.tsx` fica com **diff zero**, que é a garantia estrutural, não uma convenção; e **P-002** (conteúdo fora da permissão não trafega) — a leitura acontece **depois** do `requirePermission`, então a row restrita nunca entra no payload Flight da página. Read-conditional-on-role é mais forte que o select-conditional-on-role que a spec pedia.

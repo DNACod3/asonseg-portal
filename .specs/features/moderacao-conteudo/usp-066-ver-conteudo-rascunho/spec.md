@@ -91,6 +91,7 @@ dono do intent no UAT; nenhuma bloqueia o desenvolvimento.
 | **E-002 "Empresa"** = identidade pública da Empresa (razão social / nome fantasia) | agent | Exibir o nome da Empresa como no detalhe público; CNPJ/dados de verificação seguem no `VerificationPanel` da USP-017 (bloco separado, P-002 daquela USP) | "Como será publicado" = nome público; não duplicar o painel de verificação de Empresa | n |
 | **E-003 "área de atendimento"** = `Service.region.name` (+ `availabilityDescription`) | agent | Mapear a região (single-region MVP) como área de atendimento e exibir `availabilityDescription` (dias/horários); reusar a seleção de campos de `viewServiceDetail` | O schema não tem campo literal "área de atendimento"; a região é o proxy geográfico e o que o detalhe público mostra | n |
 | **`ContentKind.CV`** (kind isolado) sem model real — **REVISADA (A2/PR#294)** | agent | Conteúdo de candidato (incl. arquivo de CV via `cvStoragePath`) é servido pela leitura de `CANDIDATE_PROFILE`; kind `CV` isolado → sem reader registrado → E-006 gracioso **na leitura**. A premissa original não previu a consequência no gate de Aprovar (P-001): `contentState !== 'loaded'` para QUALQUER kind travava "Aprovar" para sempre num item `CV` (nenhum reader ⇒ sempre `NOT_FOUND` ⇒ sempre `error`, nunca `loaded`). Revisão: novo `CONTENT_KINDS_WITH_READER` (`moderation/domain/`) — só kinds com reader real exigem `contentState==='loaded'` antes de Aprovar; `CV` não exibe painel "Ver conteúdo" (não há corpo de conteúdo além do `title`, já visível no card) e Aprovar não é mais bloqueado por um carregamento que nunca aconteceria | `_moderation_fixture` vazio em prod (precedente USP-056); não há item `CV` real na fila hoje — mas a invariante "nenhum item que a fila lista pode ficar permanentemente não-aprovável" precisa valer independente disso | n |
+| **Gate de Aprovar chaveado no `kind`, não no resultado da carga** — **nova (C1/PR#294 rodada 2)** | agent | A2 corrigiu o beco sem saída só para `CV`: `moderation-queue.ts` lia `contentKind: r.kind as ContentKind` de `_moderation_fixture.kind` (coluna `String` livre, sem enum no banco) sem validar contra os kinds que **já** têm fonte própria unida na mesma query (`jobRows`/`serviceRows`/`candidateProfileRows`). Uma linha do fixture semeada com `kind: JOB`/`SERVICE`/`CANDIDATE_PROFILE` (artefato de teste anterior a USP-020/029, quando o fixture era a única tabela) reproduzia o MESMO beco sem saída de A2, só que fora do kind `CV`: `hasContentReader=true` pelo `kind`, mas o reader real nunca acha aquele `id` (é do fixture, não da tabela real) ⇒ `error` permanente. `viewModerationQueue` agora normaliza: nenhuma linha do fixture pode saır com um `contentKind` que já tem fonte própria — cai para `CV` (vacuamente sem gate, mesmo tratamento do `CV` genuíno) | Reusa `CONTENT_KINDS_WITH_READER` como a lista de "kinds com fonte própria" (mesmo conjunto, coincidência de domínio documentada no código) em vez de duplicar; fecha os dois lados do invariante: item sem conteúdo carregável nunca fica preso, item com conteúdo real nunca fica sem gate. Provado por mutação (integração): reverter a normalização derruba o caso novo | n |
 | **Audit-on-read fail-closed** em vez de "mesma tx da leitura" | agent | `withAudit('SENSITIVE_FIELD_VIEWED', …)` ao servir conteúdo de candidato; falha ⇒ não entrega | E-005 exige o registro do acesso, não atomicidade read-inside-tx; alinha ao precedente `list-job-applicants.ts` | n |
 | **ctx do audit**: `actorPersonId` obrigatório; `ip`/`userAgent` best-effort — **REVISADA (A4/PR#294)** | agent | `ip`/`userAgent` deixam de ser "se houver helper, senão omitir" e passam a **sempre** ser capturados via `headers()`/`clientIp` (mesmo preâmbulo do precedente `list-job-applicants.ts`), antes do `withAudit` | ADR-0004 passo 2 lista a captura de `actor_ip` como obrigatória, não best-effort; a mitigação do Risco 1 do ADR-0005 para a URL assinada de CV é literalmente "audit log com IP", e `audit_log` é append-only — sem o IP, o contexto não é recuperável depois | n |
 | **Painel de conteúdo só no bloco `canModerate`** (USP-056) | agent | Renderizar o `ModerationContentPanel` dentro do ramo `canModerate`; kinds fora da permissão do viewer mantêm a nota "sem permissão" (nenhum "Ver conteúdo") | Defesa em profundidade: gate de UI (USP-056) + gate autoritativo `requirePermission` na action (P-002) | n |
@@ -103,7 +104,7 @@ Cada proibição vira um AC negativo com teste negativo próprio. IDs = `P-001..
 
 | ID | WHEN … THEN system SHALL NOT | Previne | Task dona | Teste negativo |
 |---|---|---|---|---|
-| **P-001** | oferecer "Aprovar" para item cujo conteúdo não foi carregado e exibido | F1 (moderação vira carimbo) | T9 | carga falha/ausente ⇒ Aprovar desabilitado; devolver/rejeitar seguem |
+| **P-001** | oferecer "Aprovar" para item de kind **com reader de conteúdo registrado** cujo conteúdo não foi carregado e exibido — **escopo revisado (A2/PR#294)**: `ContentKind.CV` não tem reader real (sem model, sem corpo além do `title` já visível no card), então "Aprovar sem carregar" para `CV` é vacuamente satisfeito, não uma violação — ver §6 | F1 (moderação vira carimbo) | T9 | carga falha/ausente (kind com reader) ⇒ Aprovar desabilitado; devolver/rejeitar seguem. **Caso negativo adicional**: kind sem reader registrado (`CV`) ⇒ sem painel "Ver conteúdo" e Aprovar habilitado desde o início (`moderation-queue.test.tsx`, "A2: item CV não exige conteúdo carregado") |
 | **P-002** | carregar/transmitir conteúdo de `ContentKind` fora da permissão do viewer | F2 (vazamento de PII) | T6 | moderador só-`JOB` pede `CANDIDATE_PROFILE` ⇒ **sem campo de PII no payload** serializado |
 | **P-003** | exibir versão truncada/resumida/cacheada sem sinalizar | F3 (preview ≠ publicado) | T7 | conteúdo longo ⇒ texto integral acessível na saída |
 | **P-004** | carregar conteúdo integral de todos os itens no render da fila | F4 (fila degradada) | T9 (+T8) | render de N itens ⇒ 0 leituras de conteúdo / 0 URLs assinadas |
@@ -111,21 +112,27 @@ Cada proibição vira um AC negativo com teste negativo próprio. IDs = `P-001..
 
 ## 8. Rastreabilidade de requisitos
 
+**Status corrigido (C9/PR#294 rodada 2):** a coluna abaixo ficou parada em `Pending` desde a criação
+desta spec, apesar de `validation.md` já registrar os 11 requisitos como `✅ Verified` desde a
+validação original de 2026-08-15 (seção "Requirement Traceability Update") — divergência entre `.specs/`
+e o estado real do projeto. Reconciliado abaixo; `validation.md` continua a fonte de evidência por
+`file:line`.
+
 | Requisito (ICE) | AC | Task(s) | Status |
 |---|---|---|---|
-| E-001 | AC-066-1 | T6, T8, T9 | Pending |
-| E-002 (JOB) | AC-066-1 | T2, T7 | Pending |
-| E-003 (SERVICE) | AC-066-2 | T3, T7 | Pending |
-| E-004 (CANDIDATE_PROFILE/CV + URL assinada) | AC-066-3 | T4, T7 | Pending |
-| E-005 (`SENSITIVE_FIELD_VIEWED`) | AC-066-4 | T6 | Pending |
-| E-006 (falha ⇒ aviso + aprovar off) | AC-066-5 | T8, T9 | Pending |
-| P-001 | AC-066-5 | T9 | Pending |
-| P-002 | AC-066-6 | T6 | Pending |
-| P-003 | AC-066-8 | T7 | Pending |
-| P-004 | AC-066-7 | T9, T8 | Pending |
-| P-005 | — | T6 | Pending |
+| E-001 | AC-066-1 | T6, T8, T9 | ✅ Verified |
+| E-002 (JOB) | AC-066-1 | T2, T7 | ✅ Verified |
+| E-003 (SERVICE) | AC-066-2 | T3, T7 | ✅ Verified |
+| E-004 (CANDIDATE_PROFILE/CV + URL assinada) | AC-066-3 | T4, T7 | ✅ Verified |
+| E-005 (`SENSITIVE_FIELD_VIEWED`) | AC-066-4 | T6 | ✅ Verified |
+| E-006 (falha ⇒ aviso + aprovar off) | AC-066-5 | T8, T9 | ✅ Verified |
+| P-001 | AC-066-5 | T9 | ✅ Verified (escopo revisado A2/PR#294 — ver §7) |
+| P-002 | AC-066-6 | T6 | ✅ Verified |
+| P-003 | AC-066-8 | T7 | ✅ Verified |
+| P-004 | AC-066-7 | T9, T8 | ✅ Verified |
+| P-005 | — | T6 | ✅ Verified |
 
-**Cobertura:** 11 requisitos ICE, todos mapeados a task (0 órfãos). Fundação (tipo/port T1; adapters T2–T4; dispatcher+container T5) sustenta E-002..E-005.
+**Cobertura:** 11 requisitos ICE, todos mapeados a task (0 órfãos). Fundação (tipo/port T1; adapters T2–T4; dispatcher+container T5) sustenta E-002..E-005. Evidência por `file:line`: `validation.md` §"Spec-Anchored Acceptance Criteria" e §"Must-Not Verification".
 
 ## 9. Gate de entrada
 

@@ -34,14 +34,31 @@ content ever loading. This is a legitimate, narrowly-scoped exception, not a new
 - **Honestly documented.** `spec.md` §6 labels the row "REVISADA (A2/PR#294)" and states the old
   premise's blind spot in the same breath as the fix; `design.md`'s Risks table adds a paired row
   naming the exact mechanism. Disclosure, not rationalization.
-- **Real trade-off, correctly flagged as the one follow-up:** before A2, *any* kind without a
-  reader failed closed (permanently stuck, never wrongly approved); after A2, any kind absent from
-  `CONTENT_KINDS_WITH_READER` fails open. Today only `CV` is affected, inertly — but the sync
-  between `shared/container.ts`'s reader registrations and `CONTENT_KINDS_WITH_READER` is enforced
-  only by a comment ("DEVEM coincidir", `container.ts:130-138`), not a test (`grep` for
-  `CONTENT_KINDS_WITH_READER` finds no test file). **Recommended fix task (non-blocking):** add a
-  unit test asserting the two lists stay in sync, so a future kind added to one and not the other
-  fails loud instead of silently degrading to fail-open.
+- **Real trade-off, correctly flagged as the one follow-up (at the time of this check):** before A2,
+  *any* kind without a reader failed closed (permanently stuck, never wrongly approved); after A2,
+  any kind absent from `CONTENT_KINDS_WITH_READER` failed open. At the time, only `CV` was affected,
+  inertly — but the sync between `shared/container.ts`'s reader registrations and
+  `CONTENT_KINDS_WITH_READER` was enforced only by a comment ("DEVEM coincidir",
+  `container.ts:130-138`), not a test (`grep` for `CONTENT_KINDS_WITH_READER` found no test file at
+  that point). **Fix task recorded then (non-blocking):** add a unit test asserting the two lists
+  stay in sync, so a future kind added to one and not the other fails loud instead of silently
+  degrading to fail-open.
+  **Closed (2026-08-18, rodada 2 — commit `0abcb24`, then hardened further under achado C3):**
+  `src/shared/__tests__/container-content-moderation-reader-kinds.test.ts` now exists and asserts
+  exact equality of the two sets against the real production container — and, since C3 found that
+  the original version only compared *keys* via a private-field cast, it was rewritten to compare
+  *identity* per kind (`readerFor(kind)` instance checks) through a public API
+  (`DispatchingContentModerationReader#supportedKinds()`/`#readerFor()`), plus the registry itself
+  became an exhaustive `Record<ContentKind, …|null>` so a new enum member without a decision in
+  `container.ts` is now a compile error, not a silent gap. This follow-up is fully closed, not just
+  recorded.
+  **A residual, distinct gap the Implementer found independently while investigating this exact
+  trade-off (achado C1 of the same round):** the sync test above proves "kind ↔ reader" consistency,
+  but not "row's `contentKind` ↔ resolvable content" — a `_moderation_fixture` row (free-text `kind`
+  column, no DB enum) seeded with `kind: JOB`/`SERVICE`/`CANDIDATE_PROFILE` reproduced the exact same
+  dead-end as the original A2 bug, just for a different, already-known-real kind. This is now fixed
+  in `viewModerationQueue` (normalizes such rows to `CV`) — see the C1 fix in the same commit round,
+  proven by a dedicated integration test and an independently re-run mutation.
 
 ### A1 — security fix (readers scoped to `IN_MODERATION`)
 
@@ -67,17 +84,30 @@ Injected each violation myself into the real working tree, confirmed red, revert
 |---|---|---|---|
 | 1 | Removed the `needsChecklist` term from the Aprovar `disabled` expression | `moderation-queue.tsx:254` | ✅ Killed — "conteúdo carregado + checklist incompleta" test went red |
 | 2 | Collapsed per-item `contentState: Record<string,...>` to a shared key | `moderation-queue.tsx:75-76,255,258` | ✅ Killed — achado #9 multi-item test went red |
-| 3 | Reverted `openContentFor` test helper to ignore its `row` arg (restoring the pre-fix bug) | `moderation-queue.test.tsx:73-76` | ❌ **Survived** — all 21 tests stayed green |
+| 3 | Reverted `openContentFor` test helper to ignore its `row` arg (restoring the pre-fix bug) | `moderation-queue.test.tsx:73-76` | ❌ **Survived at the time of this check** — all 21 tests stayed green |
 
-Mutation 3 is a genuine, reportable gap (non-blocking): every call site of `openContentFor` passes
-`screen.getByRole('listitem')`, which itself throws unless exactly one `listitem` is on screen — so
-every existing call is already implicitly single-item, and the `within(row)` scoping never gets
-exercised against 2+ items through this helper. The real multi-item protection (mutation 2's target)
-is independently proven by a separate, inline-scoped test (`within(cardB)...`, achado #9), so the
-underlying P-001 invariant is not actually at risk — but the Implementer's claim of "3/3 mutations
-killed" is not supported by evidence; it is 2/3. The helper's own regression-test comment ("corrige...
-quebra com 2+ itens na fila") is currently untested. **Fix task (non-blocking):** exercise
-`openContentFor` in a genuine multi-item scenario, or remove the unproven claim from its comment.
+At the time of this check, mutation 3 was a genuine, reportable gap (non-blocking): every call site
+of `openContentFor` passed `screen.getByRole('listitem')`, which itself throws unless exactly one
+`listitem` is on screen — so every existing call was already implicitly single-item, and the
+`within(row)` scoping never got exercised against 2+ items through this helper. The real multi-item
+protection (mutation 2's target) was independently proven by a separate, inline-scoped test
+(`within(cardB)...`, achado #9), so the underlying P-001 invariant was not actually at risk — but the
+Implementer's claim of "3/3 mutations killed" was not supported by evidence at that point; it was 2/3.
+The helper's own regression-test comment ("corrige... quebra com 2+ itens na fila") was untested.
+**Fix task (non-blocking) at the time:** exercise `openContentFor` in a genuine multi-item scenario,
+or remove the unproven claim from its comment.
+
+**Fechamento (2026-08-18, rodada 2 do review da PR #294 — achados C1..C9):** commit `a3daff5`
+("test(moderation): exercita o escopo within(row) de openContentFor em cenário multi-item — L-023")
+added exactly that genuine multi-item call site (3 cards rendered, `openContentFor(cardB, 'ACME-c2')`),
+and commit `0abcb24` closed the companion container-sync gap (L-024). Re-ran mutation 3 independently,
+twice: once on the HEAD as of the C1..C9 correction round's start (copied the test file, reverted
+`within(row)` → `screen`, ran isolated, deleted the copy) and once more after this round added its
+own 2 new cases to the same file (C2's matrix-completion tests) — **1 failed | 22 passed** on the
+current file (23 `it()` total), dying in `openContentFor` with "found multiple elements" on the
+multi-item case, same failure mode both times. **Mutation 3 is now Killed.** All 3/3 mutations of
+this round are confirmed dead — the Implementer's original claim was premature when made, but the
+gap it exposed is closed.
 
 ### A4 — audit ip/userAgent, fail-closed intact
 
