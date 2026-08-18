@@ -39,15 +39,21 @@ import { PrismaCandidateProfileModerationReader } from '@/modules/persons/adapte
  */
 describe('container: readers de moderação registrados == CONTENT_KINDS_WITH_READER (L-024/C3)', () => {
   it('as chaves com reader real do dispatcher de produção são exatamente CONTENT_KINDS_WITH_READER', () => {
-    const reader = container.resolve(CONTENT_MODERATION_READER_TOKEN);
-    expect(reader).toBeInstanceOf(DispatchingContentModerationReader);
+    const rawReader = container.resolve(CONTENT_MODERATION_READER_TOKEN);
+    expect(rawReader).toBeInstanceOf(DispatchingContentModerationReader);
+    // `supportedKinds()`/`readerFor()` são específicos de `Dispatching…`, não
+    // do port genérico `ContentModerationReader` — o cast é seguro porque a
+    // linha anterior acabou de confirmar a instância em runtime.
+    const reader = rawReader as DispatchingContentModerationReader;
 
     const registeredKinds = [...reader.supportedKinds()].sort();
     expect(registeredKinds).toEqual([...CONTENT_KINDS_WITH_READER].sort());
   });
 
   it('cada kind aponta para a classe concreta certa (identidade, não só a chave — C3/PR#294 rodada 2)', () => {
-    const reader = container.resolve(CONTENT_MODERATION_READER_TOKEN);
+    const rawReader = container.resolve(CONTENT_MODERATION_READER_TOKEN);
+    expect(rawReader).toBeInstanceOf(DispatchingContentModerationReader);
+    const reader = rawReader as DispatchingContentModerationReader;
 
     expect(reader.readerFor(ContentKind.JOB)).toBeInstanceOf(PrismaJobModerationReader);
     expect(reader.readerFor(ContentKind.SERVICE)).toBeInstanceOf(PrismaServiceModerationReader);
