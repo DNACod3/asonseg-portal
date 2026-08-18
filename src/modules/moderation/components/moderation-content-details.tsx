@@ -66,6 +66,14 @@ function ServiceDetails({
                 key={url}
                 src={url}
                 alt="Foto do serviço"
+                // C5 (PR#294 rodada 2) — a URL é o objeto ORIGINAL do bucket
+                // público (até 5 MiB, `STORAGE_BUCKET_SPECS`), pintado num
+                // quadrado de 96px; painéis abertos acumulam por item (estado
+                // próprio) numa fila de até QUEUE_PAGE_SIZE=100. `lazy` adia a
+                // decodificação das fotos fora da viewport; `async` não
+                // bloqueia o paint no fio principal enquanto decodifica.
+                loading="lazy"
+                decoding="async"
                 className="h-24 w-24 rounded-lg border border-border object-cover"
               />
             ))}

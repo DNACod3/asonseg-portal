@@ -54,6 +54,25 @@ export function ModerationContentPanel({
     return (
       <div className="rounded-lg border border-border bg-background p-4">
         <ModerationContentDetails view={view} />
+        {/*
+          C7 (PR#294 rodada 2) — a URL assinada do CV tem TTL de 300s
+          (SIGNED_URL_TTL_SECONDS/ADR-0005); uma vez `loaded`, o painel não
+          tinha nenhum caminho para recarregar, então um painel aberto há
+          mais de 5min entregava um link morto ao moderador — cenário comum,
+          já que ele costuma abrir e ler antes de decidir. "Recarregar"
+          reinvoca a mesma Server Action, o que também renova a URL assinada
+          (E-004) sem perder o gate de Aprovar em caso de sucesso.
+        */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          <Button type="button" variant="outline" size="sm" onClick={load} disabled={isPending}>
+            {isPending ? 'Atualizando…' : 'Recarregar conteúdo'}
+          </Button>
+          {view.kind === 'CANDIDATE_PROFILE' && view.cvUrl != null && (
+            <span className="text-xs text-fg-muted">
+              O link do currículo expira em 5 minutos — recarregue se o link estiver indisponível.
+            </span>
+          )}
+        </div>
       </div>
     );
   }

@@ -71,6 +71,13 @@ describe('ModerationContentDetails (T7)', () => {
     const photos = screen.getAllByAltText('Foto do serviço');
     expect(photos).toHaveLength(2);
     expect(photos[0]).toHaveAttribute('src', 'https://cdn.example/svc/1.jpg');
+    // C5 (PR#294 rodada 2) — objeto original do bucket público (até 5 MiB)
+    // pintado num quadrado de 96px, em painéis que se acumulam por item;
+    // `lazy`+`async` adiam decodificação de fotos fora da viewport.
+    for (const photo of photos) {
+      expect(photo).toHaveAttribute('loading', 'lazy');
+      expect(photo).toHaveAttribute('decoding', 'async');
+    }
   });
 
   it('E-003: sem fotos, nenhuma <img> é renderizada', () => {
