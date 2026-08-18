@@ -488,7 +488,22 @@ Exemplos:
 | Vercel auto-deploy | push master | deploy production |
 | Vercel auto-deploy | push em PR | deploy preview |
 
-🚨 **Migrations Prisma:** `prisma migrate deploy` no build do Vercel (não `migrate dev`). Cada migration precisa ser revisada em PR — quebras de schema bloqueiam merge.
+🚨 **Migrations Prisma:** cada migration precisa ser revisada em PR — quebras de schema bloqueiam merge. Ver **§16.1** para como (e quando) elas de fato chegam a produção.
+
+### 16.1 Migrations Prisma em produção — passo manual, não o build do Vercel
+
+🚨 **`prisma migrate deploy` NÃO roda no build do Vercel nem em nenhum outro passo automatizado.** `package.json` define `build` como `next build` puro; `vercel.json` só declara um cron (`expire-jobs`). Não existe pipeline de CI/CD que aplique migration contra produção — isso é **sempre uma ação humana manual**, com as credenciais reais de produção, executada por quem tem acesso.
+
+Essa crença errada (documentada aqui até 2026-08-18) é a causa provável de o hotfix `20260722140000_fix_immutable_unaccent_schema_qualify` (commitado em 27/07) ter ficado sem aplicar em produção por semanas — quem lia esta seção concluía que o próximo deploy resolveria por conta própria. Não resolve.
+
+**Checklist para aplicar migration pendente em produção:**
+1. Confirmar quais migrations estão pendentes: `DATABASE_URL=<prod> npx prisma migrate status`.
+2. Rodar `npx prisma migrate deploy` manualmente com `DATABASE_URL`/`DIRECT_URL` de produção (não há `.env.production` nem script `db:deploy:production` no repo hoje — só `db:deploy` para `.env.local` e `db:deploy:staging` para `.env.staging`; produção usa as credenciais reais passadas na hora, nunca a partir de um pipeline automatizado).
+3. Se alguma migration pendente foi **editada in-place** depois de já aplicada em outro ambiente (checksum mudou — ver AD-029/`.specs/project/STATE.md`), `migrate deploy` avisa drift e **continua avisando a cada execução seguinte**, permanentemente, até reconciliar: `UPDATE _prisma_migrations SET checksum = '<novo>' WHERE migration_name = '<nome>';` para cada migration editada (a checksum nova é a que `migrate deploy` reporta no próprio aviso). `prisma migrate resolve` marca uma migration como aplicada, mas **não** recalcula checksum — não serve para este caso.
+4. Confirmar manualmente o efeito esperado (ex.: rodar a query afetada) — não há teste automatizado contra produção.
+5. Registrar a execução em `.specs/project/STATE.md` (fecha o blocker correspondente, se houver).
+
+**Regra vinculante para migration de índice funcional (AD-029, 2026-08-18):** o Postgres avalia a expressão de um índice funcional (`CREATE INDEX ... USING gin/gist/btree (expressão)`) sob um `search_path` **sanitizado** no parse (mitigação do CVE-2018-1058) — `pg_catalog, pg_temp`, nada mais. Qualquer função, operator class ou dicionário de text search referenciado nessa expressão precisa ser **totalmente qualificado por schema** (`public.minha_funcao(...)`, `extensions.gin_trgm_ops`, `extensions.unaccent::regdictionary`). `SET search_path`, `ALTER DATABASE ... SET search_path` e `ALTER ROLE ... SET search_path` **não** substituem isso em nenhuma combinação — e um `SET` de sessão sem `LOCAL` ainda vaza (silenciosamente) para as migrations seguintes na mesma conexão, mascarando o problema até uma reconexão ou aplicação individual (`psql -f`, runbook de DR) expô-lo com `42883`/`42704`. Ver `prisma/migrations/20260620110000_ensure_unaccent_extension_schema/migration.sql` (comentário de cabeçalho) para o exemplo canônico.
 
 ---
 
