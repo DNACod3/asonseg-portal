@@ -195,9 +195,15 @@ describe('ModerationQueue', () => {
     fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falhou aqui'));
-    // Segue na fila — aparece 2x agora (card + heading do painel de
-    // conteúdo carregado, B3/PR#294), daí getAllByText em vez de getByText.
-    expect(screen.getAllByText('Vaga de Auxiliar').length).toBeGreaterThan(0);
+    // Segue na fila (C8/PR#294 rodada 2 — `getAllByText(...).length > 0` era
+    // tautológico: `getAllByText` já lança se não casar nada, então o
+    // `expect` nunca podia falhar; a asserção viva era o throw implícito, não
+    // a linha). Prova direta: 1 único item na lista...
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    // ...e o título aparece 2x (card + heading do painel de conteúdo
+    // carregado, B3/PR#294) — fixa o fato que o comentário original só
+    // descrevia sem assegurar.
+    expect(screen.getAllByText('Vaga de Auxiliar')).toHaveLength(2);
   });
 
   it('erro sem mensagem: usa o fallback genérico (conteúdo já aberto)', async () => {
@@ -292,6 +298,39 @@ describe('ModerationQueue', () => {
       const approveBtn = screen.getByRole('button', { name: /aprovar/i });
       await waitFor(() => expect(approveBtn).not.toBeDisabled());
       expect(approveBtn).not.toHaveAttribute('title');
+    });
+
+    // C2 (PR#294 rodada 2) — os 2 testes acima só cobrem "conteúdo carregado"
+    // × {checklist incompleta, checklist concluída}; as 2 combinações com
+    // conteúdo NÃO carregado ficavam sem sensor. A mutação
+    // `(!needsChecklist && hasContentReader && ...)` passava a suíte inteira
+    // porque nenhum teste tinha `verification` presente E conteúdo não
+    // aberto — em produção isso deixaria qualquer vaga de Empresa não
+    // verificada aprovável sem o moderador nunca ter aberto o conteúdo.
+    it('checklist concluída + conteúdo NÃO aberto ⇒ Aprovar segue desabilitado, título pede para abrir o conteúdo (C2/PR#294)', () => {
+      render(
+        <ModerationQueue items={[{ ...baseRow, verification }]} checklistItems={CHECKLIST_ITEMS} />,
+      );
+      // Conclui a checklist SEM nunca chamar openContentFor — é a combinação
+      // discriminante: se a mutação acima fosse aplicada, `needsChecklist`
+      // liberado bastaria para habilitar Aprovar mesmo sem conteúdo.
+      fireEvent.click(screen.getByRole('checkbox', { name: /item único de verificação/i }));
+
+      const approveBtn = screen.getByRole('button', { name: /aprovar/i });
+      expect(approveBtn).toBeDisabled();
+      expect(approveBtn).toHaveAttribute('title', 'Abra o conteúdo antes de aprovar.');
+    });
+
+    it('checklist incompleta + conteúdo NÃO aberto ⇒ Aprovar desabilitado, título prioriza "abrir o conteúdo" sobre a checklist (C2/PR#294)', () => {
+      render(
+        <ModerationQueue items={[{ ...baseRow, verification }]} checklistItems={CHECKLIST_ITEMS} />,
+      );
+
+      const approveBtn = screen.getByRole('button', { name: /aprovar/i });
+      expect(approveBtn).toBeDisabled();
+      // Fecha a precedência do ternário do `title` (moderation-queue.tsx): com
+      // os dois gates ativos, a mensagem é sobre o conteúdo, não a checklist.
+      expect(approveBtn).toHaveAttribute('title', 'Abra o conteúdo antes de aprovar.');
     });
   });
 
