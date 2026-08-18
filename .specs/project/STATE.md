@@ -31,7 +31,7 @@
 
 ## Handoff
 
-**USP-066 — Ver conteúdo integral do rascunho na fila de moderação — COMPLETA, PASS** (AD-030, 1 unit, Planner→Implementer→Verifier, 0 fix→re-verify). Branch `feat/usp-066-ver-conteudo-rascunho`, HEAD `8c5e362`. A branch também carrega 3 commits de preparação consolidados do working tree do master: **PF-001** (`scripts/ensure-buckets.ts` + `storage:ensure:staging|prod`), refino do **AD-029** (schema-qualify obrigatório de `unaccent`) e as specs ICE da própria USP-066. Próximo: abrir o PR, rodar /pr-review, resolver o CR e mergear em master.
+**USP-066 — Ver conteúdo integral do rascunho na fila de moderação — COMPLETA, PASS** (AD-030, 1 unit, Planner→Implementer→Verifier, 0 fix→re-verify). Branch `feat/usp-066-ver-conteudo-rascunho`, HEAD `8c5e362`. A branch também carrega 2 commits de preparação consolidados do working tree do master: **PF-001** (`scripts/ensure-buckets.ts` + `storage:ensure:staging|prod`) e as specs ICE da própria USP-066. O commit do **AD-029** foi extraído para a PR **#295** em 2026-08-18. Próximo: abrir o PR, rodar /pr-review, resolver o CR e mergear em master.
 
 **Hist. imediato:** **Fase 10 Round 2 — Sidebar + Menu de Perfil — mergeada em master** (#293, AD-028). **Fase 10 — App Shell da Área Logada — mergeada em master** (#292, AD-027).
 
@@ -49,7 +49,7 @@
 **A3/A4 e resto:** 3 sensores subespecificados no gate de Aprovar (o termo `needsChecklist` não tinha sensor algum; `contentState` por item nunca era exercitado com 2+ itens); `SENSITIVE_FIELD_VIEWED` sem `ip`/`userAgent` contra o ADR-0004 passo 2 — agrava porque a mitigação do ADR-0005 para URL assinada de CV é literalmente "audit log com IP" e `audit_log` é append-only; helper de URL assinada promovido para `shared/lib/supabase/supabase-storage.ts` (regra §2, 2+ consumidores) eliminando a duplicação `persons`/`jobs`.
 **Achado sobre confiabilidade de subagente:** o Implementer declarou "3/3 mutações mortas" em A3; o Verifier refez e achou **2/3** — a terceira sobrevivia porque todo call site do helper renderizava 1 item, então o `within(row)` nunca era posto à prova. Fechado depois (L-023) e **a morte da mutação foi confirmada pelo orquestrador em execução própria**, não por relato. Alegação de mutação de quem escreveu o código não substitui execução independente.
 **Impact:** Verifier independente **PASS**. Gates no HEAD `5b3ac1f`: typecheck/lint verdes, **2171 unit**, **671 integração**, build de produção OK, `src/app/(app)/moderacao/page.tsx` com diff zero preservado (P-004). 11/11 ACs sem regressão, 5/5 must-nots verdes. Lições `L-023`/`L-024` fechadas com prova por mutação.
-**Pendente (decisão do usuário):** separar o **AD-029** (3 migrations editadas in-place, risco de drift de checksum em prod) em PR própria — é reescrita de histórico, não feito sem instrução direta.
+**AD-029 separado (2026-08-18, a pedido do dono):** o commit das 3 migrations foi extraído para a PR própria **#295** (`fix/ad-029-unaccent-schema-qualify`), e a branch da USP-066 foi rebaseada para removê-lo (29 commits, zero migrations no diff; os 22 comentários do review sobreviveram ao force-push). Rollback de infra deixa de estar amarrado ao de uma feature de UI. **Segue pendente, e é ação humana:** rodar `prisma migrate deploy` contra produção com credenciais reais depois do merge da #295 — sem isso o incidente P3018 de 2026-07-21 pode persistir em produção.
 
 ### AD-030: USP-066 — conteúdo do rascunho servido **sob demanda** por Server Action (não no render da fila) — PASS 2026-08-15
 
