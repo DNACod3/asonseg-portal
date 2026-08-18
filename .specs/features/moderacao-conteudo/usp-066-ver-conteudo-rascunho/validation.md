@@ -207,6 +207,174 @@ No blockers. No regression of the original 11 ACs / 5 must-nots. Ready to merge.
 
 ---
 
+## Correction round 2 (PR #294 findings C1..C9) — 2026-08-18
+
+**Diff range**: `2c92b55..680cf18` (6 commits) — fixes for the 13 findings of the review's 2nd pass.
+**Verifier**: independent sub-agent (author ≠ verifier), fresh read — did not inherit the
+Implementer's mental model, only the finding list and the PR review comments.
+
+### 🚩 C1 — priority verdict (the finding this round turns on)
+
+**PASS.** The Implementer rejected the review's recommended design (derive the gate from
+`supportedKinds()`/a per-row `hasContent` in `viewModerationQueue`) and instead normalizes: any
+`_moderation_fixture` row whose free-text `kind` collides with one of the 3 kinds that already have
+their own source joined into the same query (`jobRows`/`serviceRows`/`candidateProfileRows`) is
+mapped back to `ContentKind.CV` (`src/modules/moderation/queries/moderation-queue.ts:146-147`).
+Judging the rejection on its own merits, not on the Implementer's say-so:
+
+1. **Is "diff-zero in `page.tsx`" P-004 itself, or a proxy the Implementer let dictate the design?**
+   It is a proxy, and the Implementer's own justification conflates the two — but the substance
+   holds anyway for an orthogonal reason. P-004's actual text (`spec.md` §7): "carregar conteúdo
+   integral de todos os itens no render da fila." The review's recommended fix (a per-row boolean
+   `hasContent` in `ModerationQueueItem`) would not violate that text — a boolean is not "conteúdo
+   integral." So avoiding it to keep `page.tsx` diff-zero is optimizing a verification artifact
+   (an established regression guard, not P-004's wording) over a structural fix. That is a process
+   smell worth naming, not laundered by the outcome being safe.
+2. **Does the actual invariant hold, independent of which design got chosen?** Yes, and for a
+   reason that makes the P-004-proxy argument moot: `ModerationFixtureContent`
+   (`prisma/schema.prisma:807-817`) has **no content columns at all** — only
+   `id/kind/status/title/authorPersonId/submittedAt`. A fixture row cannot carry "conteúdo real"
+   regardless of what its `kind` column claims, because there is structurally nothing beyond the
+   title to read. Genuine JOB/SERVICE/CANDIDATE_PROFILE content never flows through the fixture
+   branch — it comes from `jobRows`/`serviceRows`/`candidateProfileRows`, which the normalization
+   never touches. So there is **no path** where a row with real content gets normalized to `CV` and
+   approved blindly — confirmed by reading the table definition, not inferred from the comment.
+3. **The inverse — a `kind` value outside the 4-member enum (raw garbage string in the DB column)
+   — does it also fall through ungated?** Yes, traced end to end: `moderation-queue.tsx:152`'s
+   `hasContentReader = CONTENT_KINDS_WITH_READER.includes(row.contentKind)` gates on membership in
+   the 3-kind allowlist; a garbage string is not in that allowlist (same as `CV`), so
+   `hasContentReader` is `false` and Aprovar is vacuously enabled — identical treatment to the `CV`
+   case, not a new hole.
+4. **Is the invariant ("nenhum item que a fila lista pode ficar permanentemente não-aprovável")
+   established de fato, or only in the region the new test covers?** De facto, for the domain that
+   exists today: the fixture table structurally cannot hold real content under any `kind` value, and
+   real content rows never enter the fixture branch. The C1 integration test
+   (`moderation-queue.int.test.ts:94-121`) covers exactly the 3 colliding kinds; I additionally
+   verified the enum-exhaustion and garbage-string cases by reading the gate logic and the table
+   schema directly (not by running a test for them, since none targets them specifically — flagged
+   below as a residual test-coverage gap, non-blocking).
+
+**Verdict on the rejection itself:** the *reasoning* that got the Implementer to this patch (diff-zero
+as a stand-in for P-004) is not fully sound — it's an artifact-driven shortcut, and the review's
+structural fix (capability-derived gate) remains the architecturally cleaner answer for when a 5th
+`ContentKind` lands. But the *patch* closes the actual dead-end with no discovered gap, is proven by
+a killed mutation (see below), and does not create a new "approve blind" path for real content given
+the fixture table's current, fixed shape. **PASS, with the design-process objection recorded as a
+non-blocking lesson**, not a gating defect.
+
+### Mutations re-run independently (not the Implementer's claims)
+
+Injected each mutation into the real working tree myself, confirmed red, reverted via `git checkout`,
+confirmed `git status --short` clean before continuing to the next one. Working tree unrelated
+changes (`docs/prototipo/index.html`, `docs/prototipo/painel.html` — user's parallel work) never
+touched.
+
+| # | Finding | Mutation | File | Result |
+|---|---|---|---|---|
+| 1 | C1 | Removed the fixture-kind normalization (`contentKind = rawKind`, no `KINDS_WITH_OWN_SOURCE` check) | `moderation-queue.ts:147` | ✅ Killed — `moderation-queue.int.test.ts` C1 case: `expected 'JOB' to be 'CV'`, 1 failed / 7 passed |
+| 2 | C2 | Applied `(!needsChecklist && hasContentReader && contentState[...] !== 'loaded')` to the Aprovar `disabled` expression | `moderation-queue.tsx:255` | ✅ Killed — exactly 1 case red: "checklist concluída + conteúdo NÃO aberto" (`moderation-queue.test.tsx`), 22 passed |
+| 3 | C4 | Removed the `CONTENT_STATUS_REPOSITORY_TOKEN`/`loadStatus` precondition block from `openModerationContent` | `open-content.ts:69-73` | ✅ Killed — exactly 2 cases red in `open-content.test.ts` (the two C4-labeled cases), 7 passed |
+| 4 | C3 (identity) | Swapped `[ContentKind.JOB]` to `new PrismaServiceModerationReader()` (same key, wrong class) | `container.ts:172` | ✅ Killed — `container-content-moderation-reader-kinds.test.ts` identity case red; the keys-only sync case alone would **not** have caught this (confirms C3's stated rationale for moving off the private-field cast) |
+| 5 | C3 (exhaustiveness) | Omitted the `[ContentKind.CV]: null` entry from the reader registry object literal | `container.ts:177` | ✅ Killed at compile time — `tsc --noEmit`: `TS2345: … is not assignable to parameter of type 'ContentModerationReaderRegistry'` (not a test failure — a build error, matching the "new kind forces a decision" claim literally) |
+
+All 5 mutations reverted; `git diff --stat 680cf18 -- src/` empty after each revert and at the end of
+the round.
+
+### C7 — no bypass of the permission/audit path
+
+`ModerationContentPanel`'s "Recarregar conteúdo" button (`moderation-content-panel.tsx:67`) calls the
+same `load()` closure the initial "Ver conteúdo" click uses, which calls `openModerationContent` (the
+one Server Action, `moderation-content-panel.tsx:36-40`) — there is no second, lighter-weight action
+or client-side cache bypass. Every reload re-runs the full canonical sequence in
+`open-content.ts` (Zod → `requirePermission` → C4's `IN_MODERATION` precondition → reader →
+audit-on-read for `CANDIDATE_PROFILE`). Confirmed by test:
+`moderation-content-panel.test.tsx` "após carregado, 'Recarregar conteúdo' refaz a chamada" asserts
+`openModerationContent` called twice with a renewed signed URL (`?token=v1` → `?token=v2`).
+
+### C6 — guard not weakened or disabled
+
+`no-committed-secrets.test.ts` diff is exactly a `testTimeout` bump (`5000` implicit → `60_000` explicit)
+around the unchanged scan loop (`trackedFiles()` → `scanFile()` → `expect(offenders).toEqual([])`) —
+no file-scope reduction, no allowlist widening, no assertion change. Confirmed by re-reading the diff
+directly (not the commit message).
+
+### C9 — doc reconciliation checked against real state, not the commit message
+
+- `validation.md:70`/`:42` (this file, pre-edit) — confirmed the "mutation 3 survived" text was stale
+  and the 2026-08-17 report's own later text already showed it closed; the C9 edit's replacement text
+  matches what I independently re-derived by reading the current `moderation-queue.test.tsx` (23
+  `it()`, `openContentFor` exercised in a genuine multi-item case at line 250).
+- `spec.md` §7/§8 — read post-edit: §7's P-001 row now states the "kind with reader registered"
+  scope + the CV exception, §8's traceability table shows `✅ Verified` for all 11 requirements,
+  consistent with `validation.md`'s original 2026-08-15 report having already recorded them Verified
+  — the "Pending" text this edit replaced was the actual staleness, not the fix.
+- `lessons.json` L-023/L-024 — the new SHAs (`a3daff5`, `0abcb24`) are confirmed ancestors of HEAD
+  (`git merge-base --is-ancestor a3daff5 HEAD` / `0abcb24 HEAD` → exit 0); the superseded SHAs
+  (`8df54df`, `4040faf`) are confirmed **not** ancestors of HEAD (exit 1) — the claim that they were
+  "orphaned pre-rebase" is verified, not asserted.
+- `STATE.md` AD-031 — the addendum landed under the correct existing heading (`### AD-031: Rodada de
+  correção do review da PR #294…`, line 44), not a new/mislabeled section.
+
+**Non-blocking observation:** `STATE.md`'s AD-031 addendum says "ver `validation.md` (seção da rodada
+2) para o detalhe por achado," but this file's rodada-2 section (before this Verifier's edit) only
+carried per-finding narrative for C1 and C3 — C2/C4/C5/C6/C7/C8 were documented in code
+comments/commit messages, not restated here with their own subsection. Closed by this edit (this
+section now covers C1/C2/C3/C4/C6/C7/C9 directly); C5/C8 are minor (photo `lazy`/`decoding` attrs;
+test-mock/JSDoc/dead-export cleanup) and are covered by the diffs cited in the commit messages and
+independently spot-checked above (C5) — not repeated in full here as they carry no risk.
+
+### Invariants re-checked, no regression (this round)
+
+- `transitionContent`/`TRANSITIONS`/`ContentKind`/`ContentStatus` (P-005): `git diff
+  $(git merge-base HEAD master) HEAD -- src/modules/moderation/actions/transition-content.ts
+  src/modules/moderation/domain/` → empty.
+- `viewModerationQueue`'s view model (P-004): `ModerationQueueItem` (`views/moderation-queue-item.ts`)
+  still carries only `contentKind/contentId/title/authorName/submittedAt/companyUnverified/companyId`
+  — no content field added by this round.
+- `src/app/(app)/moderacao/page.tsx`: `git diff $(git merge-base HEAD master) HEAD -- 'src/app/(app)/moderacao/page.tsx'`
+  → empty (diff-zero preserved, branch-wide).
+- Permission-before-read (P-002): `open-content.ts` — `requirePermission` still runs before the C4
+  precondition and before `container.resolve(CONTENT_MODERATION_READER_TOKEN)`, unchanged order.
+- A1 (`IN_MODERATION` scope in the 3 readers): confirmed present, unchanged, in
+  `prisma-job-moderation-reader.ts:55`, `prisma-service-moderation-reader.ts:51`,
+  `prisma-candidate-profile-moderation-reader.ts:31`.
+- `VerificationPanel`/USP-017 checklist and `viewerModeratableKinds`/USP-056: exercised unchanged by
+  the full unit suite (both test blocks present and green in `moderation-queue.test.tsx`).
+
+### Gate Check (this round, foreground, sequential)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | ✅ 0 errors |
+| `npm run lint` | ✅ 0 errors/warnings |
+| `npm run test` (unit) | ✅ 2180/2180 passed, 306/306 files — matches declared baseline exactly |
+| `npm run test:integration` | ✅ 672/672 passed, 114/114 files — matches declared baseline exactly (real local Supabase Postgres) |
+| `npm run build` | ✅ production build succeeded, all routes compiled, `/moderacao` present |
+
+No test-count drift, no skipped tests, no weakened assertions found in the round's diff.
+
+### Verdict
+
+**PASS ✅** — C1's normalization closes the actual dead-end with no discovered gap for real content,
+though the Implementer's stated justification (diff-zero-as-P-004-proxy) is a process smell recorded
+as a lesson, not a gating defect, because the underlying invariant holds independent of that
+justification (the fixture table structurally cannot carry content under any `kind`). C2/C3/C4/C6/C7
+each verified by an independently re-run, killed mutation. C9's doc reconciliation checked against
+real git/file state, not accepted from the commit message. No regression of the 11 ACs / 5 must-nots
+from either prior round.
+
+**Non-blocking follow-ups:**
+1. Add a dedicated unit/integration case for the enum-exhaustion and garbage-`kind`-string paths in
+   the fixture normalization (currently verified by this Verifier via code-reading, not by a test
+   that would catch a future regression).
+2. Record the diff-zero-as-proxy pattern as a project lesson (see below) so a future USP facing the
+   same trade-off surfaces the P-004-text-vs-page.tsx-diff distinction explicitly instead of treating
+   them as interchangeable.
+
+No blockers. Ready to merge.
+
+---
+
 ## Original feature validation — 2026-08-15
 **Spec**: `.specs/features/moderacao-conteudo/usp-066-ver-conteudo-rascunho/spec.md` → ICE:
 `docs/IDSD/ice-portal-asonseg/expectations/expectations-USP-066.md`, `intents/intent-USP-066.md`,
