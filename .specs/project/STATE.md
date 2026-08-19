@@ -1,9 +1,9 @@
 # State
 
-**Last Updated:** 2026-07-22
-**Current Work:** **Fase 10 Round 2 — Sidebar colapsável + Menu de Perfil — COMPLETA, PASS** (AD-028). Ver detalhe abaixo. Próximo: abrir o PR único da branch `feat/fase-10-round2-sidebar-perfil`.
+**Last Updated:** 2026-08-17
+**Current Work:** **USP-066 — Ver conteúdo integral do rascunho na fila de moderação — COMPLETA, PASS** (AD-030). Ver detalhe abaixo. Próximo: abrir o PR da branch `feat/usp-066-ver-conteudo-rascunho`.
 
-**Hist. imediato:** **Fase 10 — App Shell da Área Logada — COMPLETA, PASS** (AD-027, PR #292 mergeada).
+**Hist. imediato:** **Fase 10 Round 2 — Sidebar colapsável + Menu de Perfil — COMPLETA, PASS** (AD-028, PR #293 mergeada). **Fase 10 — App Shell da Área Logada — COMPLETA, PASS** (AD-027, PR #292 mergeada).
 
 **Hist. anterior:** **Fase 7 — Fachada Pública (Landing + Casca de Navegação) — COMPLETA, PASS** (AD-025). Rodada única (1 PR) em 3 USPs pelo pipeline Planner→Implementer→Verifier, cada USP com Verifier independente + mutação ao vivo, 0 fix→re-verify. **USP-046** casca do grupo `(public)` (Header+Nav+Footer em `src/app/(public)/_components/`, montada em `(public)/layout.tsx`; `<main>` duplicado removido de 5 rotas públicas; token novo `--color-footer`; 4 must-nots CASCA-MN-01..04). **USP-047** home/landing fiel ao protótipo (`#page-home`): 7 componentes de seção `home-*.tsx` (hero+busca+destaques+institucional+CTAs) compondo `(public)/page.tsx`, com os **indicadores reais da USP-041 embutidos no hero** (`HomeIndicatorsView` intacto, `revalidate=600`/`loadIndicators` preservados, contrato count-only/"Em breve"<5/PII-free mantido). **USP-048** navegação integrada: destaques de **vagas ACTIVE reais anonimizadas** via `searchJobs(…, viewer=null)` (rejeitado `listActivePublishedJobs` por vazar `nomeFantasia`/pular o gate), categorias reais via `listServiceCategories` → `/servicos?categoria=…` (fallback `/servicos`), CTAs de empresa → `/empresa/cadastrar`, busca GET → `/vagas?q=` (já lida pela USP-021); guard novo `nav-no-dead-ends` (sem `href="#"`). **Sem migração, sem query nova** (reusa USP-021/030). Branch `feat/fase-7-fachada-publica`. Gates no HEAD `4e80af7`: typecheck/lint verdes, **1635 unit** (244 arquivos), `NODE_ENV=production` build OK (`/` prerender estático `revalidate:10m`, resiliente a DB indisponível), zero migração. ROADMAP: USP-046/047/048 `[x]`; Fase 7 100% — **MVP feature-complete E com fachada pronta**. Próximo: **Lançamento** (UAT/cutover; B-001 resolvido em AD-024, resta formalização do DPO + B-003/B-004); abrir/mergear o PR único.
 
@@ -31,11 +31,66 @@
 
 ## Handoff
 
-**Fase 10 — App Shell da Área Logada — mergeada em master** (#292, AD-027, com fixes de review — `cache()` de sessão/moderação + import via barrel nos testes de nav). **Fase 10 Round 2 — Sidebar + Menu de Perfil — 100% concluída** (USP-064/065, 1 unit, PASS via Planner→Implementer→Verifier, 0 fix→re-verify). Branch `feat/fase-10-round2-sidebar-perfil`, HEAD `cd986f8`. Próximo: abrir o PR único da rodada 2, rodar /pr-review, resolver o CR e mergear em master. Depois disso, retomar a **Fase 9** (H-1, H-2, H-4..H-8 — decisão de dono/PO+DPO) e o checklist de **Lançamento**.
+**USP-066 — Ver conteúdo integral do rascunho na fila de moderação — COMPLETA, PASS** (AD-030, 1 unit, Planner→Implementer→Verifier, 0 fix→re-verify). Branch `feat/usp-066-ver-conteudo-rascunho`, HEAD `8c5e362`. A branch também carrega 2 commits de preparação consolidados do working tree do master: **PF-001** (`scripts/ensure-buckets.ts` + `storage:ensure:staging|prod`) e as specs ICE da própria USP-066. O commit do **AD-029** foi extraído para a PR **#295** em 2026-08-18. Próximo: abrir o PR, rodar /pr-review, resolver o CR e mergear em master.
+
+**Hist. imediato:** **Fase 10 Round 2 — Sidebar + Menu de Perfil — mergeada em master** (#293, AD-028). **Fase 10 — App Shell da Área Logada — mergeada em master** (#292, AD-027).
+
+**Aberto (não bloqueia esta unidade):** a **Fase 9** (H-1, H-2, H-4..H-8 — decisão de dono/PO+DPO), o checklist de **Lançamento**, e o `prisma migrate deploy` contra **produção** pendente do AD-029 (ação humana, credenciais reais).
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-031: Rodada de correção do review da PR #294 — 12 achados, incl. 1 de segurança que o Verifier não pegou — PASS 2026-08-17
+
+**Decision:** A USP-066 passou pelo Verifier com PASS e **0 fix→re-verify**, mas o review multi-agente da PR #294 (6 subagentes, 22 comentários inline) achou **12 itens acionáveis** que a verificação não pegou — o mais grave sendo de segurança. Todos corrigidos e re-verificados.
+**O achado que importa (A1):** os 3 readers de conteúdo faziam `findUnique` **sem filtro de `publicationStatus`**, e `openModerationContent` não checava estado do item — o `contentId` vem do cliente e só era validado como UUID. Consequência: quem tem `MODERATE_CV` passava qualquer `personId` e recebia PII completo + **URL assinada de CV viva por 300s**, inclusive de perfis `DRAFT` nunca submetidos ou já `PUBLISHED`/`ARCHIVED` que a fila jamais listaria. O alcance do moderador deixava de ser "a fila" e passava a ser "a base inteira de candidatos"; a auditoria registrava o acesso mas não o impedia. Corrigido com `findFirst` escopado a `IN_MODERATION` nos três readers, caindo no caminho `NOT_FOUND`/E-006 existente, com prova em banco real (`open-content.int.test.ts`, sem mock de Prisma). **Lição de processo:** o Verifier validou os 11 ACs e matou 6/6 mutações, mas nenhum AC exigia que o conteúdo servido pertencesse à fila — um must-not ausente não é pego por sensor de must-not.
+**A2 — trade-off aceito e registrado:** `ContentKind.CV` não tem reader, o que fazia o gate novo desabilitar "Aprovar" **permanentemente** (não retentável) para itens `CV` que a fila lista. Resolvido com `CONTENT_KINDS_WITH_READER` (`moderation/domain/`): gate e painel só se aplicam aos kinds com reader. O Verifier julgou a exceção **legítima e estreita** — `ContentKind` é enum fechado de 4 valores, só `CV` fica fora, seu backing store não tem corpo além do `title` (já no card), e nenhum caminho de produção escreve linha `CV`. O custo real: o gate deixou de ser fail-closed para qualquer kind sem reader e passou a fail-open. Amarrado por teste que exige igualdade exata entre os readers registrados no `container.ts` e a constante (L-024).
+**A3/A4 e resto:** 3 sensores subespecificados no gate de Aprovar (o termo `needsChecklist` não tinha sensor algum; `contentState` por item nunca era exercitado com 2+ itens); `SENSITIVE_FIELD_VIEWED` sem `ip`/`userAgent` contra o ADR-0004 passo 2 — agrava porque a mitigação do ADR-0005 para URL assinada de CV é literalmente "audit log com IP" e `audit_log` é append-only; helper de URL assinada promovido para `shared/lib/supabase/supabase-storage.ts` (regra §2, 2+ consumidores) eliminando a duplicação `persons`/`jobs`.
+**Achado sobre confiabilidade de subagente:** o Implementer declarou "3/3 mutações mortas" em A3; o Verifier refez e achou **2/3** — a terceira sobrevivia porque todo call site do helper renderizava 1 item, então o `within(row)` nunca era posto à prova. Fechado depois (L-023) e **a morte da mutação foi confirmada pelo orquestrador em execução própria**, não por relato. Alegação de mutação de quem escreveu o código não substitui execução independente.
+**Impact:** Verifier independente **PASS**. Gates no HEAD `5b3ac1f`: typecheck/lint verdes, **2171 unit**, **671 integração**, build de produção OK, `src/app/(app)/moderacao/page.tsx` com diff zero preservado (P-004). 11/11 ACs sem regressão, 5/5 must-nots verdes. Lições `L-023`/`L-024` fechadas com prova por mutação.
+**AD-029 separado (2026-08-18, a pedido do dono):** o commit das 3 migrations foi extraído para a PR própria **#295** (`fix/ad-029-unaccent-schema-qualify`), e a branch da USP-066 foi rebaseada para removê-lo (29 commits, zero migrations no diff; os 22 comentários do review sobreviveram ao force-push). Rollback de infra deixa de estar amarrado ao de uma feature de UI. **Segue pendente, e é ação humana:** rodar `prisma migrate deploy` contra produção com credenciais reais depois do merge da #295 — sem isso o incidente P3018 de 2026-07-21 pode persistir em produção.
+
+**Correção — 2ª rodada do review da PR #294 (C1..C9), 2026-08-18:** o parágrafo A2 acima registrou a
+sincronia `CONTENT_KINDS_WITH_READER`↔`container.ts` como "amarrada por teste" e tratou o trade-off
+fail-open como fechado. Uma 2ª passada do review multi-agente achou que **o invariante ainda não
+estava de fato estabelecido**: o gate de Aprovar era chaveado no `row.contentKind`, e
+`_moderation_fixture.kind` é coluna `String` livre (sem enum no banco) — uma linha do fixture semeada
+com `kind: JOB`/`SERVICE`/`CANDIDATE_PROFILE` (artefato de teste anterior a USP-020/029) reproduzia o
+MESMO beco sem saída do A2, só que fora do kind `CV` (`hasContentReader=true` pelo kind, reader real
+nunca acha o `id` do fixture, "Aprovar" trava para sempre — **C1**). Corrigido: `viewModerationQueue`
+normaliza qualquer linha do fixture cujo `kind` colida com um dos 3 kinds já servidos por fonte
+própria de volta para `CV` (vacuamente sem gate, mesmo tratamento do `CV` genuíno) — provado por
+mutação em integração (reverter a normalização derruba o caso novo com `expected 'JOB' to be 'CV'`).
+Mais achados fechados na mesma rodada: **C2** — o gate combinado (checklist USP-017 + conteúdo)
+cobria só 2 das 4 combinações; a mutação `(!needsChecklist && hasContentReader && ...)` passava a
+suíte inteira e, em produção, deixaria qualquer vaga de Empresa não verificada aprovável sem o
+conteúdo nunca ter sido aberto — fechado com os 2 casos que faltavam. **C3** — o teste de sincronia
+do container comparava só chaves via cast de campo privado; virou comparação de identidade por
+`supportedKinds()`/`readerFor()` públicos, e o registro do dispatcher virou um
+`Record<ContentKind, reader|null>` exaustivo (kind novo sem decisão = erro de compilação). **C4** — o
+invariante "só serve item `IN_MODERATION`" vivia só nos 3 adapters, fora do contrato da porta; agora é
+checado estruturalmente na própria action via `CONTENT_STATUS_REPOSITORY_TOKEN`, antes do reader
+(defesa em profundidade, não só convenção). **C5** — miniatura de foto de serviço (96px) sem
+`loading="lazy"`/`decoding="async"` alimentada pelo objeto original (até 5 MiB) — corrigido. **C6** —
+a guarda de segredos (`no-committed-secrets.test.ts`) rotineiramente excedia o timeout default sob
+carga e era tratada como flake conhecido; ganhou orçamento explícito (60s). **C7** — link assinado do
+CV (TTL 300s) sem caminho de recarga uma vez carregado; painel ganhou botão "Recarregar conteúdo".
+**C8/C9** — achados menores (mock de teste que não asseria o bucket, JSDoc de contrato do chamador,
+export morto, drift em `validation.md`/`spec.md`/`lessons.json` incl. SHAs órfãos pré-rebase).
+Todos os 9 fechados com teste + mutação própria confirmada (revertida) antes do commit; ver
+`validation.md` (seção da rodada 2) para o detalhe por achado. **Não fechado por mim** (fora do
+escopo desta rodada, por decisão do orquestrador): consentimento (`requireActiveConsent`) não
+exercido, E2E do fluxo "abrir conteúdo → aprovar", item de board OpenWolf para a USP-066 — os três já
+eram apontados como pendentes na 1ª rodada e continuam.
+
+### AD-030: USP-066 — conteúdo do rascunho servido **sob demanda** por Server Action (não no render da fila) — PASS 2026-08-15
+
+**Decision:** A validação em staging expôs uma lacuna de spec (**PF-002**, `falta-de-spec`, em `docs/qualidade/pontos-falhos-processo.md`): a fila de moderação listava os itens mas **não exibia o conteúdo do rascunho** — o moderador decidia às cegas. A USP-066 corrige isso, e a decisão de desenho central é servir o conteúdo por uma Server Action `openModerationContent(kind, id)` disparada ao **abrir** o item, e não carregar no render da fila (que é o precedente do `VerificationPanel` da USP-017). Essa única escolha reconcilia três exigências que puxavam em direções opostas: **E-001** (ver sem sair da fila) via painel inline; **P-004** (não carregar conteúdo de N itens no render) — `app/(app)/moderacao/page.tsx` fica com **diff zero**, que é a garantia estrutural, não uma convenção; e **P-002** (conteúdo fora da permissão não trafega) — a leitura acontece **depois** do `requirePermission`, então a row restrita nunca entra no payload Flight da página. Read-conditional-on-role é mais forte que o select-conditional-on-role que a spec pedia.
+**Decisões técnicas de apoio:** leitura despachada por `ContentKind` via `DispatchingContentModerationReader` + token no container, espelhando o `DispatchingContentStatusRepository` já existente (adapters por tipo nos módulos donos — `jobs`/`services`/`persons`); **audit-on-read fail-closed** com `SENSITIVE_FIELD_VIEWED` (se a gravação de auditoria falhar, o conteúdo **não** é entregue) no padrão do `list-job-applicants.ts`; gate de Aprovar combinado com `&&` ao readiness-map do checklist da USP-017. **Sem migração, sem entidade nova, sem dependência nova.**
+**Refinamento de AC:** o AC-066-4 original exigia auditar "na mesma transação da leitura". Foi refinado para **fail-closed ao servir** — E-005 exige o registro do acesso, não atomicidade read-inside-tx, e o precedente do repo audita ao servir. Registrado como premissa (dono `agent`) na §6 da spec, confirmável pelo dono do intent no UAT.
+**Trade-offs aceitos:** o CV por URL assinada foi **replicado** em `persons` (`resolveSignedCvUrl`) em vez de importar `resolveCvUrl` do barrel de `jobs` — `jobs` já importa `@/modules/persons`, então o import de volta fecharia ciclo `persons↔jobs`; o Verifier confirmou que o ciclo seria real e que TTL (300s) e degrade-to-null ficaram idênticos. Testes existentes de `moderation-queue.test.tsx` passaram a carregar o conteúdo antes de aprovar — é o **novo AC** (P-001), não afrouxamento: 14→17 testes, 0 asserções deletadas (verificado independentemente).
+**Impact:** Verifier independente **PASS**, **0 fix→re-verify**. 11/11 ACs (E-001..E-006, P-001..P-005) satisfeitos; **6/6 mutações injetadas ao vivo, 6/6 mortas** — incluindo Aprovar sem `contentState === 'loaded'` (P-001), leitura antes do `requirePermission` (P-002), auto-load no mount (P-004), `update` não autorizado de `publicationStatus` (P-005), truncar texto longo (P-003) e remover o `return fail(...)` do catch de auditoria (E-005 fail-closed). Gates no HEAD `8c5e362`: typecheck/lint verdes, **2153 unit** (303 arquivos), **667 de integração** (114 arquivos), build de produção OK, cobertura 75,77% statements / 69,33% branches (piso do CI 65%). Artefatos em `.specs/features/moderacao-conteudo/usp-066-ver-conteudo-rascunho/` (incl. `validation.md`).
 
 ### AD-029: Migration early p/ extensão `unaccent`/`pg_trgm` — corrige deploy em banco novo (staging/DR) — 2026-07-22
 

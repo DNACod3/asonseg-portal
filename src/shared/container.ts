@@ -127,6 +127,25 @@ import { PrismaCompanyVerifyHook } from '@/modules/moderation/adapters/prisma-co
 import { PrismaCandidateProfileStatusRepository } from '@/modules/persons/adapters/prisma-candidate-profile-status';
 import { PrismaJobStatusRepository } from '@/modules/jobs/adapters/prisma-job-status';
 import { PrismaServiceStatusRepository } from '@/modules/services/adapters/prisma-service-status';
+// Leitura do conteúdo integral por ContentKind (USP-066 / E-002..E-004): mesmo
+// padrão de despacho acima, para o CONTEÚDO (não o status). `CV` isolado
+// registra `null` explícito (sem model real — premissa §6 da spec), o
+// dispatcher devolve `null` para ele (E-006 gracioso). Os kinds com reader não
+// nulo aqui DEVEM coincidir com `CONTENT_KINDS_WITH_READER`
+// (moderation/domain/content-moderation-reader-kinds.ts) — é essa lista que
+// `moderation-queue.tsx` usa para decidir quais kinds exigem "conteúdo
+// carregado" antes de Aprovar (correção A2/PR#294: um kind sem reader não pode
+// travar "Aprovar" para sempre). C3/PR#294 rodada 2: o registro é um
+// `Record<ContentKind, …|null>` EXAUSTIVO — o TypeScript exige uma entrada
+// para cada `ContentKind` (mesmo que `null`), então um kind novo no enum sem
+// decisão aqui é erro de compilação, não um gap silencioso. A sincronia com
+// `CONTENT_KINDS_WITH_READER` continua garantida por teste, não só por
+// comentário (`container-content-moderation-reader-kinds.test.ts`, L-024).
+import { CONTENT_MODERATION_READER_TOKEN } from '@/modules/moderation/ports/content-moderation-reader.port';
+import { DispatchingContentModerationReader } from '@/modules/moderation/adapters/dispatching-content-moderation-reader';
+import { PrismaJobModerationReader } from '@/modules/jobs/adapters/prisma-job-moderation-reader';
+import { PrismaServiceModerationReader } from '@/modules/services/adapters/prisma-service-moderation-reader';
+import { PrismaCandidateProfileModerationReader } from '@/modules/persons/adapters/prisma-candidate-profile-moderation-reader';
 /* eslint-enable no-restricted-imports */
 // Despacho por ContentKind (GAP-8): CANDIDATE_PROFILE (USP-009), JOB (USP-020) e
 // SERVICE (USP-029) usam suas tabelas reais; CV cai no fallback `_moderation_fixture`
@@ -146,6 +165,18 @@ container.register(
 container.register(MODERATION_NOTIFICATION_TOKEN, () => new OutboxModerationNotification());
 container.register(CACHE_INVALIDATION_TOKEN, () => new NextCacheInvalidation());
 container.register(COMPANY_VERIFY_HOOK_TOKEN, () => new PrismaCompanyVerifyHook());
+container.register(
+  CONTENT_MODERATION_READER_TOKEN,
+  () =>
+    new DispatchingContentModerationReader({
+      [ContentKind.JOB]: new PrismaJobModerationReader(),
+      [ContentKind.SERVICE]: new PrismaServiceModerationReader(),
+      [ContentKind.CANDIDATE_PROFILE]: new PrismaCandidateProfileModerationReader(),
+      // Explícito, não omitido (C3/PR#294 rodada 2 — registro exaustivo):
+      // `CV` isolado não tem model real, então não tem reader de conteúdo.
+      [ContentKind.CV]: null,
+    }),
+);
 
 // Extração de CV via IA (USP-040 / ADR-0012): porta `CVExtractor` → adapter
 // Anthropic em produção; `FakeCVExtractor` só sob `env.CV_EXTRACTOR_FAKE`

@@ -2,10 +2,12 @@
 
 import { useCallback, useState, useTransition } from 'react';
 import { ContentKind } from '../domain/content-status';
+import { CONTENT_KINDS_WITH_READER } from '../domain/content-moderation-reader-kinds';
 import { MIN_JUSTIFICATION_LENGTH } from '../domain/justification';
 import { approveContent, rejectContent, returnForAdjustments } from '../actions/decide';
 import type { VerificationChecklistItem } from '../domain/verification-checklist';
 import { VerificationPanel, type VerificationPanelData } from './verification-panel';
+import { ModerationContentPanel, type ModerationContentPanelState } from './moderation-content-panel';
 import { Badge, Button, Label, Textarea } from '@/shared/ui';
 
 /** Item da fila já formatado pelo Server Component (data em fuso de SP). */
@@ -62,9 +64,16 @@ export function ModerationQueue({
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Prontidão da checklist de verificação por item (P-001) — reportada pelo painel.
   const [verifyReady, setVerifyReady] = useState<Record<string, boolean>>({});
+  // Prontidão do CONTEÚDO por item (USP-066 / P-001) — reportada pelo
+  // ModerationContentPanel; Aprovar só habilita com 'loaded' (E-006).
+  const [contentState, setContentState] = useState<Record<string, ModerationContentPanelState>>({});
 
   const setReady = useCallback((id: string, ready: boolean) => {
     setVerifyReady((prev) => (prev[id] === ready ? prev : { ...prev, [id]: ready }));
+  }, []);
+
+  const setContentReady = useCallback((id: string, state: ModerationContentPanelState) => {
+    setContentState((prev) => (prev[id] === state ? prev : { ...prev, [id]: state }));
   }, []);
 
   function resolve(id: string) {
@@ -137,6 +146,10 @@ export function ModerationQueue({
         // MOD7-02/USP056-MN-04 — prop ausente (undefined) = todos moderáveis (MOD7-03).
         const canModerate =
           !viewerModeratableKinds || viewerModeratableKinds.includes(row.contentKind);
+        // A2 (PR#294) — só kinds com reader real (JOB/SERVICE/CANDIDATE_PROFILE)
+        // têm conteúdo para carregar; exigir 'loaded' para um kind sem reader
+        // (hoje só CV) travaria Aprovar para sempre (E-006 vira beco sem saída).
+        const hasContentReader = CONTENT_KINDS_WITH_READER.includes(row.contentKind);
         return (
           <li
             key={row.contentId}
@@ -166,6 +179,17 @@ export function ModerationQueue({
                 data={row.verification}
                 checklistItems={checklistItems}
                 onReadinessChange={(ready) => setReady(row.contentId, ready)}
+              />
+            )}
+
+            {/* Conteúdo integral sob demanda (USP-066 / E-001) — só no ramo canModerate,
+                e só para kinds com reader real (A2/PR#294); antes dos controles de
+                decisão; page.tsx nunca carrega conteúdo (P-004). */}
+            {canModerate && hasContentReader && (
+              <ModerationContentPanel
+                contentKind={row.contentKind}
+                contentId={row.contentId}
+                onStateChange={(s) => setContentReady(row.contentId, s)}
               />
             )}
 
@@ -225,11 +249,17 @@ export function ModerationQueue({
                   variant="primary"
                   size="sm"
                   onClick={() => onApprove(row)}
-                  disabled={rowPending || (needsChecklist && !verifyReady[row.contentId])}
+                  disabled={
+                    rowPending ||
+                    (needsChecklist && !verifyReady[row.contentId]) ||
+                    (hasContentReader && contentState[row.contentId] !== 'loaded')
+                  }
                   title={
-                    needsChecklist && !verifyReady[row.contentId]
-                      ? 'Conclua a checklist de verificação da Empresa para aprovar (P-001).'
-                      : undefined
+                    hasContentReader && contentState[row.contentId] !== 'loaded'
+                      ? 'Abra o conteúdo antes de aprovar.'
+                      : needsChecklist && !verifyReady[row.contentId]
+                        ? 'Conclua a checklist de verificação da Empresa para aprovar (P-001).'
+                        : undefined
                   }
                 >
                   {rowPending ? 'Processando…' : 'Aprovar'}

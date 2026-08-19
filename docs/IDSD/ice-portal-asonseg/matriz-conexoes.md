@@ -57,8 +57,11 @@
 | USP-043 | Consentimentos LGPD por finalidade | 12 — Conformidade LGPD (Consentimentos) | Must |
 | USP-044 | Notificações por e-mail em eventos do portal | 13 — Notificações por E-mail | Must |
 | USP-045 | Reativar Pessoa (fluxo inverso da USP-007) | 1 — Identidade, Acesso e Papéis | Must |
+| USP-066 | Ver conteúdo integral do rascunho na fila de moderação | 4 — Moderação de Conteúdo | Must |
 
 > **USP-045** criada na fase de arquitetura (2026-05-29) a partir da premissa de reativação confirmada pelo PO. Os intent/expectations (camada ICE) devem ser gerados pela `po-bravi-idsd`.
+
+> **USP-066** criada em 2026-08-15 a partir de lacuna observada em staging, classificada como **falta de spec** (PF-002 em `docs/qualidade/pontos-falhos-processo.md`): a USP-016 entregou a decisão de moderação sem nunca exibir o conteúdo moderado. Numeração seguindo o board (`.specs/project/ROADMAP.md`), que diverge da faixa 001–045 do ICE original.
 
 ---
 
@@ -744,6 +747,23 @@
 - **[técnico] Runbooks:** runbook-server-action, runbook-audit-log, runbook-consent-gate
 - **[técnico] ADRs técnicos:** ADR-0030 (volta sem grants; reativador ≥ inativador), ADR-0023, ADR-0025 (re-aceite de consentimento)
 - **[técnico] Fase:** Fase 1 (TD §5)
+
+### USP-066 — Ver conteúdo integral do rascunho na fila de moderação
+
+> Criada em 2026-08-15 a partir de lacuna observada em staging — classificada como **falta de spec** (PF-002). Estende a USP-016, que entregou a decisão sem a leitura do conteúdo. **ICE gerado (2026-08-15):** [intent](intents/intent-USP-066.md) · [expectations](expectations/expectations-USP-066.md).
+
+- **Upstream:** USP-016 (a fila e a decisão existem), USP-056 (permissão de moderar por `ContentKind`), USP-020/USP-009/USP-029 (o rascunho existe)
+- **Downstream:** — (não desbloqueia USP nova; eleva a qualidade da decisão da USP-016)
+- **ADRs:** ADR-0010 (visibilidade conservadora), ADR-0015 (moderação como diferencial)
+- **Métricas:** MP10 (tempo médio de moderação — esta USP tende a aumentá-lo; é trade-off aceito)
+- **Riscos:** RP-007 (CV ruim validado) e RP-010 (conteúdo impróprio) hoje sem defesa; risco novo: vazamento de PII a voluntário com permissão parcial (mitigado por P-002)
+- **Deps/Q-abertas:** — (nenhuma dependência externa; decisão de dono já registrada no intent)
+- **[técnico] Schemas:** `jobs`, `services`, `candidate_profiles`, `service_photos`, `audit_log` — **não** `content_items` (TD §4.5 nunca implementado; status mora na entidade)
+- **[técnico] Endpoints:** `moderation.openModerationContent` (leitura, novo) · decisão segue por `moderation.transitionContent` (TD §4.4)
+- **[técnico] Eventos:** `SENSITIVE_FIELD_VIEWED` (audit) (TD §4.6)
+- **[técnico] Runbooks:** runbook-server-action, runbook-audit-log
+- **[técnico] ADRs técnicos:** ADR-0024 (FSM inalterada), ADR-0023, ADR-0005 (URL assinada p/ arquivo de CV)
+- **[técnico] Fase:** pós-Fase 10 (remediação)
 
 ---
 

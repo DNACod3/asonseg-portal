@@ -2,7 +2,17 @@ import { ContentStatus as PrismaContentStatus } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
 import { viewStaffPersonNames } from '@/modules/persons';
 import { ContentKind } from '../domain/content-status';
+import { CONTENT_KINDS_WITH_READER } from '../domain/content-moderation-reader-kinds';
 import type { ModerationQueueItem } from '../views/moderation-queue-item';
+
+/**
+ * Kinds que já têm fonte real própria unida nesta query (`jobRows`/
+ * `serviceRows`/`candidateProfileRows`) — hoje o mesmo conjunto de
+ * {@link CONTENT_KINDS_WITH_READER}, mas a igualdade é coincidência de
+ * domínio, não uma regra estrutural nova: reusamos a constante existente em
+ * vez de duplicar a lista (fonte única).
+ */
+const KINDS_WITH_OWN_SOURCE = new Set<ContentKind>(CONTENT_KINDS_WITH_READER);
 
 /** Limite de itens da fila por leitura (paginação obrigatória — L-001). */
 const QUEUE_PAGE_SIZE = 100;
@@ -111,13 +121,38 @@ export async function viewModerationQueue({
     // Sem companyUnverified/companyId: verificação de Empresa é exclusiva de vagas.
   }));
 
-  const fixtureItems: QueueRow[] = fixtureRows.map((r) => ({
-    contentKind: r.kind as ContentKind,
-    contentId: r.id,
-    title: r.title,
-    authorPersonId: r.authorPersonId,
-    submittedAt: r.submittedAt,
-  }));
+  const fixtureItems: QueueRow[] = fixtureRows.map((r) => {
+    // C1 (PR#294 rodada 2) — `_moderation_fixture.kind` é coluna `String`
+    // livre, sem FK/enum no banco (`prisma/schema.prisma`); o cast abaixo é
+    // sempre necessário, mas repassar o valor cru é o que causava o achado:
+    // JOB/SERVICE/CANDIDATE_PROFILE já têm fonte PRÓPRIA unida acima
+    // (jobRows/serviceRows/candidateProfileRows) — uma linha do FIXTURE que
+    // "afirme" ser um desses 3 kinds é sempre um artefato de teste anterior a
+    // USP-020/029 (quando o fixture era a única tabela; ver
+    // `moderation-queue.int.test.ts`), nunca conteúdo real: seu `id` é da
+    // tabela do fixture, não de `jobs`/`services`/`candidate_profiles`. Se
+    // repassássemos esse `kind`, `moderation-queue.tsx` concluiria (via
+    // `CONTENT_KINDS_WITH_READER`) que há reader real para a linha; o painel
+    // abriria, o reader real faria `findFirst({ id: <uuid do fixture>, status:
+    // IN_MODERATION })`, NUNCA encontraria a linha (E-006 ⇒ `error`), e
+    // "Aprovar" ficaria travado para sempre — o mesmo formato do bug A2, só
+    // que fora do kind `CV`. Normalizamos: um `kind` de fixture que colida com
+    // um dos 3 kinds já servidos por fonte real cai para `CV` — o único uso
+    // legítimo remanescente do fixture (sem reader, sem conteúdo a carregar,
+    // gate vacuamente satisfeito, mesmo tratamento já dado a `CV`). Qualquer
+    // outro valor (incl. `CV` genuíno, ou lixo fora do enum) passa como está:
+    // nenhum desses tem reader em `CONTENT_KINDS_WITH_READER`, então o gate já
+    // era (corretamente) vacuamente satisfeito para eles.
+    const rawKind = r.kind as ContentKind;
+    const contentKind = KINDS_WITH_OWN_SOURCE.has(rawKind) ? ContentKind.CV : rawKind;
+    return {
+      contentKind,
+      contentId: r.id,
+      title: r.title,
+      authorPersonId: r.authorPersonId,
+      submittedAt: r.submittedAt,
+    };
+  });
 
   const candidateProfileItems: QueueRow[] = candidateProfileRows.map((c) => ({
     contentKind: ContentKind.CANDIDATE_PROFILE,

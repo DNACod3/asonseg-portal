@@ -1,4 +1,6 @@
 import { createSupabaseAdminClient } from './server';
+import { childLogger } from '@/shared/lib/logger';
+import { STORAGE_BUCKETS, SIGNED_URL_TTL_SECONDS } from './storage-buckets';
 
 /**
  * Client de Supabase Storage para uso server-side (ADR-0005 — Storage de
@@ -11,27 +13,18 @@ import { createSupabaseAdminClient } from './server';
  * privado) ou montar a URL pública (bucket público). Nunca importar/expor no
  * client — só Server Actions/Route Handlers.
  *
- * **Nenhum consumidor concreto ainda** (Fase 0 — Fundação, F0A-04): o 1º
- * consumidor esperado é USP-040 (`consent-terms`, extração de CV) — CV e foto
- * de prestador seguem USPs próprias (043/031). O client fica pronto e
- * verificado (`typecheck`/`build`) para a 1ª Server Action de upload/URL
- * assinada plugar sem reabrir este arquivo.
+ * As constantes/specs de bucket vivem em `./storage-buckets` (módulo-leaf sem
+ * `next/headers`, importável por scripts Node) e são reexportadas aqui para
+ * manter os imports existentes (`@/shared/lib/supabase/supabase-storage`).
  */
 
-/** Buckets definidos em ADR-0005 (visibilidade + tamanho máx + TTL de URL assinada). */
-export const STORAGE_BUCKETS = {
-  /** Privado. PDF/DOC/DOCX até 5MB. URL assinada, TTL 5min. `cvs/{person_id}/{uuid}.{ext}` */
-  CVS: 'cvs',
-  /** Privado. PDF/JPG/PNG até 10MB. URL assinada, TTL 5min. `consent-terms/{person_id}/{purpose}/{uuid}.{ext}` */
-  CONSENT_TERMS: 'consent-terms',
-  /** Público. JPG/PNG/WEBP até 5MB (USP-029: até 3 fotos por serviço). URL direta do CDN. `provider-photos/{person_id}/{uuid}.{ext}` */
-  PROVIDER_PHOTOS: 'provider-photos',
-} as const;
-
-export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
-
-/** TTL (segundos) da URL assinada para os buckets privados (ADR-0005). */
-export const SIGNED_URL_TTL_SECONDS = 300;
+export {
+  STORAGE_BUCKETS,
+  STORAGE_BUCKET_SPECS,
+  SIGNED_URL_TTL_SECONDS,
+  type StorageBucket,
+  type StorageBucketSpec,
+} from './storage-buckets';
 
 /**
  * Retorna o client de Storage (`supabase.storage`) pronto para uso em Server
@@ -40,4 +33,58 @@ export const SIGNED_URL_TTL_SECONDS = 300;
  */
 export function createSupabaseStorageClient() {
   return createSupabaseAdminClient().storage;
+}
+
+/**
+ * Resolve uma URL assinada de curta duração para o CV de um candidato
+ * (bucket privado `cvs`, TTL 300s — ADR-0005). Server-only.
+ *
+ * **Promovido de `jobs/queries/list-job-applicants.ts` e
+ * `persons/adapters/prisma-candidate-profile-moderation-reader.ts`**
+ * (correção B1 do review da PR #294): os dois módulos tinham cópias
+ * idênticas (mesmo bucket/TTL/degradação, só o nome do evento de log
+ * divergia). A justificativa original para duplicar — "importar de `jobs`
+ * criaria um ciclo `persons↔jobs`" — não se sustentava: os dois imports
+ * `persons → jobs` existentes já são `import type` (apagados na
+ * compilação), então importar um valor de `jobs` de dentro de `persons`
+ * teria criado o único ciclo de runtime real. A saída correta (regra de
+ * promoção do project-guideline §2 — 2+ consumidores → `shared/`) é esta:
+ * nenhum dos dois módulos "dá emprestado" Storage para o outro.
+ *
+ * Degrada limpo (nunca lança): `null` quando não há `path`, quando o
+ * Storage retorna erro (bucket ausente no ambiente, arquivo removido, etc.)
+ * ou em qualquer exceção de rede.
+ *
+ * **Contrato do chamador (ADR-0005 — C8/PR#294 rodada 2):** este helper só
+ * cunha a URL; ele **não** verifica permissão de visibilidade nem registra o
+ * acesso no `audit_log`. Só chamar depois de `requirePermission`/checagem
+ * equivalente, e registrar o acesso (`SENSITIVE_FIELD_VIEWED` /
+ * `CV_VIEWED_BY_EMPLOYER`, conforme o consumidor) quando aplicável — os dois
+ * consumidores atuais (`list-job-applicants.ts`, `prisma-candidate-profile-
+ * moderation-reader.ts`) cumprem isso no caller, não aqui.
+ *
+ * @param path `cvStoragePath` do candidato, ou `null`.
+ * @param logCtx Bindings extra do logger (ex.: `{ module: 'jobs', query: 'listJobApplicants' }`)
+ *   — para diferenciar a origem da chamada nos logs estruturados.
+ */
+export async function resolveSignedCvUrl(
+  path: string | null,
+  logCtx: Record<string, unknown>,
+): Promise<string | null> {
+  if (!path) return null;
+
+  try {
+    const storage = createSupabaseStorageClient();
+    const { data, error } = await storage
+      .from(STORAGE_BUCKETS.CVS)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    if (error || !data) {
+      childLogger(logCtx).warn({ err: error, path }, 'storage:cv_signed_url_unavailable');
+      return null;
+    }
+    return data.signedUrl;
+  } catch (err) {
+    childLogger(logCtx).warn({ err, path }, 'storage:cv_signed_url_unavailable');
+    return null;
+  }
 }

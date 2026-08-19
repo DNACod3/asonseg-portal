@@ -7,46 +7,8 @@ import { ok, fail, type ActionResult } from '@/shared/errors';
 import { clientIp } from '@/shared/lib/clientIp';
 import { childLogger } from '@/shared/lib/logger';
 import { prisma } from '@/shared/lib/prisma';
-import {
-  createSupabaseStorageClient,
-  STORAGE_BUCKETS,
-  SIGNED_URL_TTL_SECONDS,
-} from '@/shared/lib/supabase/supabase-storage';
+import { resolveSignedCvUrl } from '@/shared/lib/supabase/supabase-storage';
 import { requireActiveResponsible } from '../server/require-active-responsible';
-
-/**
- * Resolve uma URL assinada de curta duração para o CV de um candidato
- * (USP-027 / bucket privado `cvs`, ADR-0005). Server-only.
- *
- * Degrada limpo (nunca lança): `null` quando não há `cvStoragePath`, quando o
- * Storage retorna erro (bucket ausente no ambiente, arquivo removido, etc.) ou
- * em qualquer exceção de rede — o item de candidato ainda é exibido, só sem link
- * de CV (`EmployerCandidateView.cv.available=false`, ver `view-candidate-for-employer.ts`).
- */
-export async function resolveCvUrl(path: string | null): Promise<string | null> {
-  if (!path) return null;
-
-  try {
-    const storage = createSupabaseStorageClient();
-    const { data, error } = await storage
-      .from(STORAGE_BUCKETS.CVS)
-      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-    if (error || !data) {
-      childLogger({ module: 'jobs', query: 'listJobApplicants' }).warn(
-        { err: error, path },
-        'jobs:cv_signed_url_unavailable',
-      );
-      return null;
-    }
-    return data.signedUrl;
-  } catch (err) {
-    childLogger({ module: 'jobs', query: 'listJobApplicants' }).warn(
-      { err, path },
-      'jobs:cv_signed_url_unavailable',
-    );
-    return null;
-  }
-}
 
 /** Tamanho de página da lista de candidatos (L-002 — `take` obrigatório). */
 export const APPLICANTS_PAGE_SIZE = 20;
@@ -139,11 +101,14 @@ export async function listJobApplicants(
   // Assinaturas de CV resolvidas em paralelo (P-004): são chamadas independentes
   // ao Storage, fora da transação de auditoria — `Promise.all` mantém a ordem
   // `appliedAt asc` das linhas e evita ~N round-trips seriais por página.
-  // `resolveCvUrl` nunca lança (degrada para `null`), então nenhum item derruba os demais.
+  // `resolveSignedCvUrl` nunca lança (degrada para `null`), então nenhum item derruba os demais.
   const applicants: EmployerCandidateView[] = await Promise.all(
     rows.map(async (row) => {
       const cvStoragePath = row.candidate.candidateProfile?.cvStoragePath ?? null;
-      const cvSignedUrl = await resolveCvUrl(cvStoragePath);
+      const cvSignedUrl = await resolveSignedCvUrl(cvStoragePath, {
+        module: 'jobs',
+        query: 'listJobApplicants',
+      });
       return viewCandidateForEmployer({
         candidatePersonId: row.candidate.id,
         fullName: row.candidate.fullName,

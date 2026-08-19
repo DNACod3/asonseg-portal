@@ -23,6 +23,7 @@ export {
   PERMISSION_BY_KIND,
   CONTENT_KINDS_BY_PERMISSION,
 } from './domain/moderation-permissions';
+export { CONTENT_KINDS_WITH_READER } from './domain/content-moderation-reader-kinds';
 
 // ── transitionContent + ports (#122) ─────────────────────────────────────────
 export { transitionContent } from './actions/transition-content';
@@ -48,6 +49,12 @@ export type {
   ContentActivation,
 } from './ports/company-verify-hook.port';
 export { PrismaModerationContentRepository } from './adapters/prisma-moderation-content-repository';
+
+// ── Leitura do conteúdo integral por ContentKind (USP-066) ──────────────────
+export { CONTENT_MODERATION_READER_TOKEN } from './ports/content-moderation-reader.port';
+export type { ContentModerationReader } from './ports/content-moderation-reader.port';
+export type { ModerationContentView } from './views/moderation-content';
+export { DispatchingContentModerationReader } from './adapters/dispatching-content-moderation-reader';
 export { DispatchingContentStatusRepository } from './adapters/dispatching-content-status-repository';
 export { StubModerationNotification } from './adapters/stub-moderation-notification';
 export { OutboxModerationNotification } from './adapters/outbox-moderation-notification';
@@ -57,6 +64,9 @@ export { PrismaCompanyVerifyHook } from './adapters/prisma-company-verify-hook';
 
 // ── Actions de decisão + fila do coordenador (#123) ──────────────────────────
 export { approveContent, returnForAdjustments, rejectContent } from './actions/decide';
+export { openModerationContent } from './actions/open-content';
+export { openContentSchema } from './schemas/open-content';
+export type { OpenContentInput } from './schemas/open-content';
 export { inactivateContent } from './actions/inactivate';
 export { suggestTaxonomy } from './actions/suggest-taxonomy';
 export {
@@ -102,6 +112,12 @@ export {
 } from './server/moderation-access';
 export { ModerationQueue } from './components/moderation-queue';
 export type { ModerationQueueRow } from './components/moderation-queue';
+export { ModerationContentDetails } from './components/moderation-content-details';
+export { ModerationContentPanel } from './components/moderation-content-panel';
+export type {
+  ModerationContentPanelProps,
+  ModerationContentPanelState,
+} from './components/moderation-content-panel';
 export { PublishedContentManager } from './components/published-content-manager';
 export type { PublishedContentRow } from './components/published-content-manager';
 export { TaxonomySuggestionsList } from './components/taxonomy-suggestions-list';

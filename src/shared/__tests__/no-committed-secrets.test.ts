@@ -110,17 +110,29 @@ function scanFile(file: string, content: string, offenders: Offender[]): void {
 }
 
 describe('F0-MN-05 — nenhuma credencial real versionada (guarda defensiva)', () => {
-  it('nenhum arquivo tracked contém um segredo real (allowlist de valores fake/demo)', () => {
-    const offenders: Offender[] = [];
+  // C6 (PR#294 rodada 2) — este caso varre TODO arquivo tracked (`git
+  // ls-files`), custo O(arquivos tracked); em isolamento já consome ~50% do
+  // `testTimeout` default (5000ms — 2.41s medidos), e sob a concorrência da
+  // suíte cheia estoura, virando "flake conhecido". Um gate de segurança
+  // cronicamente vermelho treina o revisor a ignorar o vermelho — no dia em
+  // que ele ficar vermelho por um segredo real, vai parecer igual a este.
+  // Orçamento explícito (60s) devolve o sinal binário: vermelho volta a
+  // significar "tem segredo no repo", não "a suíte estava sob carga".
+  it(
+    'nenhum arquivo tracked contém um segredo real (allowlist de valores fake/demo)',
+    () => {
+      const offenders: Offender[] = [];
 
-    for (const file of trackedFiles()) {
-      const content = readTextFile(file);
-      if (content === null) continue;
-      scanFile(file, content, offenders);
-    }
+      for (const file of trackedFiles()) {
+        const content = readTextFile(file);
+        if (content === null) continue;
+        scanFile(file, content, offenders);
+      }
 
-    expect(offenders).toEqual([]);
-  });
+      expect(offenders).toEqual([]);
+    },
+    60_000,
+  );
 
   it('.env.staging não está tracked (achado do audit WS-C — já corrigido/nunca vazou)', () => {
     const tracked = trackedFiles();

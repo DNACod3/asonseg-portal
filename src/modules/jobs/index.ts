@@ -124,7 +124,6 @@ export {
 export { getMyActiveApplication } from './queries/get-my-application';
 export {
   listJobApplicants,
-  resolveCvUrl,
   APPLICANTS_PAGE_SIZE,
   type EmployerCandidatesResult,
 } from './queries/list-job-applicants';
