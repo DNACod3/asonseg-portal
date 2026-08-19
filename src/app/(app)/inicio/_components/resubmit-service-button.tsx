@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { submitServiceForModeration } from '@/modules/services';
+// Import direto do arquivo-fonte (não do barrel `@/modules/services`) — mesmo
+// racional de `ResubmitJobButton`: Client Component fora do módulo que
+// precisa só da Server Action, sem puxar o resto do barrel (server-only,
+// `next/headers`) para o bundle do client (`Failed to compile`). Mesmo
+// carve-out documentado em `no-deep-module-imports.test.ts` para
+// `services/components/service-form.tsx`.
+// eslint-disable-next-line no-restricted-imports
+import { submitServiceForModeration } from '@/modules/services/actions/submit-service-for-moderation';
 import { Button } from '@/shared/ui';
 
 export interface ResubmitServiceButtonProps {

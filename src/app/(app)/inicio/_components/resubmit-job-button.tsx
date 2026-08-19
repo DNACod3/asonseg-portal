@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { submitJobForModeration } from '@/modules/jobs';
+// Import direto do arquivo-fonte (não do barrel `@/modules/jobs`) — Client
+// Component fora do módulo `jobs` que precisa de uma Server Action; o barrel
+// reexporta código server-only (`next/headers` via outras queries/actions),
+// que o Next recusa empacotar para o client (`Failed to compile`). Mesmo
+// carve-out documentado em `no-deep-module-imports.test.ts` para
+// `jobs/components/job-form.tsx`.
+// eslint-disable-next-line no-restricted-imports
+import { submitJobForModeration } from '@/modules/jobs/actions/submit-job-for-moderation';
 import { Button } from '@/shared/ui';
 
 export interface ResubmitJobButtonProps {
