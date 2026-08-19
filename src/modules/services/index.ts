@@ -109,6 +109,8 @@ export {
   countActiveServicesByCategory,
   type ServiceCategoryCount,
 } from './queries/count-active-services-by-category';
+// KPI "novos em 7 dias" (PROVIDER) do painel `/inicio` (USP-067 — PNL-02, A-15).
+export { countRecentWithin7Days } from './domain/recent-within-days';
 
 // ── Views ──────────────────────────────────────────────────────────────────
 export {

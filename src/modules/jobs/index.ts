@@ -146,6 +146,11 @@ export {
   COMPANY_RECENT_APPLICATIONS_PAGE_SIZE,
   type CompanyRecentApplicationRow,
 } from './queries/list-company-recent-applications';
+export { deriveCandidateApplicationKpis } from './domain/candidate-application-kpis';
+export type {
+  CandidateApplicationKpiRow,
+  CandidateApplicationKpis,
+} from './domain/candidate-application-kpis';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';

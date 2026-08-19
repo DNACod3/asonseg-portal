@@ -134,6 +134,9 @@ export type { ProfileField, ProfileSnapshot } from './domain/role-activation';
 // em domain/roles.ts sobre o nome `ALL_ROLE_LABELS` (evita colisão com o
 // `ROLE_LABELS` acima, escopado a PublicRole).
 export { ALL_ROLE_LABELS, describeActiveRoles } from './domain/roles';
+// Ordenação dos blocos do painel `/inicio` por papel ativo (USP-067 — PNL-00, A-17).
+export { orderActiveRolePanels } from './domain/dashboard-panels';
+export type { PanelKey, RolePanelAccess } from './domain/dashboard-panels';
 export { ActivateRoleForm } from './components/activate-role-form';
 export type { ActivatableRoleOption } from './components/activate-role-form';
 export { buildActivatableOptions } from './server/build-activatable-options';
