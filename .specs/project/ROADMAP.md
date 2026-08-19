@@ -227,6 +227,11 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 - [ ] Rodar o spike de extração de CV (Anthropic) com `ANTHROPIC_API_KEY` real, preenchendo a coluna "medido" do spike
 - [ ] Repetir o restore drill (Backblaze B2) contra um dump **real de produção** (hoje só smoke local)
 - [ ] Corrigir `NEXT_PUBLIC_SITE_URL` (ainda `localhost` até em `.env.staging`) para o domínio real de staging/produção
+- [ ] **B-005** — Rodar `prisma migrate deploy` contra **produção** com as credenciais reais (runbook: `docs/arch/project-guideline.md` §16.1). Não há pipeline automatizado — é passo manual, e é exatamente o que faltou depois do hotfix `20260722140000` (commitado 27/07, nunca aplicado em produção). Passos:
+  - [ ] `DATABASE_URL=<prod> npx prisma migrate status` para confirmar quais migrations estão pendentes
+  - [ ] Aplicar as pendentes com `npx prisma migrate deploy` contra produção
+  - [ ] **Reconciliar checksum** das migrations editadas in-place depois de já aplicadas em produção (AD-029, `.specs/project/STATE.md`): `20260620120000_usp021_job_search_fields`, `20260708150000_usp028_candidate_search`, `20260708170500_usp030_service_search` — **só estas 3**; `20260620110000` e `20260722140000` ainda estão pendentes em produção e serão aplicadas frescas, já com o checksum novo, sem nada a reconciliar. Para cada uma das 3: `UPDATE _prisma_migrations SET checksum = '<novo>' WHERE migration_name = '<nome>';` para cada uma (checksum novo = o que `migrate deploy` reporta no aviso de drift). Sem isso, todo `migrate deploy` seguinte contra produção avisa drift **permanentemente**, mascarando o próximo drift real. `prisma migrate resolve` não recalcula checksum — não serve para isso.
+  - [ ] Confirmar manualmente que a busca sem acento (vagas/candidatos/serviços) funciona em produção — fecha o blocker B-005
 
 ### 2. Sign-offs jurídicos/de negócio (bloqueiam go-live, não bloqueiam merge)
 
