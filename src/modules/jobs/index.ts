@@ -141,6 +141,11 @@ export {
   countCompanyApplications,
   type CompanyApplicationCounts,
 } from './queries/count-company-applications';
+export {
+  listCompanyRecentApplications,
+  COMPANY_RECENT_APPLICATIONS_PAGE_SIZE,
+  type CompanyRecentApplicationRow,
+} from './queries/list-company-recent-applications';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
