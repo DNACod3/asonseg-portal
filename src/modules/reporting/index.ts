@@ -32,6 +32,9 @@ export type { MetricDescriptor, MetricId, MetricUnit } from './domain/metrics';
 export { getHomeIndicators } from './queries/home-indicators';
 export type { HomeIndicators } from './queries/home-indicators';
 
+// KPI "pessoas ativas" (BOARD) do painel `/inicio` (USP-067 — PNL-07, A-12).
+export { countActivePersons } from './queries/count-active-persons';
+
 export { HomeIndicators as HomeIndicatorsView } from './components/home-indicators';
 export type { HomeIndicatorsProps } from './components/home-indicators';
 
