@@ -208,3 +208,8 @@ export type {
   HideCandidateProfileForRevocationContext,
   HideCandidateProfileForRevocationResult,
 } from './actions/hide-candidate-profile-for-revocation';
+
+// Status de publicação do currículo, para o KPI "status do currículo" do
+// painel `/inicio` (USP-067 — PNL-01, A-04).
+export { getCandidateProfileStatus } from './queries/get-candidate-profile-status';
+export { CANDIDATE_STATUS_LABELS } from './domain/candidate-status-labels';
