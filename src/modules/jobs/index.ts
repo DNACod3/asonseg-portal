@@ -137,6 +137,10 @@ export {
   listLatestReturnReasons,
   type LatestReturnReason,
 } from './queries/list-latest-return-reasons';
+export {
+  countCompanyApplications,
+  type CompanyApplicationCounts,
+} from './queries/count-company-applications';
 
 // ── Views (View Models por papel) ───────────────────────────────────────────────
 export { viewJobForVisitor, type JobListItem, type JobListRow } from './views/job-list-item.view';
