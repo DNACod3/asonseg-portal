@@ -213,3 +213,8 @@ export type {
 // painel `/inicio` (USP-067 — PNL-01, A-04).
 export { getCandidateProfileStatus } from './queries/get-candidate-profile-status';
 export { CANDIDATE_STATUS_LABELS } from './domain/candidate-status-labels';
+
+// Status de publicação do perfil de prestador, para o KPI "status do perfil"
+// do painel `/inicio` (USP-067 — PNL-02, A-04).
+export { getProviderProfileStatus } from './queries/get-provider-profile-status';
+export { PROVIDER_STATUS_LABELS } from './domain/provider-status-labels';
