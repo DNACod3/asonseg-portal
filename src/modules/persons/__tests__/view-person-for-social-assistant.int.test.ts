@@ -73,6 +73,7 @@ const FIXTURE_DIMENSIONS: ConsolidatedExternalDimensions = {
       id: 'app-1',
       jobId: 'job-1',
       jobTitle: 'Vaga Fixture',
+      jobStatus: ContentStatus.ACTIVE,
       companyName: 'Empresa Fixture',
       appliedAt: new Date('2026-07-01T10:00:00Z'),
       cancelledAt: null,

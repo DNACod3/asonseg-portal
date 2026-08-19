@@ -90,6 +90,7 @@ describe('ConsolidatedPersonPanel', () => {
               id: 'app-1',
               jobId: 'job-1',
               jobTitle: 'Vaga Consolidado',
+              jobStatus: ContentStatus.ACTIVE,
               companyName: 'Empresa Consolidado',
               appliedAt: new Date('2026-07-01T10:00:00Z'),
               cancelledAt: null,
