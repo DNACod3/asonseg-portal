@@ -12,12 +12,15 @@ test.describe('USP-041 — indicadores da home pública (anônimo)', () => {
     const response = await page.goto('/');
     expect(response?.status()).toBeLessThan(400);
 
-    await expect(
-      page.getByRole('heading', { name: /Portal de Empregabilidade e Serviços/i }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-    await expect(page.getByText('Vagas ativas')).toBeVisible();
-    await expect(page.getByText('Candidatos')).toBeVisible();
-    await expect(page.getByText('Empresas verificadas')).toBeVisible();
+    // Escopado ao bloco de indicadores: 'Candidatos' também é heading de coluna
+    // do rodapé (USP-046), então `getByText` no escopo da página inteira vira
+    // ambíguo. Os rótulos são o contrato de E-002 e seguem asseridos — só que
+    // no lugar certo. A copy do hero fica com o unit do componente.
+    const indicators = page.getByTestId('home-indicators');
+    await expect(indicators.getByText('Vagas ativas')).toBeVisible();
+    await expect(indicators.getByText('Candidatos')).toBeVisible();
+    await expect(indicators.getByText('Empresas verificadas')).toBeVisible();
   });
 });
