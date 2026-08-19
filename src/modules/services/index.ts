@@ -105,6 +105,10 @@ export {
   PERSON_SERVICE_INTERESTS_PAGE_SIZE,
   type PersonServiceInterestRow,
 } from './queries/list-person-service-interests';
+export {
+  countActiveServicesByCategory,
+  type ServiceCategoryCount,
+} from './queries/count-active-services-by-category';
 
 // ── Views ──────────────────────────────────────────────────────────────────
 export {
