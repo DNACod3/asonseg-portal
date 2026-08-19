@@ -36,6 +36,11 @@ export {
   PERSON_REFERRALS_PAGE_SIZE,
   type PersonReferralRow,
 } from './queries/list-person-referrals';
+export {
+  listRecentReferrals,
+  RECENT_REFERRALS_PAGE_SIZE,
+  type RecentReferralRow,
+} from './queries/list-recent-referrals';
 
 // ── Componentes ───────────────────────────────────────────────────────────────
 export { ReferralForm, type ReferralFormProps } from './components/referral-form';
