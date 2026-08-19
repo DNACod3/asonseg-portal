@@ -1,4 +1,8 @@
 import { describe, it, expect } from 'vitest';
+// Import direto do arquivo (não do barrel `@/modules/moderation`) deliberado:
+// evita puxar módulos não-medidos ao grafo de cobertura v8 (lição MEMORY
+// `coverage-gate-branch-loading-drop`); ver comentário abaixo.
+// eslint-disable-next-line no-restricted-imports
 import { ContentStatus } from '@/modules/moderation/domain/content-status';
 import { CANDIDATE_STATUS_LABELS } from '../domain/candidate-status-labels';
 
