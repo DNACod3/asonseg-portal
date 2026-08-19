@@ -21,23 +21,39 @@ ALTER TABLE "jobs" ADD CONSTRAINT "jobs_region_id_fkey"
 
 -- ── Busca textual sem acento, case-insensitive (E-003) ───────────────────────────
 -- `unaccent(text)` (1 arg) NÃO é IMMUTABLE (faz lookup do dicionário no catálogo) → não
--- pode entrar em índice funcional. O wrapper abaixo fixa o dicionário ('unaccent') e é
--- marcado IMMUTABLE — gotcha canônico do Postgres. A query de busca (USP-021/T2) usa a
--- MESMA função em ambos os lados (coluna e termo), respeitando o índice GIN/trgm.
-CREATE EXTENSION IF NOT EXISTS unaccent;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- pode entrar em índice funcional. O wrapper abaixo fixa o dicionário e é marcado
+-- IMMUTABLE — gotcha canônico do Postgres. A query de busca (USP-021/T2) usa a MESMA
+-- função em ambos os lados (coluna e termo), respeitando o índice GIN/trgm.
+--
+-- IMPORTANTE (correção do provisionamento de banco novo — ver 20260620110000): a
+-- referência ao dicionário DENTRO de `immutable_unaccent` é TOTALMENTE QUALIFICADA
+-- (`extensions.unaccent('extensions.unaccent', ...)`), porque o Postgres avalia funções
+-- de expressão de índice sob um `search_path` sanitizado — a forma não qualificada falha
+-- com 42883 no `CREATE INDEX`. Pela mesma razão, o PRÓPRIO `CREATE INDEX` (parse da
+-- expressão) e a criação da função qualificam TUDO por schema — `public.immutable_unaccent`
+-- e `extensions.gin_trgm_ops` — em vez de depender de `SET search_path`: um `SET` (sem
+-- `LOCAL`) vaza para as migrations seguintes na mesma sessão/conexão, e um `search_path`
+-- de sessão não sobrevive a reconexão nem a aplicação individual (`psql -f`, DR). Nenhuma
+-- migration desta família depende de `search_path` de ambiente — nem esta, nem
+-- 20260708150000_usp028_candidate_search, nem 20260708170500_usp030_service_search.
+-- As extensões já foram criadas em `extensions` por 20260620110000; os `CREATE EXTENSION
+-- IF NOT EXISTS ... WITH SCHEMA extensions` abaixo são defensivos (idempotentes,
+-- schema explícito) para o caso desta migration ser aplicada isoladamente.
 
-CREATE OR REPLACE FUNCTION immutable_unaccent(text)
+CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
+
+CREATE OR REPLACE FUNCTION public.immutable_unaccent(text)
   RETURNS text
   LANGUAGE sql
   IMMUTABLE
   PARALLEL SAFE
-AS $$ SELECT unaccent('unaccent', $1) $$;
+AS $$ SELECT extensions.unaccent('extensions.unaccent', $1) $$;
 
 -- Índice funcional GIN/trgm sobre título + descrição + requisitos (normalizados sem acento)
 CREATE INDEX "job_search_trgm" ON "jobs"
   USING gin (
-    immutable_unaccent(
+    public.immutable_unaccent(
       lower(coalesce("title", '') || ' ' || coalesce("description", '') || ' ' || coalesce("requirements", ''))
-    ) gin_trgm_ops
+    ) extensions.gin_trgm_ops
   );

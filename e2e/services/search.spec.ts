@@ -48,7 +48,11 @@ test.describe('Buscar serviços (USP-030) — descoberta pública', () => {
     await page.getByLabel('Categoria').selectOption({ label: 'Aulas e Reforço' });
     await page.getByRole('button', { name: 'Filtrar' }).click();
 
-    await expect(page.getByRole('heading', { name: /aulas de reforço/i })).toBeVisible();
+    // `seeds/bulk.ts` cria 'Aulas de Reforço (Fundamental)' além do fixture de
+    // demo, então o regex casa mais de um card e o modo estrito do Playwright
+    // recusa o locator. O AC é "a lista reduziu para a categoria" — não
+    // "existe exatamente 1 resultado", que dependeria do volume do seed.
+    await expect(page.getByRole('heading', { name: /aulas de reforço/i }).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: /jardinagem residencial/i })).toHaveCount(0);
   });
 
