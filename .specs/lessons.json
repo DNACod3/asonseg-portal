@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 25,
+  "next_id": 28,
   "lessons": [
     {
       "id": "L-001",
@@ -440,6 +440,60 @@
       ],
       "created": "2026-08-17T11:46:20Z",
       "last_seen": "2026-08-17T11:53:14Z"
+    },
+    {
+      "id": "L-025",
+      "key": "surviving_mutant::when a spec requires visibility to derive exactly from an existing access flag function call that function directly instead of hardcoding a duplicate role list even if the duplicate currently matches duplication is invisible to tests until the two lists drift",
+      "text": "When a spec requires visibility to derive exactly from an existing access-flag function, call that function directly instead of hardcoding a duplicate role list, even if the duplicate currently matches — duplication is invisible to tests until the two lists drift.",
+      "signal": "surviving_mutant",
+      "scope": "identity,access-control",
+      "status": "candidate",
+      "features": [
+        "painel-area-logada/usp-067-painel-por-papel"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/app/(app)/inicio/page.tsx:20 (mutation: drop BOARD from INSTITUTIONAL_ROLES) (identity,access-control)"
+      ],
+      "created": "2026-08-20T18:26:36Z",
+      "last_seen": "2026-08-20T18:26:36Z"
+    },
+    {
+      "id": "L-026",
+      "key": "ac_gap::when a spec s out of scope table says a detail route does not exist treat every per row action link not just the card level ver lista completa footer as subject to the same route existence check before shipping",
+      "text": "When a spec's Out-of-Scope table says a detail route does not exist, treat every per-row action link (not just the card-level 'ver lista completa' footer) as subject to the same route-existence check before shipping.",
+      "signal": "ac_gap",
+      "scope": "routes,inicio-panel",
+      "status": "candidate",
+      "features": [
+        "painel-area-logada/usp-067-painel-por-papel"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/app/(app)/inicio/_components/institutional-block.tsx (Ver detalhes -> /encaminhamentos/[id], no page.tsx exists) (routes,inicio-panel)"
+      ],
+      "created": "2026-08-20T18:26:41Z",
+      "last_seen": "2026-08-20T18:26:41Z"
+    },
+    {
+      "id": "L-027",
+      "key": "spec_deviation::when adding a new deep import carve out under a documented precedent extend the guard test s scan root or exception list too not just the inline comment an unregistered carve out is unverified by ci even when lint passes",
+      "text": "When adding a new deep-import carve-out under a documented precedent, extend the guard test's scan root or exception list too, not just the inline comment — an unregistered carve-out is unverified by CI even when lint passes.",
+      "signal": "spec_deviation",
+      "scope": "imports,guards",
+      "status": "candidate",
+      "features": [
+        "painel-area-logada/usp-067-painel-por-papel"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "046fb3c: resubmit-job-button.tsx/resubmit-service-button.tsx deep-import carve-out, unregistered in no-deep-module-imports.test.ts (imports,guards)"
+      ],
+      "created": "2026-08-20T18:26:47Z",
+      "last_seen": "2026-08-20T18:26:47Z"
     }
   ]
 }
