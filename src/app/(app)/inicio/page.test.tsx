@@ -191,6 +191,62 @@ describe('InicioPage (/inicio) — painel por papel (USP-067)', () => {
     expect(screen.getByText('Institucional')).toBeInTheDocument();
   });
 
+  /**
+   * PNL-00 AC5 / PNL-MN-04 (fix pós-Verifier): `institutional` SHALL derivar
+   * **exatamente** de `hubAccessFromRoles(roles).reports` — não de uma cópia
+   * local do role-set. `hubAccessFromRoles` NÃO é mockado neste arquivo (só
+   * `requireActivePerson` é substituído em `@/modules/identity`); `page.tsx`
+   * chama a implementação real. Estes 2 testes cobrem BOARD e
+   * SOCIAL_ASSISTANT isoladamente (COORDINATOR já coberto acima) — os 3
+   * papéis de `REPORTS_ROLES` (`identity/domain/hub-links.ts`). O
+   * discrimination sensor do Verifier provou que remover `'BOARD'` de um
+   * array local duplicado sobrevivia à suíte inteira; com a chamada direta +
+   * estes testes, qualquer divergência futura entre o role-set do hub e o
+   * do painel (nesta direção) derruba `page.test.tsx`.
+   */
+  it('BOARD (canModerate=false): bloco institucional aparece via hubAccessFromRoles(roles).reports real', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-5b',
+      fullName: 'Beto Board',
+      roles: ['BOARD'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.getByText('Institucional')).toBeInTheDocument();
+  });
+
+  it('SOCIAL_ASSISTANT (canModerate=false): bloco institucional aparece via hubAccessFromRoles(roles).reports real', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-5c',
+      fullName: 'Sara Assistente',
+      roles: ['SOCIAL_ASSISTANT'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.getByText('Institucional')).toBeInTheDocument();
+  });
+
+  it('papel público sem acesso a relatórios (ex.: PROVIDER puro, canModerate=false): bloco institucional NÃO aparece', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-5d',
+      fullName: 'Paulo Prestador',
+      roles: ['PROVIDER'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.queryByText('Institucional')).not.toBeInTheDocument();
+    expect(loaderState.loadInstitutionalPanel).not.toHaveBeenCalled();
+  });
+
   it('PNL-00-6: papel-zero (sem papel público/institucional) renderiza saudação + estado coerente, sem quebrar', async () => {
     guardState.requireActivePerson.mockResolvedValue({
       id: 'p-6',

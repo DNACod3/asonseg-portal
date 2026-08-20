@@ -1,4 +1,4 @@
-import { requireActivePerson, orderActiveRolePanels, type PanelKey } from '@/modules/identity';
+import { requireActivePerson, orderActiveRolePanels, hubAccessFromRoles, type PanelKey } from '@/modules/identity';
 import { canAccessModerationQueue } from '@/modules/moderation';
 import { firstNameOf } from '@/modules/persons';
 import { FormHeader } from '@/shared/ui';
@@ -16,9 +16,6 @@ import { InstitutionalBlock } from './_components/institutional-block';
 // Rota (app): área autenticada — sem cache, revalida a sessão a cada request (ADR-0030).
 export const dynamic = 'force-dynamic';
 
-/** Papéis inerentes que dão acesso ao bloco institucional (fora da delegação de VOLUNTEER). */
-const INSTITUTIONAL_ROLES = ['COORDINATOR', 'SOCIAL_ASSISTANT', 'BOARD'];
-
 /**
  * Painel `/inicio` por papel (USP-067 — PNL-00, substitui o hub de atalhos da
  * USP-049). Composition-root (ADR-0030 / AD-022): resolve sessão + acesso,
@@ -26,11 +23,13 @@ const INSTITUTIONAL_ROLES = ['COORDINATOR', 'SOCIAL_ASSISTANT', 'BOARD'];
  * `Promise.all`, só os loaders necessários — cada um degrada por dimensão
  * (try/catch → fallback), nunca derruba a página inteira (P1.0-7).
  *
- * `institutional` (visibilidade do bloco) é `roles ∩ {COORDINATOR,
- * SOCIAL_ASSISTANT, BOARD}` **ou** o guard ao vivo `canAccessModerationQueue`
- * (cobre o voluntário só-delegado) — a MESMA fonte que `hubAccessFromRoles`/
- * `buildHubLinks` usavam para o grupo institucional (PNL-MN-04): nunca uma
- * leitura ad-hoc que a rota-alvo negaria.
+ * `institutional` (visibilidade do bloco) é `hubAccessFromRoles(roles).reports`
+ * **ou** o guard ao vivo `canAccessModerationQueue` (cobre o voluntário
+ * só-delegado) — a MESMA função exportada que `buildHubLinks` usa para o
+ * grupo institucional da casca (PNL-00 AC5 / PNL-MN-04), literalmente
+ * chamada aqui (não um array local reimplementando o mesmo role-set —
+ * fix pós-Verifier: a duplicação anterior divergia sem nenhum teste
+ * detectar).
  *
  * SPEC_DEVIATION (justificado, não enfraquecimento): o hub-de-atalhos
  * (`buildHubLinks`, "Minha conta"/"Meus papéis"/"Institucional") é
@@ -41,7 +40,7 @@ const INSTITUTIONAL_ROLES = ['COORDINATOR', 'SOCIAL_ASSISTANT', 'BOARD'];
 export default async function InicioPage() {
   const person = await requireActivePerson();
   const canModerate = await canAccessModerationQueue(person);
-  const institutional = canModerate || person.roles.some((role) => INSTITUTIONAL_ROLES.includes(role));
+  const institutional = canModerate || hubAccessFromRoles(person.roles).reports;
 
   const activePanels = orderActiveRolePanels(person.roles, { institutional });
 
