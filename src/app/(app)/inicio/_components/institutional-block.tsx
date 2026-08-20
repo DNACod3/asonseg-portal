@@ -28,6 +28,15 @@ const REFERRAL_RESULT_LABELS: Record<string, string> = {
  * Ações da fila são só navegacionais (A-09) — um único "Revisar" (em vez de
  * "Revisar" + "Aprovar" redundantes, já que ambos levam ao mesmo `/moderacao`
  * sem decisão inline no painel) + "Validar empresa" quando `companyUnverified`.
+ *
+ * SPEC_DEVIATION (fix pós-Verifier, PNL-MN-04): a linha de "Encaminhamentos
+ * recentes" **não** tem ação "Ver detalhes" — não existe `page.tsx` em
+ * `(app)/encaminhamentos/[id]/` (só `.../resultado` e `.../novo`), então
+ * linkar lá seria um 404 ao vivo para todo COORDINATOR/SOCIAL_ASSISTANT/
+ * BOARD (A-11: "onde a rota-alvo não existe, o card omite o link" — mesma
+ * regra que `CandidateBlock` já aplica em "Minhas candidaturas"). Só
+ * "Registrar resultado" (`canRegisterReferralResult`), que aponta a uma rota
+ * que existe de fato.
  */
 export function InstitutionalBlock({ data }: Readonly<InstitutionalBlockProps>) {
   return (
@@ -77,16 +86,11 @@ export function InstitutionalBlock({ data }: Readonly<InstitutionalBlockProps>) 
                 `em ${formatDateOnly(referral.createdAt)}`,
               ]}
               actions={
-                <>
+                data.canRegisterReferralResult ? (
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/encaminhamentos/${referral.id}`}>Ver detalhes</Link>
+                    <Link href={`/encaminhamentos/${referral.id}/resultado`}>Registrar resultado</Link>
                   </Button>
-                  {data.canRegisterReferralResult && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/encaminhamentos/${referral.id}/resultado`}>Registrar resultado</Link>
-                    </Button>
-                  )}
-                </>
+                ) : undefined
               }
             />
           ))}

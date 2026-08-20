@@ -166,4 +166,26 @@ describe('loadInstitutionalPanel + InstitutionalBlock (T16)', () => {
     expect(data.kpis[0]).toEqual({ label: 'Moderações pendentes', value: 0, tone: 'cta' });
     expect(screen.getByText('Pessoa Encaminhada')).toBeInTheDocument();
   });
+
+  it('PNL-MN-04 (regressão pós-Verifier): nenhuma linha de "Encaminhamentos recentes" linka a /encaminhamentos/[id] nu (rota inexistente) — só /resultado quando permitido', async () => {
+    // canRegisterReferralResult=true: "Registrar resultado" (rota real) deve
+    // aparecer, mas o `href` bare `/encaminhamentos/ref-1"` (sem `/resultado`)
+    // nunca — essa rota não tem `page.tsx` (só `.../resultado` e `.../novo`).
+    referralsState.canRegisterReferralResult.mockResolvedValue(true);
+    const withAction = await loadInstitutionalPanel(person(['COORDINATOR']), ['COORDINATOR'], true);
+    const { container: withActionContainer, unmount } = render(<InstitutionalBlock data={withAction} />);
+    expect(screen.queryByRole('link', { name: 'Ver detalhes' })).not.toBeInTheDocument();
+    expect(withActionContainer.innerHTML).not.toMatch(/href="\/encaminhamentos\/ref-1"/);
+    expect(withActionContainer.innerHTML).toMatch(/href="\/encaminhamentos\/ref-1\/resultado"/);
+    unmount();
+
+    // canRegisterReferralResult=false (ex.: BOARD): nem esse link — a linha
+    // não tem NENHUMA ação de encaminhamento (read-only completo).
+    referralsState.canRegisterReferralResult.mockResolvedValue(false);
+    const readOnly = await loadInstitutionalPanel(person(['BOARD']), ['BOARD'], false);
+    const { container: readOnlyContainer } = render(<InstitutionalBlock data={readOnly} />);
+    expect(screen.queryByRole('link', { name: 'Ver detalhes' })).not.toBeInTheDocument();
+    expect(readOnlyContainer.innerHTML).not.toMatch(/href="\/encaminhamentos\/ref-1"/);
+    expect(readOnlyContainer.innerHTML).not.toMatch(/href="\/encaminhamentos\/ref-1\/resultado"/);
+  });
 });
