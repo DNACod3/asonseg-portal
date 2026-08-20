@@ -245,7 +245,7 @@ Faseamento derivado do plano da arquitetura (~18–24 semanas). Os 13 épicos do
 
 ### Unidades
 
-- [ ] USP-067 — Painel `/inicio` por papel: indicadores, ações rápidas e cards de listas (máx. 5 registros + ver lista completa + ações por registro) · epic: painel-area-logada · dir: .specs/features/painel-area-logada/usp-067-painel-por-papel/ · deps: USP-049, USP-064, USP-065, USP-021, USP-025, USP-026, USP-035, USP-030, USP-033, USP-020, USP-023, USP-027, USP-016, USP-037, USP-038, USP-042 · gate: — · protótipo: `docs/prototipo/painel.html`
+- [x] USP-067 — Painel `/inicio` por papel: indicadores, ações rápidas e cards de listas (máx. 5 registros + ver lista completa + ações por registro) · epic: painel-area-logada · dir: .specs/features/painel-area-logada/usp-067-painel-por-papel/ · deps: USP-049, USP-064, USP-065, USP-021, USP-025, USP-026, USP-035, USP-030, USP-033, USP-020, USP-023, USP-027, USP-016, USP-037, USP-038, USP-042 · gate: — · protótipo: `docs/prototipo/painel.html`
 
 ### Decisões de dono em aberto (não bloqueiam a unidade)
 

@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 28,
+  "next_id": 29,
   "lessons": [
     {
       "id": "L-001",
@@ -494,6 +494,24 @@
       ],
       "created": "2026-08-20T18:26:47Z",
       "last_seen": "2026-08-20T18:26:47Z"
+    },
+    {
+      "id": "L-028",
+      "key": "spec_precision_gap::when an acceptance criterion sentence names a ui action and a separate reconciliation assumption entry later resolves that same action differently update the ac prose to match the reconciliation instead of leaving both in the spec a must not nonexistent route link always outranks literal ac wording but the contradiction should not survive in the document",
+      "text": "When an acceptance-criterion sentence names a UI action and a separate reconciliation/assumption entry later resolves that same action differently, update the AC prose to match the reconciliation instead of leaving both in the spec — a must-not (nonexistent-route link) always outranks literal AC wording, but the contradiction should not survive in the document.",
+      "signal": "spec_precision_gap",
+      "scope": "spec-authoring",
+      "status": "candidate",
+      "features": [
+        "painel-area-logada/usp-067-painel-por-papel"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md P1.5-3/P1.6-2 vs A-10 reconciliation table (spec-authoring)"
+      ],
+      "created": "2026-08-20T18:48:59Z",
+      "last_seen": "2026-08-20T18:48:59Z"
     }
   ]
 }

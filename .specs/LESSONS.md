@@ -174,6 +174,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: 046fb3c: resubmit-job-button.tsx/resubmit-service-button.tsx deep-import carve-out, unregistered in no-deep-module-imports.test.ts (imports,guards)
 - last seen: 2026-08-20T18:26:47Z
 
+### L-028 — When an acceptance-criterion sentence names a UI action and a separate reconciliation/assumption entry later resolves that same action differently, update the AC prose to match the reconciliation instead of leaving both in the spec — a must-not (nonexistent-route link) always outranks literal AC wording, but the contradiction should not survive in the document.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec-authoring` · harmful: 0
+- features: painel-area-logada/usp-067-painel-por-papel
+- evidence: spec.md P1.5-3/P1.6-2 vs A-10 reconciliation table (spec-authoring)
+- last seen: 2026-08-20T18:48:59Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
