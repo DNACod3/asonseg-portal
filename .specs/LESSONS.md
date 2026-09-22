@@ -168,11 +168,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/app/(app)/inicio/_components/institutional-block.tsx (Ver detalhes -> /encaminhamentos/[id], no page.tsx exists) (routes,inicio-panel)
 - last seen: 2026-08-20T18:26:41Z
 
-### L-027 — When adding a new deep-import carve-out under a documented precedent, extend the guard test's scan root or exception list too, not just the inline comment — an unregistered carve-out is unverified by CI even when lint passes.
+### L-027 [RESOLVED] — When adding a new deep-import carve-out under a documented precedent, extend the guard test's scan root or exception list too, not just the inline comment — an unregistered carve-out is unverified by CI even when lint passes.
 - signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `imports,guards` · harmful: 0
 - features: painel-area-logada/usp-067-painel-por-papel
 - evidence: 046fb3c: resubmit-job-button.tsx/resubmit-service-button.tsx deep-import carve-out, unregistered in no-deep-module-imports.test.ts (imports,guards)
 - last seen: 2026-08-20T18:26:47Z
+- resolved: PR #297 review round — `src/shared/__tests__/no-deep-module-imports.test.ts` scan extended to `src/app/(app)/inicio/_components/**`; the 2 previously-unregistered exceptions (`resubmit-job-button.tsx`, `resubmit-service-button.tsx`) are now in the known-exceptions list (7 total) and covered by the guard's "no offenders" assertion. Manual annotation — no `lessons.py` command exists to mark a lesson resolved; canonical `.specs/lessons.json` untouched.
 
 ### L-028 — When an acceptance-criterion sentence names a UI action and a separate reconciliation/assumption entry later resolves that same action differently, update the AC prose to match the reconciliation instead of leaving both in the spec — a must-not (nonexistent-route link) always outranks literal AC wording, but the contradiction should not survive in the document.
 - signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec-authoring` · harmful: 0
