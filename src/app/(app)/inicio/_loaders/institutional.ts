@@ -70,28 +70,46 @@ export async function loadInstitutionalPanel(
   const isSocialAssistant = roles.includes('SOCIAL_ASSISTANT');
   const needsReferrals = isCoordinator || isBoard || isSocialAssistant;
 
-  const [queueItems, canRegisterResult, monthReport, recentReferrals] = await Promise.all([
-    viewModerationQueue({ viewerPersonId: person.id }).catch((err) => {
-      log.error({ err }, 'institutional:queue-failed');
-      return [];
-    }),
-    canRegisterReferralResult(person).catch((err) => {
-      log.error({ err }, 'institutional:register-result-guard-failed');
-      return false;
-    }),
-    needsReferrals
-      ? reportReferrals(currentMonthWindow()).catch((err) => {
-          log.error({ err }, 'institutional:report-referrals-failed');
-          return { totalCreated: 0, outcome: { withoutResult: 0 } };
-        })
-      : Promise.resolve({ totalCreated: 0, outcome: { withoutResult: 0 } }),
-    needsReferrals
-      ? listRecentReferrals().catch((err) => {
-          log.error({ err }, 'institutional:recent-referrals-failed');
-          return [];
-        })
-      : Promise.resolve([]),
-  ]);
+  const [queueItems, canRegisterResult, monthReport, recentReferrals, activePersons, homeIndicators] =
+    await Promise.all([
+      viewModerationQueue({ viewerPersonId: person.id }).catch((err) => {
+        log.error({ err }, 'institutional:queue-failed');
+        return [];
+      }),
+      canRegisterReferralResult(person).catch((err) => {
+        log.error({ err }, 'institutional:register-result-guard-failed');
+        return false;
+      }),
+      needsReferrals
+        ? reportReferrals(currentMonthWindow()).catch((err) => {
+            log.error({ err }, 'institutional:report-referrals-failed');
+            return { totalCreated: 0, outcome: { withoutResult: 0 } };
+          })
+        : Promise.resolve({ totalCreated: 0, outcome: { withoutResult: 0 } }),
+      needsReferrals
+        ? listRecentReferrals().catch((err) => {
+            log.error({ err }, 'institutional:recent-referrals-failed');
+            return [];
+          })
+        : Promise.resolve([]),
+      // BOARD counts entram aqui (mesmo padrão conditional-promise de
+      // `needsReferrals` acima) em vez de um `Promise.all` sequencial
+      // separado depois — evita 1 roundtrip extra por request BOARD
+      // (PR 297 review). `getHomeIndicators` é dedupicado via `cache()`
+      // com a chamada do loader CANDIDATE quando o papel é composto.
+      isBoard
+        ? countActivePersons().catch((err) => {
+            log.error({ err }, 'institutional:active-persons-failed');
+            return 0;
+          })
+        : Promise.resolve(0),
+      isBoard
+        ? getHomeIndicators().catch((err) => {
+            log.error({ err }, 'institutional:home-indicators-failed');
+            return { activeJobs: 0, activeCandidates: 0, verifiedCompanies: 0 };
+          })
+        : Promise.resolve({ activeJobs: 0, activeCandidates: 0, verifiedCompanies: 0 }),
+    ]);
 
   const queueCounts = countQueueByKind(queueItems);
   const kpis: KpiItem[] = [{ label: 'Moderações pendentes', value: queueCounts.total, tone: 'cta' }];
@@ -110,16 +128,6 @@ export async function loadInstitutionalPanel(
       kpis.push({ label: 'Encaminhamentos no mês', value: monthReport.totalCreated, tone: 'primary' });
     }
   } else if (isBoard) {
-    const [activePersons, homeIndicators] = await Promise.all([
-      countActivePersons().catch((err) => {
-        log.error({ err }, 'institutional:active-persons-failed');
-        return 0;
-      }),
-      getHomeIndicators().catch((err) => {
-        log.error({ err }, 'institutional:home-indicators-failed');
-        return { activeJobs: 0, activeCandidates: 0, verifiedCompanies: 0 };
-      }),
-    ]);
     kpis.push(
       { label: 'Encaminhamentos no mês', value: monthReport.totalCreated, tone: 'primary' },
       { label: 'Pessoas ativas', value: activePersons, tone: 'success' },

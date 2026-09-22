@@ -32,7 +32,7 @@ export interface HomeIndicators {
  * composto CANDIDATE+BOARD pagaria os 3 counts em dobro sem o `cache()`.
  * Fora de uma render real (ex.: testes de integração chamando a função
  * diretamente), apenas executa sem memoizar — sem efeito colateral fora do
- * contexto de request (PR #297 review).
+ * contexto de request (PR 297 review).
  */
 export const getHomeIndicators = cache(async function getHomeIndicators(): Promise<HomeIndicators> {
   const [activeJobs, activeCandidates, verifiedCompanies] = await prisma.$transaction([
