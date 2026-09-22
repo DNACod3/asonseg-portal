@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 /**
- * USP-067 (PR #297 review) — cobre os branches interativos de
+ * USP-067 (PR 297 review) — cobre os branches interativos de
  * `ResubmitServiceButton` (happy path, error path, pending state), hoje só
  * exercitados indiretamente via `provider-block.test.tsx` (só a presença do
  * botão via `getByRole('button', { name: 'Corrigir e reenviar' })` — o mock
