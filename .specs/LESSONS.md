@@ -156,6 +156,31 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: P-001 / src/shared/container.ts:130-138 vs src/modules/moderation/domain/content-moderation-reader-kinds.ts (src/modules/moderation) (+1 more)
 - last seen: 2026-08-17T11:53:14Z
 
+### L-025 — When a spec requires visibility to derive exactly from an existing access-flag function, call that function directly instead of hardcoding a duplicate role list, even if the duplicate currently matches — duplication is invisible to tests until the two lists drift.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `identity,access-control` · harmful: 0
+- features: painel-area-logada/usp-067-painel-por-papel
+- evidence: src/app/(app)/inicio/page.tsx:20 (mutation: drop BOARD from INSTITUTIONAL_ROLES) (identity,access-control)
+- last seen: 2026-08-20T18:26:36Z
+
+### L-026 — When a spec's Out-of-Scope table says a detail route does not exist, treat every per-row action link (not just the card-level 'ver lista completa' footer) as subject to the same route-existence check before shipping.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `routes,inicio-panel` · harmful: 0
+- features: painel-area-logada/usp-067-painel-por-papel
+- evidence: src/app/(app)/inicio/_components/institutional-block.tsx (Ver detalhes -> /encaminhamentos/[id], no page.tsx exists) (routes,inicio-panel)
+- last seen: 2026-08-20T18:26:41Z
+
+### L-027 [RESOLVED] — When adding a new deep-import carve-out under a documented precedent, extend the guard test's scan root or exception list too, not just the inline comment — an unregistered carve-out is unverified by CI even when lint passes.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `imports,guards` · harmful: 0
+- features: painel-area-logada/usp-067-painel-por-papel
+- evidence: 046fb3c: resubmit-job-button.tsx/resubmit-service-button.tsx deep-import carve-out, unregistered in no-deep-module-imports.test.ts (imports,guards)
+- last seen: 2026-08-20T18:26:47Z
+- resolved: PR #297 review round — `src/shared/__tests__/no-deep-module-imports.test.ts` scan extended to `src/app/(app)/inicio/_components/**`; the 2 previously-unregistered exceptions (`resubmit-job-button.tsx`, `resubmit-service-button.tsx`) are now in the known-exceptions list (7 total) and covered by the guard's "no offenders" assertion. Manual annotation — no `lessons.py` command exists to mark a lesson resolved; canonical `.specs/lessons.json` untouched.
+
+### L-028 — When an acceptance-criterion sentence names a UI action and a separate reconciliation/assumption entry later resolves that same action differently, update the AC prose to match the reconciliation instead of leaving both in the spec — a must-not (nonexistent-route link) always outranks literal AC wording, but the contradiction should not survive in the document.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec-authoring` · harmful: 0
+- features: painel-area-logada/usp-067-painel-por-papel
+- evidence: spec.md P1.5-3/P1.6-2 vs A-10 reconciliation table (spec-authoring)
+- last seen: 2026-08-20T18:48:59Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

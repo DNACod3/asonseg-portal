@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { prisma } from '@/shared/lib/prisma';
 
 /**
@@ -22,8 +23,18 @@ export interface HomeIndicators {
  *
  * `$transaction` dá consistência de snapshot entre os 3 counts (mesma
  * "foto" do banco). Nunca lança em baseline vazio — `count()` retorna `0`.
+ *
+ * Envolvida em `cache()` de `'react'` (mesmo padrão de dedupe do App Router
+ * usado em `getCurrentPerson`/`canAccessModerationQueue`): a função não tem
+ * parâmetros, então o `cache()` de-duplica por identidade da própria função
+ * dentro da mesma árvore de render RSC. O painel `/inicio` (USP-067) chama
+ * este helper tanto do loader CANDIDATE quanto do loader BOARD — um papel
+ * composto CANDIDATE+BOARD pagaria os 3 counts em dobro sem o `cache()`.
+ * Fora de uma render real (ex.: testes de integração chamando a função
+ * diretamente), apenas executa sem memoizar — sem efeito colateral fora do
+ * contexto de request (PR 297 review).
  */
-export async function getHomeIndicators(): Promise<HomeIndicators> {
+export const getHomeIndicators = cache(async function getHomeIndicators(): Promise<HomeIndicators> {
   const [activeJobs, activeCandidates, verifiedCompanies] = await prisma.$transaction([
     prisma.job.count({ where: { status: 'ACTIVE' } }),
     prisma.candidateProfile.count({ where: { publicationStatus: 'ACTIVE' } }),
@@ -31,4 +42,4 @@ export async function getHomeIndicators(): Promise<HomeIndicators> {
   ]);
 
   return { activeJobs, activeCandidates, verifiedCompanies };
-}
+});

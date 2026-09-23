@@ -31,15 +31,47 @@
 
 ## Handoff
 
-**USP-066 — Ver conteúdo integral do rascunho na fila de moderação — COMPLETA, PASS** (AD-030, 1 unit, Planner→Implementer→Verifier, 0 fix→re-verify). Branch `feat/usp-066-ver-conteudo-rascunho`, HEAD `8c5e362`. A branch também carrega 2 commits de preparação consolidados do working tree do master: **PF-001** (`scripts/ensure-buckets.ts` + `storage:ensure:staging|prod`) e as specs ICE da própria USP-066. O commit do **AD-029** foi extraído para a PR **#295** em 2026-08-18. Próximo: abrir o PR, rodar /pr-review, resolver o CR e mergear em master.
+**USP-067 — Painel `/inicio` por papel — MERGE-READY, PASS × 2** (Fase 11, unidade única; AD-032 do PASS original + **AD-033** da rodada de correção pós-`/pr-review`). Branch `feat/usp-067-painel-por-papel` no HEAD `7c39ef5` (33 commits sobre `origin/master`, +5 desta rodada de review). PR **#297** aberta. `/pr-review` multi-agente rodou (6 subagentes → 4 achados: 2 perf, 1 warning, 1 suggestion) e todos foram corrigidos com mutação re-executada pelo Verifier independente. Próximo: **push do fixup + revisar comentários resolvidos do bot + merge (squash) em master**.
 
-**Hist. imediato:** **Fase 10 Round 2 — Sidebar + Menu de Perfil — mergeada em master** (#293, AD-028). **Fase 10 — App Shell da Área Logada — mergeada em master** (#292, AD-027).
+**Hist. imediato:** **USP-066 — Ver conteúdo integral do rascunho na fila de moderação — mergeada em master** (#294, AD-030/AD-031). **AD-029** extraído para a PR **#295**. **Fase 10 Round 2** (#293, AD-028) e **Fase 10** (#292, AD-027) mergeadas.
 
-**Aberto (não bloqueia esta unidade):** a **Fase 9** (H-1, H-2, H-4..H-8 — decisão de dono/PO+DPO), o checklist de **Lançamento**, e o `prisma migrate deploy` contra **produção** pendente do AD-029 (ação humana, credenciais reais).
-
+**Aberto (não bloqueia esta unidade):** **Fase 9** (H-1, H-2, H-4..H-8 — decisão de dono/PO+DPO), checklist de **Lançamento**, `prisma migrate deploy` contra **produção** pendente do AD-029 (ação humana, credenciais reais), e a **D-002** da Fase 11 (se o painel é pré ou pós go-live — decisão de dono).
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-033: Rodada de correção do review da PR #297 — 4 achados não-bloqueantes, todos com mutação — PASS 2026-09-23
+
+**Decision:** A USP-067 passou pelo Verifier com PASS (AD-032) e foi mergeada em PR. O `/pr-review` multi-agente (6 subagentes) retornou **4 achados não-bloqueantes** — 2 perf (dedupe de `getHomeIndicators` via `React.cache()`; BOARD counts entrando no batch principal do `institutional.ts`), 1 warning (testes dedicados de branch interativo dos 2 botões de reenvio) e 1 suggestion (guard `no-deep-module-imports` estendido a `src/app/**`, L-027 resolvida). Todos corrigidos em 4 commits + 1 de higiene (`#297` escapava o guard DS-MN-01 como hex; virou `PR 297`). Verifier independente re-executou mutação em cada achado que tem oracle e confirmou PASS.
+
+**Por quê:** o padrão AD-031 (rodada análoga da PR #294) é a política deste projeto — mesmo em PR mergeada pelo Verifier interno com PASS, o `/pr-review` multi-agente pega classes de achado diferentes (perf de composição de loaders, gaps de guard estático). Vale rodar sempre.
+
+**Consequências:**
+- `getHomeIndicators` agora deduplica dentro do request RSC — papel composto CANDIDATE+BOARD passa a pagar 3 counts em vez de 6.
+- `institutional.ts` do BOARD paraleliza `countActivePersons` + `getHomeIndicators` no `Promise.all` principal.
+- 2 novos arquivos de teste dedicados (`resubmit-{job,service}-button.test.tsx`) cobrem happy/error/pending state com mock de Server Action no path do **source** (não do barrel). Descoberta lateral: `provider-block.test.tsx` mockava `submitServiceForModeration` no barrel, então o click nunca era exercitado ali — bug pré-existente, deixado como follow-up.
+- `no-deep-module-imports` agora escaneia `src/app/(app)/inicio/_components/**` com allowlist de 7 arquivos (era 5). L-027 marcada `[RESOLVED]`.
+
+**Lacunas conhecidas (não-bloqueantes, viram follow-up):**
+- Dedupe do `React.cache()` (Achado A) sem oracle barato — invisível a chamada direta do Vitest (a memoização é do runtime RSC). Aceito como otimização sem sensor.
+- Nenhum dos 5 `_loaders/*.ts` tem teste direto; padrão pré-existente do projeto, vale uma task futura de teste de integração no nível de loader.
+
+**Impact:** Verifier independente PASS. Gates no HEAD `7c39ef5`: typecheck/lint verdes, **2266 unit**, **692 integração**, build 52 rotas, cobertura 75.91/69.65/75.48/77.58 (gate 65%).
+
+### AD-032: Fase 11 — Painel `/inicio` por papel, rodada única em 1 PR — PASS 2026-08-20
+
+**Decision:** A Fase 11 (unidade única **USP-067**) entrega o painel de trabalho por papel em `/inicio`, substituindo o hub de atalhos da USP-049. 19 tasks em 4 fases, 1 ciclo fix→re-verify. Reconciliações **A-01..A-18** registradas na spec ajustam a tabela *Escopo por papel* do ROADMAP ao que o backend das Fases 1-10 realmente entrega — sem migração, sem novo estado de domínio, sem nova mutação.
+
+**Por quê:** Todo o dado já existia no backend depois das Fases 1-10, mas a primeira tela pós-login não mostrava nenhum. Pedido do dono em 2026-08-15, com protótipo (`docs/prototipo/painel.html`) aprovado antes da implementação.
+
+**Consequências:**
+- 8 queries de leitura novas nos módulos donos (`persons`, `jobs`, `services`, `referrals`, `reporting`), todas read-only, `select` explícito e `take` — guard estático (`read-only-queries.guard.test.ts`) impede verbo de escrita.
+- **D-001 resolvida por premissa:** `SOCIAL_ASSISTANT` e `BOARD` veem a fila de moderação **somente leitura** (contador + lista, sem botão de decisão). Conceder-lhes `MODERATE_*` seria mudança de política de acesso e exigiria ADR própria — não foi feito.
+- **D-002 (pré ou pós go-live) segue em aberto** — é sequenciamento de lançamento, não afeta o código entregue.
+- O gate de visibilidade do bloco institucional deriva de `hubAccessFromRoles(...).reports` (nunca lista local duplicada); a suíte agora morre se a fonte de verdade divergir.
+- Desvios aceitos: botões de reenvio importam a Server Action do arquivo-fonte, não do barrel (o barrel reexporta `next/headers`/`revalidatePath` e quebra o bundle client) — mesmo carve-out já documentado para `job-form.tsx`/`service-form.tsx`.
+
+**Follow-ups não-bloqueantes:** sincronizar o texto das ACs P1.5-3/P1.6-2 da spec com a reconciliação A-10; estender o scan de `no-deep-module-imports.test.ts` a `src/app/(app)/inicio/_components/**`; remover o `hub-link-card.tsx` órfão.
 
 ### AD-031: Rodada de correção do review da PR #294 — 12 achados, incl. 1 de segurança que o Verifier não pegou — PASS 2026-08-17
 

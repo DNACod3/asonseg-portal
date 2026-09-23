@@ -2,21 +2,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 /**
- * USP-049 — HUB-01, HUB-02, HUB-03, HUB-04, HUB-07.
- * USP-061 — APP-SHELL-08, APP-SHELL-MN-02 (migração do logout p/ a casca).
+ * USP-067 — T17 / PNL-00, **PNL-MN-04**.
  *
- * `requireActivePerson` e `canAccessModerationQueue` são mockados; `buildHubLinks`/
- * `hubAccessFromRoles` (puros) permanecem reais — já cobertos exaustivamente por
- * `identity/__tests__/hub-links.test.ts` (HUB-MN-01/02).
+ * SPEC_DEVIATION (justificado, não enfraquecimento — Notas para o
+ * Implementer #4 de tasks.md): o contrato antigo do hub-de-atalhos
+ * (USP-049/USP-061 — `buildHubLinks`/"Minha conta"/"Meus papéis"/
+ * "Institucional") é substituído pelo painel por papel. Os testes HUB-01..07
+ * daquele contrato (asserções sobre `/candidato`, `/perfil`,
+ * `/consentimentos` como links do hub) não se aplicam mais — a navegação
+ * para essas rotas segue disponível via a casca `(app)` (sidebar/bottom nav,
+ * AD-027/AD-028/USP-061), não recriada aqui. Este arquivo cobre o NOVO
+ * contrato: composição por papel (ordem `ALL_ROLE_LABELS`), gate de acesso
+ * institucional (PNL-MN-04), e papel-zero.
  *
- * SPEC_DEVIATION (com justificativa, Assumption A5 de USP-061/spec.md): o antigo
- * teste HUB-06 ("hub renderiza a opção de logout via SignOutForm") é substituído
- * pelo teste negativo MN-02 abaixo — o "Sair" migrou para a `AppShell`/`AppHeader`
- * (USP-061), fonte única de logout; o hub isolado NÃO deve mais renderizá-lo. O
- * mock de `SignOutForm` também é removido do `@/modules/identity` mockado abaixo,
- * pois `page.tsx` não a importa mais. Não é enfraquecimento silencioso: a
- * capacidade de logout é preservada (e reforçada — alcançável de toda rota
- * `(app)/*`), só a localização muda.
+ * Todos os 5 loaders são mockados (o teste de composição não re-exercita a
+ * lógica interna de cada loader — já coberta pelos testes dedicados de
+ * cada bloco, T12-T16).
  */
 
 const guardState = vi.hoisted(() => ({
@@ -25,131 +26,256 @@ const guardState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/modules/identity', async () => {
-  const domain = await vi.importActual<typeof import('@/modules/identity/domain/hub-links')>(
-    '@/modules/identity/domain/hub-links',
-  );
+  const actual = await vi.importActual<typeof import('@/modules/identity')>('@/modules/identity');
   return {
-    hubAccessFromRoles: domain.hubAccessFromRoles,
-    buildHubLinks: domain.buildHubLinks,
+    ...actual,
     requireActivePerson: (...a: unknown[]) => guardState.requireActivePerson(...a),
   };
 });
 
-vi.mock('@/modules/moderation', () => ({
-  canAccessModerationQueue: (...a: unknown[]) => guardState.canAccessModerationQueue(...a),
+vi.mock('@/modules/moderation', async () => {
+  const actual = await vi.importActual<typeof import('@/modules/moderation')>('@/modules/moderation');
+  return {
+    ...actual,
+    canAccessModerationQueue: (...a: unknown[]) => guardState.canAccessModerationQueue(...a),
+  };
+});
+
+const loaderState = vi.hoisted(() => ({
+  loadCandidatePanel: vi.fn(),
+  loadProviderPanel: vi.fn(),
+  loadClientPanel: vi.fn(),
+  loadCompanyPanel: vi.fn(),
+  loadInstitutionalPanel: vi.fn(),
+}));
+vi.mock('./_loaders/candidate', () => ({
+  loadCandidatePanel: (...a: unknown[]) => loaderState.loadCandidatePanel(...a),
+}));
+vi.mock('./_loaders/provider', () => ({
+  loadProviderPanel: (...a: unknown[]) => loaderState.loadProviderPanel(...a),
+}));
+vi.mock('./_loaders/client', () => ({
+  loadClientPanel: (...a: unknown[]) => loaderState.loadClientPanel(...a),
+}));
+vi.mock('./_loaders/company', () => ({
+  loadCompanyPanel: (...a: unknown[]) => loaderState.loadCompanyPanel(...a),
+}));
+vi.mock('./_loaders/institutional', () => ({
+  loadInstitutionalPanel: (...a: unknown[]) => loaderState.loadInstitutionalPanel(...a),
 }));
 
-const { default: HubPage } = await import('./page');
+const { default: InicioPage } = await import('./page');
+
+const EMPTY_KPI_DATA = { kpis: [], quickActions: [] };
 
 beforeEach(() => {
   vi.clearAllMocks();
   guardState.canAccessModerationQueue.mockResolvedValue(false);
+  loaderState.loadCandidatePanel.mockResolvedValue({
+    ...EMPTY_KPI_DATA,
+    matchingJobs: [],
+    matchingJobsTotal: 0,
+    applications: [],
+    applicationsTotal: 0,
+  });
+  loaderState.loadProviderPanel.mockResolvedValue({
+    ...EMPTY_KPI_DATA,
+    interests: [],
+    interestsTotal: 0,
+    services: [],
+    servicesTotal: 0,
+  });
+  loaderState.loadClientPanel.mockResolvedValue({
+    ...EMPTY_KPI_DATA,
+    categoryCounters: [],
+    requestedServices: [],
+    requestedServicesTotal: 0,
+  });
+  loaderState.loadCompanyPanel.mockResolvedValue({
+    hasActiveCompany: false,
+    ...EMPTY_KPI_DATA,
+    jobs: [],
+    jobsTotal: 0,
+    recentApplications: [],
+    recentApplicationsTotal: 0,
+  });
+  loaderState.loadInstitutionalPanel.mockResolvedValue({
+    canModerate: false,
+    canRegisterReferralResult: false,
+    ...EMPTY_KPI_DATA,
+    queue: [],
+    queueTotal: 0,
+    referrals: [],
+    referralsTotal: 0,
+  });
 });
 
-describe('HubPage (/inicio)', () => {
-  it('HUB-01/HUB-02: candidato vê saudação, /candidato e os links pessoais', async () => {
+describe('InicioPage (/inicio) — painel por papel (USP-067)', () => {
+  it('PNL-00-1: saudação com o primeiro nome', async () => {
     guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-cand',
-      fullName: 'Ana Candidata',
+      id: 'p-1',
+      fullName: 'Ana Beatriz Candidata',
       roles: ['CANDIDATE'],
     });
 
-    const ui = await HubPage();
+    const ui = await InicioPage();
     render(ui);
 
-    expect(screen.getByText('Olá, Ana Candidata')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Área do candidato/ })).toHaveAttribute(
-      'href',
-      '/candidato',
-    );
-    expect(screen.getByRole('link', { name: /Meu perfil/ })).toHaveAttribute('href', '/perfil');
-    expect(screen.getByRole('link', { name: /Meus consentimentos/ })).toHaveAttribute(
-      'href',
-      '/consentimentos',
-    );
+    expect(screen.getByText('Olá, Ana')).toBeInTheDocument();
   });
 
-  it('APP-SHELL-MN-02: o render isolado do hub NÃO renderiza mais o próprio "Sair" (logout migrou para a casca — USP-061)', async () => {
+  it('PNL-00-2: papel composto renderiza os blocos na ordem de ALL_ROLE_LABELS', async () => {
     guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-cand',
-      fullName: 'Ana',
-      roles: ['CANDIDATE'],
+      id: 'p-2',
+      fullName: 'Multi Papel',
+      roles: ['COMPANY_RESPONSIBLE', 'CANDIDATE', 'CLIENT', 'PROVIDER'],
     });
 
-    const ui = await HubPage();
+    const ui = await InicioPage();
     render(ui);
 
-    expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument();
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(headings).toEqual(['Candidato(a)', 'Prestador(a)', 'Cliente', 'Responsável de Empresa']);
+    expect(loaderState.loadCandidatePanel).toHaveBeenCalledTimes(1);
+    expect(loaderState.loadProviderPanel).toHaveBeenCalledTimes(1);
+    expect(loaderState.loadClientPanel).toHaveBeenCalledTimes(1);
+    expect(loaderState.loadCompanyPanel).toHaveBeenCalledTimes(1);
+    expect(loaderState.loadInstitutionalPanel).not.toHaveBeenCalled();
   });
 
-  it('HUB-04: voluntário COM delegação de moderação vê /moderacao', async () => {
+  it('PNL-MN-04: papel sem acesso institucional (nem role, nem canModerate) não chama o loader institucional nem renderiza o bloco', async () => {
     guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-vol',
+      id: 'p-3',
+      fullName: 'Candidata Só',
+      roles: ['CANDIDATE'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(loaderState.loadInstitutionalPanel).not.toHaveBeenCalled();
+    expect(screen.queryByText('Institucional')).not.toBeInTheDocument();
+  });
+
+  it('voluntário com delegação de moderação (canModerate=true, sem papel institucional): bloco institucional aparece', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-4',
       fullName: 'Vitor Voluntário',
       roles: ['VOLUNTEER'],
     });
     guardState.canAccessModerationQueue.mockResolvedValue(true);
 
-    const ui = await HubPage();
+    const ui = await InicioPage();
     render(ui);
 
-    expect(screen.getByRole('link', { name: /Fila de moderação/ })).toHaveAttribute(
-      'href',
-      '/moderacao',
+    expect(loaderState.loadInstitutionalPanel).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'p-4' }),
+      ['VOLUNTEER'],
+      true,
     );
+    expect(screen.getByText('Institucional')).toBeInTheDocument();
   });
 
-  it('HUB-04: voluntário SEM delegação de moderação NÃO vê /moderacao (evita beco em notFound)', async () => {
+  it('COORDINATOR (papel institucional, canModerate=false do guard mockado): bloco institucional ainda aparece — a role já concede', async () => {
     guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-vol',
-      fullName: 'Vitor Voluntário',
-      roles: ['VOLUNTEER'],
-    });
-    guardState.canAccessModerationQueue.mockResolvedValue(false);
-
-    const ui = await HubPage();
-    render(ui);
-
-    expect(screen.queryByRole('link', { name: /Fila de moderação/ })).not.toBeInTheDocument();
-    expect(guardState.canAccessModerationQueue).toHaveBeenCalledTimes(1);
-  });
-
-  it('HUB-02: papel-zero (sem papel público/institucional) ainda vê só os links pessoais fixos', async () => {
-    guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-zero',
-      fullName: 'Pessoa Sem Papel',
-      roles: [],
-    });
-
-    const ui = await HubPage();
-    render(ui);
-
-    expect(screen.getByRole('link', { name: /Meu perfil/ })).toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(3);
-  });
-
-  it('moderation vem do guard ao vivo, não do papel puro: COORDINATOR sem canAccessModerationQueue=true NÃO vê /moderacao', async () => {
-    guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-coord',
+      id: 'p-5',
       fullName: 'Carla Coordenadora',
       roles: ['COORDINATOR'],
     });
     guardState.canAccessModerationQueue.mockResolvedValue(false);
 
-    const ui = await HubPage();
+    const ui = await InicioPage();
     render(ui);
 
-    expect(screen.queryByRole('link', { name: /Fila de moderação/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Institucional')).toBeInTheDocument();
   });
 
-  it('HUB-07: chama requireActivePerson() sem allowFirstAccess (herda o redirect a /trocar-senha no 1º acesso)', async () => {
+  /**
+   * PNL-00 AC5 / PNL-MN-04 (fix pós-Verifier): `institutional` SHALL derivar
+   * **exatamente** de `hubAccessFromRoles(roles).reports` — não de uma cópia
+   * local do role-set. `hubAccessFromRoles` NÃO é mockado neste arquivo (só
+   * `requireActivePerson` é substituído em `@/modules/identity`); `page.tsx`
+   * chama a implementação real. Estes 2 testes cobrem BOARD e
+   * SOCIAL_ASSISTANT isoladamente (COORDINATOR já coberto acima) — os 3
+   * papéis de `REPORTS_ROLES` (`identity/domain/hub-links.ts`). O
+   * discrimination sensor do Verifier provou que remover `'BOARD'` de um
+   * array local duplicado sobrevivia à suíte inteira; com a chamada direta +
+   * estes testes, qualquer divergência futura entre o role-set do hub e o
+   * do painel (nesta direção) derruba `page.test.tsx`.
+   */
+  it('BOARD (canModerate=false): bloco institucional aparece via hubAccessFromRoles(roles).reports real', async () => {
     guardState.requireActivePerson.mockResolvedValue({
-      id: 'p-cand',
+      id: 'p-5b',
+      fullName: 'Beto Board',
+      roles: ['BOARD'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.getByText('Institucional')).toBeInTheDocument();
+  });
+
+  it('SOCIAL_ASSISTANT (canModerate=false): bloco institucional aparece via hubAccessFromRoles(roles).reports real', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-5c',
+      fullName: 'Sara Assistente',
+      roles: ['SOCIAL_ASSISTANT'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.getByText('Institucional')).toBeInTheDocument();
+  });
+
+  it('papel público sem acesso a relatórios (ex.: PROVIDER puro, canModerate=false): bloco institucional NÃO aparece', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-5d',
+      fullName: 'Paulo Prestador',
+      roles: ['PROVIDER'],
+    });
+    guardState.canAccessModerationQueue.mockResolvedValue(false);
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.queryByText('Institucional')).not.toBeInTheDocument();
+    expect(loaderState.loadInstitutionalPanel).not.toHaveBeenCalled();
+  });
+
+  it('PNL-00-6: papel-zero (sem papel público/institucional) renderiza saudação + estado coerente, sem quebrar', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-6',
+      fullName: 'Pessoa Sem Papel',
+      roles: [],
+    });
+
+    const ui = await InicioPage();
+    render(ui);
+
+    expect(screen.getByText('Olá, Pessoa')).toBeInTheDocument();
+    expect(
+      screen.getByText('Você ainda não tem nenhum papel ativo. Use o menu para ativar um papel ou gerenciar sua conta.'),
+    ).toBeInTheDocument();
+    expect(loaderState.loadCandidatePanel).not.toHaveBeenCalled();
+    expect(loaderState.loadProviderPanel).not.toHaveBeenCalled();
+    expect(loaderState.loadClientPanel).not.toHaveBeenCalled();
+    expect(loaderState.loadCompanyPanel).not.toHaveBeenCalled();
+    expect(loaderState.loadInstitutionalPanel).not.toHaveBeenCalled();
+  });
+
+  it('chama requireActivePerson() sem allowFirstAccess (herda o redirect a /trocar-senha no 1º acesso)', async () => {
+    guardState.requireActivePerson.mockResolvedValue({
+      id: 'p-7',
       fullName: 'Ana',
       roles: ['CANDIDATE'],
     });
 
-    await HubPage();
+    await InicioPage();
 
     expect(guardState.requireActivePerson).toHaveBeenCalledWith();
   });

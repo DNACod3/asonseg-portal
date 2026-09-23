@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASONSEG — Protótipo: Painel da área logada (por papel)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Nunito:ital,wght@0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+  <style>
+    /* ========== DESIGN SYSTEM (mesmos tokens de index.html) ========== */
+    :root {
+      --color-primary: #2563EB;
+      --color-secondary: #3B82F6;
+      --color-cta: #F97316;
+      --color-cta-hover: #EA580C;
+      --color-background: #F8FAFC;
+      --color-surface: #FFFFFF;
+      --color-text: #1E293B;
+      --color-text-light: #64748B;
+      --color-border: #E2E8F0;
+      --color-white: #FFFFFF;
+      --color-success: #10B981;
+      --color-danger: #EF4444;
+      --color-muted: #F1F5F9;
+      --space-xs: 4px;  --space-sm: 8px;  --space-md: 16px;
+      --space-lg: 24px; --space-xl: 32px; --space-2xl: 48px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+      --sidebar-w: 248px;
+      --sidebar-w-collapsed: 68px;
+    }
+    [data-theme="dark"] {
+      --color-primary: #3B82F6;
+      --color-secondary: #60A5FA;
+      --color-cta: #FB923C;
+      --color-cta-hover: #F97316;
+      --color-background: #0F172A;
+      --color-surface: #1E293B;
+      --color-text: #F1F5F9;
+      --color-text-light: #94A3B8;
+      --color-border: #334155;
+      --color-white: #1E293B;
+      --color-success: #34D399;
+      --color-danger: #F87171;
+      --color-muted: #1A2332;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--color-background);
+      color: var(--color-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 { font-family: 'Nunito', sans-serif; line-height: 1.25; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    /* ========== BOTÕES ========== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
+      padding: 10px 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent;
+      font-size: 0.875rem; font-weight: 600; white-space: nowrap;
+      transition: all 0.18s ease; background: transparent; color: var(--color-text);
+    }
+    .btn-primary { background: var(--color-primary); color: #fff; }
+    .btn-primary:hover { background: var(--color-secondary); }
+    .btn-cta { background: var(--color-cta); color: #fff; }
+    .btn-cta:hover { background: var(--color-cta-hover); }
+    .btn-outline { border-color: var(--color-border); color: var(--color-text-light); }
+    .btn-outline:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
+    .btn-ghost { color: var(--color-primary); }
+    .btn-ghost:hover { background: rgba(37,99,235,0.08); }
+    .btn-danger { border-color: var(--color-danger); color: var(--color-danger); }
+    .btn-danger:hover { background: var(--color-danger); color: #fff; }
+    .btn-xs { padding: 5px 11px; font-size: 0.78rem; border-radius: 6px; }
+    .btn svg { width: 16px; height: 16px; }
+
+    /* ========== BADGES ========== */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap;
+    }
+    .badge-blue   { background: #DBEAFE; color: #1D4ED8; }
+    .badge-orange { background: #FFEDD5; color: #C2410C; }
+    .badge-green  { background: #D1FAE5; color: #047857; }
+    .badge-gray   { background: #F1F5F9; color: #475569; }
+    .badge-red    { background: #FEE2E2; color: #B91C1C; }
+    [data-theme="dark"] .badge-blue   { background: rgba(59,130,246,0.15);  color: #60A5FA; }
+    [data-theme="dark"] .badge-orange { background: rgba(251,146,60,0.15);  color: #FB923C; }
+    [data-theme="dark"] .badge-green  { background: rgba(52,211,153,0.15);  color: #34D399; }
+    [data-theme="dark"] .badge-gray   { background: rgba(148,163,184,0.12); color: #94A3B8; }
+    [data-theme="dark"] .badge-red    { background: rgba(248,113,113,0.15); color: #F87171; }
+
+    /* ========== BARRA DE PROTÓTIPO (não faz parte do produto) ========== */
+    .proto-bar {
+      position: sticky; top: 0; z-index: 200;
+      background: #0F172A; color: #E2E8F0;
+      padding: var(--space-sm) var(--space-lg);
+      display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;
+      border-bottom: 1px solid #1E293B;
+    }
+    .proto-bar .proto-label {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #94A3B8; display: flex; align-items: center; gap: 6px;
+    }
+    .proto-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .proto-chip {
+      padding: 5px 12px; border-radius: 999px; border: 1px solid #334155;
+      background: transparent; color: #CBD5E1; font-size: 0.78rem; font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .proto-chip:hover { border-color: #60A5FA; color: #fff; }
+    .proto-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+    .proto-bar .spacer { flex: 1; }
+    .proto-bar a.proto-link { font-size: 0.78rem; color: #94A3B8; text-decoration: underline; }
+
+    /* ========== CASCA DA ÁREA LOGADA (espelha USP-061/064/065) ========== */
+    .shell { display: flex; min-height: calc(100vh - 46px); }
+
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--color-surface); border-right: 1px solid var(--color-border);
+      display: flex; flex-direction: column;
+      transition: width 0.2s ease;
+      position: sticky; top: 46px; height: calc(100vh - 46px);
+    }
+    .sidebar.collapsed { width: var(--sidebar-w-collapsed); }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: var(--space-sm);
+      padding: var(--space-md); border-bottom: 1px solid var(--color-border); min-height: 64px;
+    }
+    .logo-icon {
+      width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.05rem;
+    }
+    .sidebar-brand .brand-text { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem; }
+    .sidebar-nav { padding: var(--space-sm); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1; }
+    .snav-group {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-light); padding: var(--space-md) var(--space-sm) var(--space-xs);
+    }
+    .snav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px var(--space-sm); border-radius: var(--radius-sm);
+      color: var(--color-text-light); font-size: 0.875rem; font-weight: 500;
+      transition: all 0.15s ease; white-space: nowrap; overflow: hidden;
+    }
+    .snav-item:hover { background: var(--color-muted); color: var(--color-text); }
+    .snav-item.active { background: rgba(37,99,235,0.1); color: var(--color-primary); font-weight: 600; }
+    .snav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .sidebar.collapsed .snav-item span, .sidebar.collapsed .snav-group,
+    .sidebar.collapsed .brand-text { display: none; }
+    .sidebar-foot { padding: var(--space-sm); border-top: 1px solid var(--color-border); }
+
+    .main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      position: sticky; top: 46px; z-index: 100;
+      background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+      min-height: 64px; padding: 0 var(--space-lg);
+      display: flex; align-items: center; gap: var(--space-md);
+    }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border); background: transparent; color: var(--color-text-light);
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .icon-btn:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
+    .icon-btn svg { width: 18px; height: 18px; }
+    .crumb { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--color-text-light); min-width: 0; }
+    .crumb strong { color: var(--color-text); font-weight: 600; }
+    .crumb .sep { opacity: 0.5; }
+    .topbar .spacer { flex: 1; }
+    .profile-btn {
+      display: flex; align-items: center; gap: var(--space-sm);
+      padding: 6px 10px 6px 6px; border-radius: 999px;
+      border: 1px solid var(--color-border); background: transparent; color: var(--color-text);
+    }
+    .profile-btn:hover { border-color: var(--color-secondary); }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(37,99,235,0.08));
+      color: var(--color-primary); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.75rem;
+    }
+    .profile-meta { text-align: left; line-height: 1.15; }
+    .profile-meta .pname { font-size: 0.82rem; font-weight: 600; display: block; }
+    .profile-meta .prole { font-size: 0.7rem; color: var(--color-text-light); display: block; }
+
+    /* ========== CONTEÚDO DO PAINEL ========== */
+    .content { padding: var(--space-xl) var(--space-lg) var(--space-2xl); max-width: 1280px; width: 100%; }
+    .page-head { margin-bottom: var(--space-lg); }
+    .page-head h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    .page-head p { color: var(--color-text-light); font-size: 0.92rem; }
+
+    /* Ações rápidas (topo do painel) */
+    .quick-actions {
+      display: flex; gap: var(--space-sm); flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    /* Indicadores */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-md); margin-bottom: var(--space-lg);
+    }
+    .kpi {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: var(--space-md) var(--space-lg);
+      box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: var(--space-md);
+    }
+    .kpi-icon {
+      width: 42px; height: 42px; border-radius: var(--radius-sm); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(37,99,235,0.1); color: var(--color-primary);
+    }
+    .kpi-icon svg { width: 20px; height: 20px; }
+    .kpi-icon.tone-orange { background: rgba(249,115,22,0.12); color: var(--color-cta); }
+    .kpi-icon.tone-green  { background: rgba(16,185,129,0.12); color: var(--color-success); }
+    .kpi-icon.tone-gray   { background: var(--color-muted);    color: var(--color-text-light); }
+    .kpi-val { font-family: 'Nunito', sans-serif; font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+    .kpi-lbl { font-size: 0.78rem; color: var(--color-text-light); font-weight: 500; }
+
+    /* Grid de cards */
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--space-lg); align-items: start; }
+    .dash-grid.single { grid-template-columns: 1fr; }
+
+    .dcard {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .dcard-head {
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--color-border);
+      display: flex; align-items: flex-start; gap: var(--space-sm);
+    }
+    .dcard-head h3 { font-size: 1rem; }
+    .dcard-head p { font-size: 0.78rem; color: var(--color-text-light); }
+    .dcard-head .spacer { flex: 1; }
+
+    .drow {
+      display: flex; align-items: center; gap: var(--space-md);
+      padding: 12px var(--space-lg); border-bottom: 1px solid var(--color-border);
+    }
+    .drow:last-of-type { border-bottom: none; }
+    .drow:hover { background: var(--color-muted); }
+    .drow-mark {
+      width: 36px; height: 36px; border-radius: var(--radius-sm); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-muted); color: var(--color-text-light);
+      font-size: 0.72rem; font-weight: 700;
+    }
+    .drow-mark svg { width: 17px; height: 17px; }
+    .drow-body { flex: 1; min-width: 0; }
+    .drow-title { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+    .drow-sub { font-size: 0.78rem; color: var(--color-text-light); }
+    .drow-meta { font-size: 0.72rem; color: var(--color-text-light); display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+    .drow-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+    .dcard-foot {
+      padding: 12px var(--space-lg); border-top: 1px solid var(--color-border);
+      background: var(--color-muted);
+      display: flex; align-items: center; gap: var(--space-sm);
+    }
+    .dcard-foot .spacer { flex: 1; }
+    .dcard-foot .hint { font-size: 0.75rem; color: var(--color-text-light); }
+
+    /* Card de contadores (Cliente — prestadores por tipo de serviço) */
+    .counter-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-sm); padding: var(--space-lg);
+    }
+    .counter {
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      padding: var(--space-md); text-align: left; background: transparent;
+      transition: all 0.15s ease; display: block; width: 100%;
+    }
+    .counter:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+    .counter .cval { font-family: 'Nunito', sans-serif; font-size: 1.45rem; font-weight: 800; color: var(--color-primary); line-height: 1.1; }
+    .counter .clbl { font-size: 0.82rem; font-weight: 600; color: var(--color-text); }
+    .counter .chint { font-size: 0.72rem; color: var(--color-text-light); }
+
+    /* Estado vazio */
+    .dempty { padding: var(--space-xl) var(--space-lg); text-align: center; color: var(--color-text-light); font-size: 0.88rem; }
+
+    /* Nota de decisão de dono */
+    .note {
+      border: 1px solid var(--color-border); border-left: 4px solid var(--color-cta);
+      background: var(--color-surface); border-radius: var(--radius-md);
+      padding: var(--space-md) var(--space-lg); margin-bottom: var(--space-lg);
+      font-size: 0.85rem; color: var(--color-text-light);
+    }
+    .note strong { color: var(--color-text); }
+
+    /* ========== RESPONSIVO ========== */
+    @media (max-width: 1024px) {
+      .sidebar { display: none; }
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .content { padding: var(--space-lg) var(--space-md) 96px; }
+      .topbar { padding: 0 var(--space-md); }
+      .drow { flex-wrap: wrap; }
+      .drow-actions { width: 100%; justify-content: flex-start; padding-left: 52px; }
+      .profile-meta { display: none; }
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+    /* Bottom tab bar (mobile — espelha USP-062) */
+    .bottom-tabs { display: none; }
+    @media (max-width: 1024px) {
+      .bottom-tabs {
+        display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
+        background: var(--color-surface); border-top: 1px solid var(--color-border);
+        padding: 6px 4px; padding-bottom: max(6px, env(safe-area-inset-bottom));
+      }
+      .btab {
+        flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+        padding: 6px 2px; color: var(--color-text-light); font-size: 0.66rem; font-weight: 600;
+        background: transparent; border: none; border-radius: var(--radius-sm);
+      }
+      .btab.active { color: var(--color-primary); }
+      .btab svg { width: 20px; height: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ BARRA DE PROTÓTIPO (fora do produto) ============ -->
+  <div class="proto-bar">
+    <span class="proto-label">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23-.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>
+      Protótipo · Painel da área logada
+    </span>
+    <span class="proto-chips" id="roleChips"></span>
+    <span class="spacer"></span>
+    <button class="proto-chip" onclick="toggleTheme()">Tema</button>
+    <a class="proto-link" href="index.html">← Protótipo público</a>
+  </div>
+
+  <!-- ============ CASCA ============ -->
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-icon">A</div>
+        <span class="brand-text">ASONSEG</span>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="Navegação principal"></nav>
+      <div class="sidebar-foot">
+        <button class="snav-item" style="width:100%;border:none;background:transparent;" onclick="toggleSidebar()">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+          <span>Recolher menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar">
+        <button class="icon-btn" onclick="toggleSidebar()" aria-label="Alternar menu lateral">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+        </button>
+        <div class="crumb">
+          <span>ASONSEG</span><span class="sep">/</span><strong>Início</strong>
+        </div>
+        <span class="spacer"></span>
+        <button class="profile-btn" aria-label="Menu de perfil">
+          <span class="avatar" id="avatarInitials">MS</span>
+          <span class="profile-meta">
+            <span class="pname" id="profileName">Maria Silva</span>
+            <span class="prole" id="profileRole">Candidato(a)</span>
+          </span>
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </button>
+      </header>
+
+      <main class="content" id="content"></main>
+    </div>
+  </div>
+
+  <nav class="bottom-tabs" id="bottomTabs" aria-label="Navegação primária"></nav>
+
+<script>
+// =====================================================================
+// ÍCONES
+// =====================================================================
+const I = {
+  home:      'M2.25 12l8.955-8.955a1.125 1.125 0 011.59 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75',
+  briefcase: 'M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0',
+  doc:       'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+  user:      'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z',
+  users:     'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+  shield:    'M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.746 3.746 0 0121 12z',
+  chart:     'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
+  send:      'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5',
+  building:  'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
+  key:       'M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z',
+  lock:      'M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z',
+  sparkles:  'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z',
+  bell:      'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
+  wrench:    'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437',
+  heart:     'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
+  clock:     'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
+  check:     'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  plus:      'M12 4.5v15m7.5-7.5h-15',
+  search:    'm21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z',
+  gear:      'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z',
+};
+const svg = (d, size) => `<svg width="${size||18}" height="${size||18}" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="${d}"/></svg>`;
+
+// =====================================================================
+// DADOS MOCK — 5 registros por lista (regra transversal do painel)
+// =====================================================================
+const ROLES = {
+  CANDIDATE: {
+    label: 'Candidato(a)',
+    person: 'Maria Silva', initials: 'MS',
+    greeting: 'Suas oportunidades e candidaturas em um lugar só.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'briefcase', label: 'Área do candidato' },
+      { icon: 'search', label: 'Buscar vagas' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+      { icon: 'sparkles', label: 'Ativar um papel' },
+      { icon: 'lock', label: 'Meus consentimentos' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'briefcase', label: 'Candidato' },
+      { icon: 'search', label: 'Vagas' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Buscar vagas', variant: 'btn-primary', icon: 'search' },
+      { label: 'Atualizar currículo', variant: 'btn-outline', icon: 'doc' },
+    ],
+    kpis: [
+      { icon: 'briefcase', tone: '',      val: '247', lbl: 'Vagas abertas no portal' },
+      { icon: 'send',      tone: 'tone-orange', val: '7',  lbl: 'Minhas candidaturas' },
+      { icon: 'clock',     tone: 'tone-gray',   val: '3',  lbl: 'Em análise pela empresa' },
+      { icon: 'check',     tone: 'tone-green',  val: 'Publicado', lbl: 'Status do currículo' },
+    ],
+    cards: [
+      {
+        title: 'Vagas que combinam com você',
+        sub: 'Mais recentes nas áreas do seu currículo · atualizado hoje',
+        icon: 'sparkles',
+        rows: [
+          { mark: 'briefcase', title: 'Técnico(a) em Enfermagem', badge: { t: 'Nova', k: 'green' }, sub: 'Clínica São Lucas · Canasvieiras', meta: ['CLT', 'R$ 2.500 – R$ 3.200', 'há 2 dias'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Candidatar-se', v: 'btn-primary' }] },
+          { mark: 'briefcase', title: 'Recepcionista', badge: { t: 'Nova', k: 'green' }, sub: 'Hotel Slaviero · Jurerê', meta: ['CLT', 'R$ 1.900 – R$ 2.400', 'há 3 dias'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Candidatar-se', v: 'btn-primary' }] },
+          { mark: 'briefcase', title: 'Auxiliar Administrativo', sub: 'Supermercado Angeloni · Canasvieiras', meta: ['CLT', 'R$ 1.800 – R$ 2.200', 'há 5 dias'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Candidatar-se', v: 'btn-primary' }] },
+          { mark: 'briefcase', title: 'Cozinheiro(a)', sub: 'Restaurante Mar Aberto · Canasvieiras', meta: ['CLT', 'R$ 2.200 – R$ 2.800', 'há 6 dias'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Candidatar-se', v: 'btn-primary' }] },
+          { mark: 'briefcase', title: 'Vendedor(a) de Loja', sub: 'Havan · Jurerê', meta: ['CLT', 'R$ 1.600 + comissão', 'há 7 dias'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Candidatar-se', v: 'btn-primary' }] },
+        ],
+        foot: { label: 'Ver todas as vagas abertas', hint: '5 de 247' },
+      },
+      {
+        title: 'Minhas candidaturas',
+        sub: 'Acompanhe o andamento e retire a candidatura quando quiser',
+        icon: 'send',
+        rows: [
+          { mark: 'send', title: 'Auxiliar de Produção', badge: { t: 'Em análise', k: 'blue' }, sub: 'Panificadora Estrela', meta: ['enviada em 12/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Retirar candidatura', v: 'btn-danger' }] },
+          { mark: 'send', title: 'Motorista Entregador', badge: { t: 'Em análise', k: 'blue' }, sub: 'Farmácia Precolândia', meta: ['enviada em 10/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Retirar candidatura', v: 'btn-danger' }] },
+          { mark: 'send', title: 'Estagiário(a) de Marketing', badge: { t: 'Enviada', k: 'gray' }, sub: 'Agência Oceano Digital', meta: ['enviada em 08/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Retirar candidatura', v: 'btn-danger' }] },
+          { mark: 'send', title: 'Recepcionista', badge: { t: 'Encerrada', k: 'gray' }, sub: 'Pousada Costão Norte', meta: ['vaga encerrada em 05/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+          { mark: 'send', title: 'Vendedor(a) de Loja', badge: { t: 'Não selecionado', k: 'red' }, sub: 'Havan', meta: ['retorno em 01/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver todas as candidaturas', hint: '5 de 7' },
+      },
+    ],
+  },
+
+  PROVIDER: {
+    label: 'Prestador(a)',
+    person: 'Carlos Santos', initials: 'CS',
+    greeting: 'Quem demonstrou interesse nos seus serviços.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'wrench', label: 'Área do prestador' },
+      { icon: 'doc', label: 'Meus serviços' },
+      { icon: 'heart', label: 'Manifestações de interesse' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+      { icon: 'sparkles', label: 'Ativar um papel' },
+      { icon: 'lock', label: 'Meus consentimentos' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'wrench', label: 'Prestador' },
+      { icon: 'heart', label: 'Interesses' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Cadastrar serviço', variant: 'btn-primary', icon: 'plus' },
+      { label: 'Ver meu perfil público', variant: 'btn-outline', icon: 'user' },
+    ],
+    kpis: [
+      { icon: 'heart',  tone: 'tone-orange', val: '12', lbl: 'Pessoas interessadas' },
+      { icon: 'bell',   tone: '',            val: '5',  lbl: 'Novos interesses (7 dias)' },
+      { icon: 'wrench', tone: 'tone-gray',   val: '4',  lbl: 'Serviços publicados' },
+      { icon: 'check',  tone: 'tone-green',  val: 'Publicado', lbl: 'Status do perfil' },
+    ],
+    cards: [
+      {
+        title: 'Pessoas interessadas em contratar você',
+        sub: 'Manifestações de interesse recebidas nos seus serviços',
+        icon: 'heart',
+        rows: [
+          { mark: 'AO', title: 'Ana Oliveira', badge: { t: 'Novo', k: 'green' }, sub: 'Interesse em: Limpeza residencial', meta: ['recebido hoje, 09:12'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-primary' }, { l: 'Marcar respondido', v: 'btn-outline' }] },
+          { mark: 'PL', title: 'Pedro Lima', badge: { t: 'Novo', k: 'green' }, sub: 'Interesse em: Pequenos reparos elétricos', meta: ['recebido ontem, 18:40'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-primary' }, { l: 'Marcar respondido', v: 'btn-outline' }] },
+          { mark: 'JC', title: 'Juliana Costa', badge: { t: 'Novo', k: 'green' }, sub: 'Interesse em: Limpeza residencial', meta: ['recebido em 13/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-primary' }, { l: 'Marcar respondido', v: 'btn-outline' }] },
+          { mark: 'RF', title: 'Roberto Freitas', badge: { t: 'Respondido', k: 'blue' }, sub: 'Interesse em: Montagem de móveis', meta: ['recebido em 11/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+          { mark: 'LM', title: 'Lucia Martins', badge: { t: 'Respondido', k: 'blue' }, sub: 'Interesse em: Pequenos reparos elétricos', meta: ['recebido em 09/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver lista completa de interessados', hint: '5 de 12' },
+      },
+      {
+        title: 'Meus serviços',
+        sub: 'Situação de moderação e interesses por serviço',
+        icon: 'wrench',
+        rows: [
+          { mark: 'wrench', title: 'Limpeza residencial', badge: { t: 'Publicado', k: 'green' }, sub: 'R$ 120 / diária', meta: ['6 interessados'],
+            actions: [{ l: 'Editar', v: 'btn-outline' }, { l: 'Ver interessados', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Pequenos reparos elétricos', badge: { t: 'Publicado', k: 'green' }, sub: 'R$ 90 / hora', meta: ['4 interessados'],
+            actions: [{ l: 'Editar', v: 'btn-outline' }, { l: 'Ver interessados', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Montagem de móveis', badge: { t: 'Publicado', k: 'green' }, sub: 'R$ 150 / serviço', meta: ['2 interessados'],
+            actions: [{ l: 'Editar', v: 'btn-outline' }, { l: 'Ver interessados', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Jardinagem', badge: { t: 'Em análise', k: 'orange' }, sub: 'R$ 100 / diária', meta: ['aguardando moderação'],
+            actions: [{ l: 'Editar', v: 'btn-outline' }] },
+          { mark: 'wrench', title: 'Pintura residencial', badge: { t: 'Ajustes solicitados', k: 'red' }, sub: 'R$ 200 / diária', meta: ['motivo informado pela moderação'],
+            actions: [{ l: 'Ver motivo', v: 'btn-outline' }, { l: 'Corrigir e reenviar', v: 'btn-cta' }] },
+        ],
+        foot: { label: 'Ver todos os meus serviços', hint: '5 de 5' },
+      },
+    ],
+  },
+
+  CLIENT: {
+    label: 'Cliente',
+    person: 'Roberto Freitas', initials: 'RF',
+    greeting: 'Encontre prestadores e acompanhe seus pedidos.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'search', label: 'Buscar serviços' },
+      { icon: 'send', label: 'Meus pedidos' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+      { icon: 'sparkles', label: 'Ativar um papel' },
+      { icon: 'lock', label: 'Meus consentimentos' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'search', label: 'Serviços' },
+      { icon: 'send', label: 'Pedidos' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Buscar serviços', variant: 'btn-primary', icon: 'search' },
+      { label: 'Ver meus pedidos', variant: 'btn-outline', icon: 'send' },
+    ],
+    kpis: [
+      { icon: 'users',  tone: '',            val: '56', lbl: 'Prestadores disponíveis' },
+      { icon: 'wrench', tone: 'tone-gray',   val: '6',  lbl: 'Tipos de serviço' },
+      { icon: 'send',   tone: 'tone-orange', val: '9',  lbl: 'Serviços solicitados' },
+      { icon: 'clock',  tone: 'tone-green',  val: '2',  lbl: 'Em andamento' },
+    ],
+    cards: [
+      {
+        kind: 'counters',
+        title: 'Prestadores por tipo de serviço',
+        sub: 'Clique em uma categoria para ver a lista filtrada',
+        icon: 'users',
+        counters: [
+          { val: 18, lbl: 'Limpeza e diária',   hint: '4 novos este mês' },
+          { val: 12, lbl: 'Beleza e estética',  hint: '2 novos este mês' },
+          { val: 9,  lbl: 'Reformas e reparos', hint: '1 novo este mês' },
+          { val: 7,  lbl: 'Aulas e reforço',    hint: '—' },
+          { val: 6,  lbl: 'Cuidados e saúde',   hint: '1 novo este mês' },
+          { val: 4,  lbl: 'Tecnologia',         hint: '—' },
+        ],
+        foot: { label: 'Ver todos os serviços', hint: '6 categorias · 56 prestadores' },
+      },
+      {
+        title: 'Últimos serviços solicitados',
+        sub: 'Histórico das suas manifestações de interesse',
+        icon: 'send',
+        rows: [
+          { mark: 'wrench', title: 'Limpeza residencial', badge: { t: 'Em andamento', k: 'blue' }, sub: 'Carlos Santos · Canasvieiras', meta: ['solicitado em 13/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Contatar', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Montagem de móveis', badge: { t: 'Em andamento', k: 'blue' }, sub: 'Carlos Santos · Canasvieiras', meta: ['solicitado em 11/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Contatar', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Aula de reforço — Matemática', badge: { t: 'Concluído', k: 'green' }, sub: 'Pedro Lima · Jurerê', meta: ['solicitado em 02/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Solicitar novamente', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Corte e escova', badge: { t: 'Concluído', k: 'green' }, sub: 'Juliana Costa · Ingleses', meta: ['solicitado em 28/07/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Solicitar novamente', v: 'btn-primary' }] },
+          { mark: 'wrench', title: 'Jardinagem', badge: { t: 'Sem retorno', k: 'gray' }, sub: 'Ana Oliveira · Canasvieiras', meta: ['solicitado em 20/07/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver histórico completo', hint: '5 de 9' },
+      },
+    ],
+  },
+
+  COMPANY_RESPONSIBLE: {
+    label: 'Responsável de Empresa',
+    person: 'Fernanda Rocha', initials: 'FR',
+    greeting: 'Supermercado Angeloni · suas vagas e candidatos.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'briefcase', label: 'Minhas vagas' },
+      { icon: 'users', label: 'Candidatos' },
+      { icon: 'building', label: 'Empresas' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+      { icon: 'lock', label: 'Meus consentimentos' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'briefcase', label: 'Vagas' },
+      { icon: 'users', label: 'Candidatos' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Publicar nova vaga', variant: 'btn-cta', icon: 'plus' },
+      { label: 'Buscar candidatos', variant: 'btn-outline', icon: 'search' },
+    ],
+    kpis: [
+      { icon: 'briefcase', tone: 'tone-gray',   val: '14', lbl: 'Vagas criadas' },
+      { icon: 'check',     tone: 'tone-green',  val: '6',  lbl: 'Vagas em aberto' },
+      { icon: 'users',     tone: '',            val: '87', lbl: 'Candidatos aplicados' },
+      { icon: 'bell',      tone: 'tone-orange', val: '31', lbl: 'Candidatos ativos' },
+    ],
+    cards: [
+      {
+        title: 'Minhas vagas',
+        sub: 'Situação de cada vaga e volume de candidaturas',
+        icon: 'briefcase',
+        rows: [
+          { mark: 'briefcase', title: 'Auxiliar Administrativo', badge: { t: 'Publicada', k: 'green' }, sub: '18 candidatos · 9 ativos', meta: ['publicada em 10/08/2026'],
+            actions: [{ l: 'Ver candidatos', v: 'btn-primary' }, { l: 'Editar', v: 'btn-outline' }] },
+          { mark: 'briefcase', title: 'Repositor(a) de Mercearia', badge: { t: 'Publicada', k: 'green' }, sub: '12 candidatos · 7 ativos', meta: ['publicada em 08/08/2026'],
+            actions: [{ l: 'Ver candidatos', v: 'btn-primary' }, { l: 'Editar', v: 'btn-outline' }] },
+          { mark: 'briefcase', title: 'Operador(a) de Caixa', badge: { t: 'Em análise', k: 'orange' }, sub: 'aguardando moderação', meta: ['enviada em 14/08/2026'],
+            actions: [{ l: 'Ver vaga', v: 'btn-outline' }] },
+          { mark: 'briefcase', title: 'Açougueiro(a)', badge: { t: 'Ajustes solicitados', k: 'red' }, sub: 'motivo informado pela moderação', meta: ['devolvida em 12/08/2026'],
+            actions: [{ l: 'Ver motivo', v: 'btn-outline' }, { l: 'Corrigir e reenviar', v: 'btn-cta' }] },
+          { mark: 'briefcase', title: 'Auxiliar de Padaria', badge: { t: 'Encerrada', k: 'gray' }, sub: '23 candidatos · preenchida', meta: ['encerrada em 30/07/2026'],
+            actions: [{ l: 'Ver candidatos', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver todas as vagas', hint: '5 de 14' },
+      },
+      {
+        title: 'Candidaturas recentes',
+        sub: 'Pessoas que se aplicaram às suas vagas',
+        icon: 'users',
+        rows: [
+          { mark: 'MS', title: 'Maria Silva', badge: { t: 'Nova', k: 'green' }, sub: 'Auxiliar Administrativo', meta: ['aplicou hoje, 08:31'],
+            actions: [{ l: 'Ver perfil', v: 'btn-primary' }, { l: 'Ver vaga', v: 'btn-outline' }] },
+          { mark: 'CS', title: 'Carlos Santos', badge: { t: 'Nova', k: 'green' }, sub: 'Auxiliar Administrativo', meta: ['aplicou ontem, 19:02'],
+            actions: [{ l: 'Ver perfil', v: 'btn-primary' }, { l: 'Ver vaga', v: 'btn-outline' }] },
+          { mark: 'JC', title: 'Juliana Costa', badge: { t: 'Em análise', k: 'blue' }, sub: 'Repositor(a) de Mercearia', meta: ['aplicou em 13/08/2026'],
+            actions: [{ l: 'Ver perfil', v: 'btn-primary' }, { l: 'Ver vaga', v: 'btn-outline' }] },
+          { mark: 'PL', title: 'Pedro Lima', badge: { t: 'Em análise', k: 'blue' }, sub: 'Repositor(a) de Mercearia', meta: ['aplicou em 12/08/2026'],
+            actions: [{ l: 'Ver perfil', v: 'btn-primary' }, { l: 'Ver vaga', v: 'btn-outline' }] },
+          { mark: 'AO', title: 'Ana Oliveira', badge: { t: 'Em análise', k: 'blue' }, sub: 'Auxiliar Administrativo', meta: ['aplicou em 11/08/2026'],
+            actions: [{ l: 'Ver perfil', v: 'btn-primary' }, { l: 'Ver vaga', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver todos os candidatos', hint: '5 de 87' },
+      },
+    ],
+  },
+
+  COORDINATOR: {
+    label: 'Coordenador(a)',
+    person: 'Helena Braga', initials: 'HB',
+    greeting: 'Fila de moderação e encaminhamentos da operação.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { g: 'Institucional' },
+      { icon: 'shield', label: 'Fila de moderação' },
+      { icon: 'chart', label: 'Relatórios' },
+      { icon: 'send', label: 'Encaminhamentos' },
+      { icon: 'users', label: 'Cadastro assistido' },
+      { icon: 'key', label: 'Reivindicações de credencial' },
+      { icon: 'gear', label: 'Permissões delegadas' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'shield', label: 'Moderação' },
+      { icon: 'send', label: 'Encaminhar' },
+      { icon: 'chart', label: 'Relatórios' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Abrir fila de moderação', variant: 'btn-primary', icon: 'shield' },
+      { label: 'Novo encaminhamento', variant: 'btn-cta', icon: 'send' },
+      { label: 'Cadastro assistido', variant: 'btn-outline', icon: 'users' },
+    ],
+    kpis: [
+      { icon: 'shield',    tone: 'tone-orange', val: '12', lbl: 'Moderações pendentes' },
+      { icon: 'briefcase', tone: 'tone-gray',   val: '5',  lbl: 'Vagas na fila' },
+      { icon: 'doc',       tone: 'tone-gray',   val: '4',  lbl: 'Currículos na fila' },
+      { icon: 'send',      tone: 'tone-green',  val: '23', lbl: 'Encaminhamentos no mês' },
+    ],
+    cards: [
+      {
+        title: 'Fila de moderação',
+        sub: 'Conteúdo aguardando decisão · mais antigos primeiro',
+        icon: 'shield',
+        rows: [
+          { mark: 'shield', title: 'Operador(a) de Caixa', badge: { t: 'Vaga', k: 'blue' }, sub: 'Supermercado Angeloni', meta: ['na fila há 3 dias'],
+            actions: [{ l: 'Revisar', v: 'btn-primary' }, { l: 'Aprovar', v: 'btn-outline' }] },
+          { mark: 'shield', title: 'Currículo — Ana Oliveira', badge: { t: 'Currículo', k: 'orange' }, sub: 'Cozinheira Profissional', meta: ['na fila há 2 dias'],
+            actions: [{ l: 'Revisar', v: 'btn-primary' }, { l: 'Aprovar', v: 'btn-outline' }] },
+          { mark: 'shield', title: 'Jardinagem', badge: { t: 'Serviço', k: 'green' }, sub: 'Carlos Santos', meta: ['na fila há 2 dias'],
+            actions: [{ l: 'Revisar', v: 'btn-primary' }, { l: 'Aprovar', v: 'btn-outline' }] },
+          { mark: 'shield', title: 'Auxiliar de Cozinha', badge: { t: 'Vaga', k: 'blue' }, sub: 'Restaurante Mar Aberto · 1ª vaga da empresa', meta: ['na fila há 1 dia'],
+            actions: [{ l: 'Revisar', v: 'btn-primary' }, { l: 'Validar empresa', v: 'btn-cta' }] },
+          { mark: 'shield', title: 'Currículo — Pedro Lima', badge: { t: 'Currículo', k: 'orange' }, sub: 'Desenvolvedor Web Júnior', meta: ['na fila há 8 horas'],
+            actions: [{ l: 'Revisar', v: 'btn-primary' }, { l: 'Aprovar', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver fila completa', hint: '5 de 12' },
+      },
+      {
+        title: 'Encaminhamentos recentes',
+        sub: 'Pessoas encaminhadas a vagas e serviços',
+        icon: 'send',
+        rows: [
+          { mark: 'MS', title: 'Maria Silva → Técnico(a) em Enfermagem', badge: { t: 'Aguardando retorno', k: 'orange' }, sub: 'Clínica São Lucas', meta: ['encaminhada em 13/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Registrar resultado', v: 'btn-primary' }] },
+          { mark: 'CS', title: 'Carlos Santos → Auxiliar Administrativo', badge: { t: 'Aguardando retorno', k: 'orange' }, sub: 'Supermercado Angeloni', meta: ['encaminhado em 12/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Registrar resultado', v: 'btn-primary' }] },
+          { mark: 'AO', title: 'Ana Oliveira → Cozinheiro(a)', badge: { t: 'Contratada', k: 'green' }, sub: 'Restaurante Mar Aberto', meta: ['resultado em 09/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+          { mark: 'PL', title: 'Pedro Lima → Estagiário(a) de Marketing', badge: { t: 'Não contratado', k: 'red' }, sub: 'Agência Oceano Digital', meta: ['resultado em 06/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+          { mark: 'JC', title: 'Juliana Costa → Vendedor(a) de Loja', badge: { t: 'Contratada', k: 'green' }, sub: 'Havan', meta: ['resultado em 04/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver todos os encaminhamentos', hint: '5 de 23' },
+      },
+    ],
+  },
+
+  SOCIAL_ASSISTANT: {
+    label: 'Assistente social',
+    person: 'Beatriz Nunes', initials: 'BN',
+    greeting: 'Acompanhamento social e encaminhamentos.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { g: 'Institucional' },
+      { icon: 'send', label: 'Encaminhamentos' },
+      { icon: 'users', label: 'Cadastro assistido' },
+      { icon: 'key', label: 'Reivindicações de credencial' },
+      { icon: 'chart', label: 'Relatórios' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'send', label: 'Encaminhar' },
+      { icon: 'users', label: 'Cadastro' },
+      { icon: 'chart', label: 'Relatórios' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Novo encaminhamento', variant: 'btn-cta', icon: 'send' },
+      { label: 'Cadastro assistido', variant: 'btn-primary', icon: 'users' },
+      { label: 'Reivindicações', variant: 'btn-outline', icon: 'key' },
+    ],
+    note: 'Sem permissão de moderação hoje (<strong>SOCIAL_ASSISTANT</strong> tem apenas <strong>REFER_PERSON_TO_JOB</strong> e <strong>REGISTER_REFERRAL_RESULT</strong>). A fila aparece <strong>somente leitura</strong>, sem ações de decisão — decisão de dono na USP-067.',
+    kpis: [
+      { icon: 'send',   tone: '',            val: '23', lbl: 'Encaminhamentos no mês' },
+      { icon: 'clock',  tone: 'tone-orange', val: '7',  lbl: 'Aguardando resultado' },
+      { icon: 'users',  tone: 'tone-green',  val: '9',  lbl: 'Cadastros assistidos no mês' },
+      { icon: 'shield', tone: 'tone-gray',   val: '12', lbl: 'Moderações pendentes (leitura)' },
+    ],
+    cards: [
+      {
+        title: 'Encaminhamentos recentes',
+        sub: 'Pessoas encaminhadas a vagas e serviços',
+        icon: 'send',
+        rows: [
+          { mark: 'MS', title: 'Maria Silva → Técnico(a) em Enfermagem', badge: { t: 'Aguardando retorno', k: 'orange' }, sub: 'Clínica São Lucas', meta: ['encaminhada em 13/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Registrar resultado', v: 'btn-primary' }] },
+          { mark: 'CS', title: 'Carlos Santos → Auxiliar Administrativo', badge: { t: 'Aguardando retorno', k: 'orange' }, sub: 'Supermercado Angeloni', meta: ['encaminhado em 12/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }, { l: 'Registrar resultado', v: 'btn-primary' }] },
+          { mark: 'AO', title: 'Ana Oliveira → Cozinheiro(a)', badge: { t: 'Contratada', k: 'green' }, sub: 'Restaurante Mar Aberto', meta: ['resultado em 09/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+          { mark: 'PL', title: 'Pedro Lima → Estagiário(a) de Marketing', badge: { t: 'Não contratado', k: 'red' }, sub: 'Agência Oceano Digital', meta: ['resultado em 06/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+          { mark: 'JC', title: 'Juliana Costa → Vendedor(a) de Loja', badge: { t: 'Contratada', k: 'green' }, sub: 'Havan', meta: ['resultado em 04/08/2026'],
+            actions: [{ l: 'Ver detalhes', v: 'btn-outline' }] },
+        ],
+        foot: { label: 'Ver todos os encaminhamentos', hint: '5 de 23' },
+      },
+      {
+        title: 'Fila de moderação',
+        sub: 'Somente leitura — decisões são do coordenador ou de quem tem delegação',
+        icon: 'shield',
+        rows: [
+          { mark: 'shield', title: 'Operador(a) de Caixa', badge: { t: 'Vaga', k: 'blue' }, sub: 'Supermercado Angeloni', meta: ['na fila há 3 dias'], actions: [] },
+          { mark: 'shield', title: 'Currículo — Ana Oliveira', badge: { t: 'Currículo', k: 'orange' }, sub: 'Cozinheira Profissional', meta: ['na fila há 2 dias'], actions: [] },
+          { mark: 'shield', title: 'Jardinagem', badge: { t: 'Serviço', k: 'green' }, sub: 'Carlos Santos', meta: ['na fila há 2 dias'], actions: [] },
+          { mark: 'shield', title: 'Auxiliar de Cozinha', badge: { t: 'Vaga', k: 'blue' }, sub: 'Restaurante Mar Aberto', meta: ['na fila há 1 dia'], actions: [] },
+          { mark: 'shield', title: 'Currículo — Pedro Lima', badge: { t: 'Currículo', k: 'orange' }, sub: 'Desenvolvedor Web Júnior', meta: ['na fila há 8 horas'], actions: [] },
+        ],
+        foot: { label: 'Ver fila completa', hint: '5 de 12' },
+      },
+    ],
+  },
+
+  BOARD: {
+    label: 'Diretoria',
+    person: 'Antônio Vieira', initials: 'AV',
+    greeting: 'Visão institucional do portal.',
+    nav: [
+      { g: 'Painel' },
+      { icon: 'home', label: 'Início', active: true },
+      { g: 'Institucional' },
+      { icon: 'chart', label: 'Relatórios' },
+      { icon: 'users', label: 'Cadastro assistido' },
+      { icon: 'key', label: 'Reivindicações de credencial' },
+      { g: 'Minha conta' },
+      { icon: 'user', label: 'Meu perfil' },
+    ],
+    tabs: [
+      { icon: 'home', label: 'Início', active: true },
+      { icon: 'chart', label: 'Relatórios' },
+      { icon: 'users', label: 'Cadastro' },
+      { icon: 'user', label: 'Perfil' },
+    ],
+    quick: [
+      { label: 'Abrir relatórios', variant: 'btn-primary', icon: 'chart' },
+      { label: 'Reivindicações', variant: 'btn-outline', icon: 'key' },
+    ],
+    note: 'A diretoria <strong>não tem permissão inerente</strong> hoje (só leitura de relatórios). Os cards abaixo são <strong>somente leitura</strong>, sem ações de decisão — decisão de dono na USP-067.',
+    kpis: [
+      { icon: 'shield', tone: 'tone-orange', val: '12',    lbl: 'Moderações pendentes' },
+      { icon: 'send',   tone: '',            val: '23',    lbl: 'Encaminhamentos no mês' },
+      { icon: 'users',  tone: 'tone-green',  val: '1.842', lbl: 'Pessoas ativas' },
+      { icon: 'building', tone: 'tone-gray', val: '156',   lbl: 'Empresas ativas' },
+    ],
+    cards: [
+      {
+        title: 'Fila de moderação',
+        sub: 'Somente leitura — acompanhamento do backlog da operação',
+        icon: 'shield',
+        rows: [
+          { mark: 'shield', title: 'Operador(a) de Caixa', badge: { t: 'Vaga', k: 'blue' }, sub: 'Supermercado Angeloni', meta: ['na fila há 3 dias'], actions: [] },
+          { mark: 'shield', title: 'Currículo — Ana Oliveira', badge: { t: 'Currículo', k: 'orange' }, sub: 'Cozinheira Profissional', meta: ['na fila há 2 dias'], actions: [] },
+          { mark: 'shield', title: 'Jardinagem', badge: { t: 'Serviço', k: 'green' }, sub: 'Carlos Santos', meta: ['na fila há 2 dias'], actions: [] },
+          { mark: 'shield', title: 'Auxiliar de Cozinha', badge: { t: 'Vaga', k: 'blue' }, sub: 'Restaurante Mar Aberto', meta: ['na fila há 1 dia'], actions: [] },
+          { mark: 'shield', title: 'Currículo — Pedro Lima', badge: { t: 'Currículo', k: 'orange' }, sub: 'Desenvolvedor Web Júnior', meta: ['na fila há 8 horas'], actions: [] },
+        ],
+        foot: { label: 'Ver fila completa', hint: '5 de 12' },
+      },
+      {
+        title: 'Encaminhamentos recentes',
+        sub: 'Somente leitura — resultado consolidado no relatório social',
+        icon: 'send',
+        rows: [
+          { mark: 'MS', title: 'Maria Silva → Técnico(a) em Enfermagem', badge: { t: 'Aguardando retorno', k: 'orange' }, sub: 'Clínica São Lucas', meta: ['13/08/2026'], actions: [] },
+          { mark: 'CS', title: 'Carlos Santos → Auxiliar Administrativo', badge: { t: 'Aguardando retorno', k: 'orange' }, sub: 'Supermercado Angeloni', meta: ['12/08/2026'], actions: [] },
+          { mark: 'AO', title: 'Ana Oliveira → Cozinheiro(a)', badge: { t: 'Contratada', k: 'green' }, sub: 'Restaurante Mar Aberto', meta: ['09/08/2026'], actions: [] },
+          { mark: 'PL', title: 'Pedro Lima → Estagiário(a) de Marketing', badge: { t: 'Não contratado', k: 'red' }, sub: 'Agência Oceano Digital', meta: ['06/08/2026'], actions: [] },
+          { mark: 'JC', title: 'Juliana Costa → Vendedor(a) de Loja', badge: { t: 'Contratada', k: 'green' }, sub: 'Havan', meta: ['04/08/2026'], actions: [] },
+        ],
+        foot: { label: 'Ver relatório social completo', hint: '5 de 23' },
+      },
+    ],
+  },
+};
+
+// =====================================================================
+// RENDER
+// =====================================================================
+let currentRole = 'CANDIDATE';
+
+function renderChips() {
+  document.getElementById('roleChips').innerHTML = Object.entries(ROLES).map(([k, r]) =>
+    `<button class="proto-chip ${k === currentRole ? 'active' : ''}" onclick="setRole('${k}')">${r.label}</button>`
+  ).join('');
+}
+
+function renderSidebar(r) {
+  document.getElementById('sidebarNav').innerHTML = r.nav.map(item =>
+    item.g
+      ? `<div class="snav-group">${item.g}</div>`
+      : `<a class="snav-item ${item.active ? 'active' : ''}" href="#">${svg(I[item.icon])}<span>${item.label}</span></a>`
+  ).join('');
+
+  document.getElementById('bottomTabs').innerHTML = r.tabs.map(t =>
+    `<button class="btab ${t.active ? 'active' : ''}">${svg(I[t.icon], 20)}<span>${t.label}</span></button>`
+  ).join('');
+}
+
+function renderMark(mark) {
+  return I[mark] ? svg(I[mark], 17) : mark;
+}
+
+function renderRow(row) {
+  const badge = row.badge ? `<span class="badge badge-${row.badge.k}">${row.badge.t}</span>` : '';
+  const meta = (row.meta || []).map(m => `<span>${m}</span>`).join('');
+  const actions = (row.actions || []).map(a => `<button class="btn ${a.v} btn-xs">${a.l}</button>`).join('');
+  return `
+    <div class="drow">
+      <div class="drow-mark">${renderMark(row.mark)}</div>
+      <div class="drow-body">
+        <div class="drow-title">${row.title}${badge}</div>
+        <div class="drow-sub">${row.sub}</div>
+        ${meta ? `<div class="drow-meta">${meta}</div>` : ''}
+      </div>
+      ${actions ? `<div class="drow-actions">${actions}</div>` : ''}
+    </div>`;
+}
+
+function renderCard(card) {
+  const body = card.kind === 'counters'
+    ? `<div class="counter-grid">${card.counters.map(c => `
+        <button class="counter">
+          <div class="cval">${c.val}</div>
+          <div class="clbl">${c.lbl}</div>
+          <div class="chint">${c.hint}</div>
+        </button>`).join('')}</div>`
+    : (card.rows && card.rows.length
+        ? card.rows.map(renderRow).join('')
+        : `<div class="dempty">Nada por aqui ainda.</div>`);
+
+  return `
+    <section class="dcard">
+      <div class="dcard-head">
+        <div class="kpi-icon" style="width:34px;height:34px;">${svg(I[card.icon], 17)}</div>
+        <div>
+          <h3>${card.title}</h3>
+          <p>${card.sub}</p>
+        </div>
+      </div>
+      ${body}
+      <div class="dcard-foot">
+        <button class="btn btn-ghost btn-xs">${card.foot.label} →</button>
+        <span class="spacer"></span>
+        <span class="hint">${card.foot.hint}</span>
+      </div>
+    </section>`;
+}
+
+function renderDashboard() {
+  const r = ROLES[currentRole];
+
+  document.getElementById('profileName').textContent = r.person;
+  document.getElementById('profileRole').textContent = r.label;
+  document.getElementById('avatarInitials').textContent = r.initials;
+
+  renderChips();
+  renderSidebar(r);
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-head">
+      <h1>Olá, ${r.person.split(' ')[0]}</h1>
+      <p>${r.greeting}</p>
+    </div>
+
+    ${r.note ? `<div class="note"><strong>Nota de RBAC (protótipo):</strong> ${r.note}</div>` : ''}
+
+    <div class="quick-actions">
+      ${r.quick.map(q => `<button class="btn ${q.variant}">${svg(I[q.icon], 16)}${q.label}</button>`).join('')}
+    </div>
+
+    <div class="kpi-grid">
+      ${r.kpis.map(k => `
+        <div class="kpi">
+          <div class="kpi-icon ${k.tone}">${svg(I[k.icon], 20)}</div>
+          <div>
+            <div class="kpi-val">${k.val}</div>
+            <div class="kpi-lbl">${k.lbl}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="dash-grid">
+      ${r.cards.map(renderCard).join('')}
+    </div>`;
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setRole(role) {
+  currentRole = role;
+  renderDashboard();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  localStorage.setItem('asonseg-theme', isDark ? 'light' : 'dark');
+}
+(function () {
+  const saved = localStorage.getItem('asonseg-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+    document.documentElement.setAttribute('data-theme', 'dark');
+})();
+
+renderDashboard();
+</script>
+</body>
+</html>

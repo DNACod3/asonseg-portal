@@ -101,6 +101,10 @@ export type {
 } from './schemas/taxonomy-suggestion';
 export { viewModerationQueue } from './queries/moderation-queue';
 export type { ModerationQueueItem } from './views/moderation-queue-item';
+// Contadores por contentKind da fila carregada, para os KPIs do painel
+// `/inicio` (USP-067 — PNL-05/06/07, A-14).
+export { countQueueByKind } from './domain/queue-kind-counts';
+export type { QueueKindCounts } from './domain/queue-kind-counts';
 export { listTaxonomySuggestions } from './queries/list-taxonomy-suggestions';
 export type { TaxonomySuggestionItem } from './views/taxonomy-suggestion-item';
 export { canApproveTaxonomySuggestions } from './server/taxonomy-suggestion-access';

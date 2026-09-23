@@ -113,6 +113,21 @@ skipIfNoDb('listPersonApplications — integração', () => {
     expect(active?.jobId).toBe(jobId);
   });
 
+  it('USP-067/T3: `jobStatus` reflete o status atual da vaga (A-01)', async () => {
+    const rows = await listPersonApplications(targetPersonId);
+    const active = rows.find((r) => r.cancelledAt === null);
+    expect(active?.jobStatus).toBe('ACTIVE');
+
+    await prisma.job.update({ where: { id: jobId }, data: { status: 'PAUSED' } });
+    try {
+      const pausedRows = await listPersonApplications(targetPersonId);
+      const pausedActive = pausedRows.find((r) => r.cancelledAt === null);
+      expect(pausedActive?.jobStatus).toBe('PAUSED');
+    } finally {
+      await prisma.job.update({ where: { id: jobId }, data: { status: 'ACTIVE' } });
+    }
+  });
+
   it('ordena a candidatura ativa antes da histórica (NULLS FIRST)', async () => {
     const rows = await listPersonApplications(targetPersonId);
     expect(rows).toHaveLength(2);

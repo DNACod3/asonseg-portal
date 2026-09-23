@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/lib/prisma';
+import type { ContentStatus } from '@/modules/moderation';
 
 /** Tamanho de página das candidaturas de uma Pessoa no painel consolidado (L-002). */
 export const PERSON_APPLICATIONS_PAGE_SIZE = 50;
@@ -7,12 +8,15 @@ export const PERSON_APPLICATIONS_PAGE_SIZE = 50;
 /**
  * Linha de candidatura projetada para o painel consolidado da Pessoa (USP-039).
  * `active = cancelledAt === null` (candidatura ATIVA vs. histórica/cancelada).
+ * `jobStatus` (USP-067 / T3 / A-01) permite derivar "em análise" do painel
+ * `/inicio` (candidatura ativa cuja vaga ainda está `ACTIVE`) sem coluna nova.
  * Nunca inclui PII de terceiros (candidato já é a própria Pessoa consultada).
  */
 export interface PersonApplicationRow {
   id: string;
   jobId: string;
   jobTitle: string;
+  jobStatus: ContentStatus;
   companyName: string;
   appliedAt: Date;
   cancelledAt: Date | null;
@@ -22,9 +26,9 @@ export interface PersonApplicationRow {
 
 /**
  * `select` explícito (molde `list-job-applicants.ts`) — carrega só o mínimo
- * operacional (título da vaga, nome fantasia da Empresa, datas, flags). Nunca
- * carrega PII de terceiros (o candidato é a própria Pessoa consultada; não há
- * dado de terceiro nesta dimensão).
+ * operacional (título da vaga, status da vaga, nome fantasia da Empresa,
+ * datas, flags). Nunca carrega PII de terceiros (o candidato é a própria
+ * Pessoa consultada; não há dado de terceiro nesta dimensão).
  */
 const personApplicationSelect = {
   id: true,
@@ -32,7 +36,7 @@ const personApplicationSelect = {
   appliedAt: true,
   cancelledAt: true,
   viaEncaminhamento: true,
-  job: { select: { title: true, company: { select: { nomeFantasia: true } } } },
+  job: { select: { title: true, status: true, company: { select: { nomeFantasia: true } } } },
 } satisfies Prisma.ApplicationSelect;
 
 /**
@@ -59,6 +63,7 @@ export async function listPersonApplications(personId: string): Promise<PersonAp
     id: row.id,
     jobId: row.jobId,
     jobTitle: row.job.title,
+    jobStatus: row.job.status as unknown as ContentStatus,
     companyName: row.job.company.nomeFantasia,
     appliedAt: row.appliedAt,
     cancelledAt: row.cancelledAt,

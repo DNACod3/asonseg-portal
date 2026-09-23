@@ -34,9 +34,23 @@ import { describe, expect, it } from 'vitest';
  * justificativa + `// eslint-disable-next-line no-restricted-imports`
  * imediatamente acima — a guarda trata isso como exceção revisada, não como
  * violação; qualquer OUTRO deep-import sem esse comentário continua barrado.
+ *
+ * **Escopo estendido a `src/app/(app)/inicio/_components/**` (L-027 / PR #297
+ * review):** `resubmit-job-button.tsx` e `resubmit-service-button.tsx` são o
+ * mesmo carve-out (Client Component do painel `/inicio`, USP-067, precisando
+ * de `submitJobForModeration`/`submitServiceForModeration` direto do
+ * arquivo-fonte, mesmo racional acima), mas fora de `src/modules/**` — a
+ * varredura original não os alcançava, deixando o carve-out sem verificação
+ * de máquina (só o `eslint-disable-next-line` inline, sem redundância
+ * CI-independente). Escolhida a opção (a) do L-027 — estender o `sourceFiles`
+ * a esta única pasta em vez de um segundo arquivo-guarda — para manter 1
+ * fonte de verdade; o restante de `src/app/**` não entra (há outros
+ * deep-imports documentados fora de `inicio/`, ex.: `app-bottom-nav.tsx`/
+ * `app-sidebar.tsx`, fora do escopo desta rodada — L-021).
  */
 
 const MODULES_DIR = join(process.cwd(), 'src/modules');
+const INICIO_COMPONENTS_DIR = join(process.cwd(), 'src/app/(app)/inicio/_components');
 const DISABLE_COMMENT = '// eslint-disable-next-line no-restricted-imports';
 const DEEP_IMPORT_RE = /from\s+'@\/modules\/[^/']+\/[^']+'/;
 
@@ -52,11 +66,16 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
+/** Arquivos varridos por esta guarda: módulos + os componentes do painel `/inicio`. */
+function scannedFiles(): string[] {
+  return [...sourceFiles(MODULES_DIR), ...sourceFiles(INICIO_COMPONENTS_DIR)];
+}
+
 describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', () => {
   it('nenhum deep-import de módulo sem a exceção documentada (eslint-disable-next-line + justificativa)', () => {
     const offenders: string[] = [];
 
-    for (const file of sourceFiles(MODULES_DIR)) {
+    for (const file of scannedFiles()) {
       const lines = readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, idx) => {
         if (!DEEP_IMPORT_RE.test(line)) return;
@@ -69,10 +88,10 @@ describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', ()
     expect(offenders).toEqual([]);
   });
 
-  it('a exceção documentada continua restrita aos 5 arquivos conhecidos (client/server boundary)', () => {
+  it('a exceção documentada continua restrita aos 7 arquivos conhecidos (client/server boundary)', () => {
     const knownExceptionFiles = new Set<string>();
 
-    for (const file of sourceFiles(MODULES_DIR)) {
+    for (const file of scannedFiles()) {
       const lines = readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, idx) => {
         if (!DEEP_IMPORT_RE.test(line)) return;
@@ -88,6 +107,8 @@ describe('F0-MN-02 — módulos importam-se só pelo barrel (@/modules/<x>)', ()
         join(MODULES_DIR, 'jobs/components/job-form.tsx'),
         join(MODULES_DIR, 'services/components/service-form.tsx'),
         join(MODULES_DIR, 'cv-extraction/components/CvUploadForm.tsx'),
+        join(INICIO_COMPONENTS_DIR, 'resubmit-job-button.tsx'),
+        join(INICIO_COMPONENTS_DIR, 'resubmit-service-button.tsx'),
       ].sort(),
     );
   });
